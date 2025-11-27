@@ -1,0 +1,676 @@
+{
+  "formId": "grasp_enrollment_2025",
+  "title": "Greenland Recreational After School Program \u2013 Enrollment Form",
+  "version": "1.0.0",
+  "steps": [
+    {
+      "id": "child_parent_info",
+      "title": "Child & Parent Information",
+      "description": "Tell us about your child and the primary parents/guardians.",
+      "groups": [
+        {
+          "id": "child_basic",
+          "title": "Child",
+          "fields": [
+            {
+              "name": "child_name",
+              "label": "Child\u2019s name",
+              "type": "text",
+              "inputType": "text",
+              "required": true
+            },
+            {
+              "name": "child_birth_date",
+              "label": "Birth date",
+              "type": "date",
+              "required": true
+            },
+            {
+              "name": "subsidy_file_number",
+              "label": "Subsidy File #",
+              "type": "text",
+              "required": false
+            }
+          ]
+        },
+        {
+          "id": "parent1",
+          "title": "Parent / Guardian 1",
+          "fields": [
+            {
+              "name": "parent1_name",
+              "label": "Parent/Guardian\u2019s name",
+              "type": "text",
+              "required": true
+            },
+            {
+              "name": "parent1_email",
+              "label": "E-mail address",
+              "type": "text",
+              "inputType": "email",
+              "required": true
+            },
+            {
+              "name": "parent1_home_address",
+              "label": "Home address",
+              "type": "textarea",
+              "required": true
+            },
+            {
+              "name": "parent1_postal_code",
+              "label": "Postal code",
+              "type": "text",
+              "required": true
+            },
+            {
+              "name": "parent1_phones",
+              "label": "Cell and home #",
+              "type": "text",
+              "required": true
+            },
+            {
+              "name": "parent1_work_address",
+              "label": "Parent Work/School address & postal code",
+              "type": "textarea",
+              "required": false
+            },
+            {
+              "name": "parent1_work_phone",
+              "label": "Parent Work/School phone #",
+              "type": "text",
+              "required": false
+            }
+          ]
+        },
+        {
+          "id": "parent2",
+          "title": "Parent / Guardian 2 (optional)",
+          "fields": [
+            {
+              "name": "parent2_name",
+              "label": "Parent/Guardian\u2019s name",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "parent2_email",
+              "label": "E-mail address",
+              "type": "text",
+              "inputType": "email",
+              "required": false
+            },
+            {
+              "name": "parent2_home_address",
+              "label": "Home address",
+              "type": "textarea",
+              "required": false
+            },
+            {
+              "name": "parent2_postal_code",
+              "label": "Postal code",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "parent2_phones",
+              "label": "Cell and home #",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "parent2_work_address",
+              "label": "Parent Work/School address & postal code",
+              "type": "textarea",
+              "required": false
+            },
+            {
+              "name": "parent2_work_phone",
+              "label": "Parent Work/School phone #",
+              "type": "text",
+              "required": false
+            }
+          ]
+        },
+        {
+          "id": "doctor_allergy",
+          "title": "Doctor & Allergy Information",
+          "fields": [
+            {
+              "name": "doctor_name",
+              "label": "Doctor\u2019s name",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "doctor_phone",
+              "label": "Doctor\u2019s phone #",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "doctor_address",
+              "label": "Doctor\u2019s address",
+              "type": "textarea",
+              "required": false
+            },
+            {
+              "name": "doctor_postal_code",
+              "label": "Doctor\u2019s postal code",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "child_allergies",
+              "label": "Does your child have any allergies?",
+              "type": "textarea",
+              "required": false
+            },
+            {
+              "name": "allergy_symptoms",
+              "label": "Symptoms to look for with allergy",
+              "type": "textarea",
+              "required": false
+            },
+            {
+              "name": "allergy_treatment",
+              "label": "Treatment for allergy",
+              "type": "textarea",
+              "required": false
+            },
+            {
+              "name": "epipen_required",
+              "label": "Epipen required?",
+              "type": "radio",
+              "required": false,
+              "options": [
+                {
+                  "value": "yes",
+                  "label": "Yes"
+                },
+                {
+                  "value": "no",
+                  "label": "No"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "emergency_contacts",
+          "title": "Emergency & Authorized Pickups",
+          "fields": [
+            {
+              "name": "emergency_contact_name",
+              "label": "First person to call in case of emergency (other than the parents/guardians) \u2013 Name",
+              "type": "text",
+              "required": true
+            },
+            {
+              "name": "emergency_contact_relationship",
+              "label": "Relationship to child",
+              "type": "text",
+              "required": true
+            },
+            {
+              "name": "emergency_contact_day_phone",
+              "label": "Day time phone #",
+              "type": "text",
+              "required": true
+            },
+            {
+              "name": "emergency_contact_address",
+              "label": "Day time address (incl. postal code)",
+              "type": "textarea",
+              "required": true
+            },
+            {
+              "name": "authorized_pickups",
+              "label": "Other authorized pick ups (names, relationships & phone numbers)",
+              "type": "textarea",
+              "required": false,
+              "helpText": "List each authorized pick up on a new line."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "medical_health",
+      "title": "Medical & Health Information",
+      "description": "Medical information and consents for emergency treatment.",
+      "groups": [
+        {
+          "id": "medical_release",
+          "title": "Medical Release & Medication",
+          "fields": [
+            {
+              "name": "medication_notes",
+              "label": "Medication (prescription only) \u2013 details",
+              "type": "textarea",
+              "required": false,
+              "helpText": "List any prescription medications that may need to be administered."
+            },
+            {
+              "name": "medical_release_consent",
+              "label": "I give permission for GRASP staff to secure emergency medical treatment for my child.",
+              "type": "radio",
+              "required": true,
+              "options": [
+                {
+                  "value": "agree",
+                  "label": "I agree"
+                },
+                {
+                  "value": "disagree",
+                  "label": "I do not agree"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "general_health",
+          "title": "General Health",
+          "fields": [
+            {
+              "name": "general_health_notes",
+              "label": "General health / things to be aware of",
+              "type": "textarea",
+              "required": false
+            },
+            {
+              "name": "child_asthmatic",
+              "label": "Is your child asthmatic?",
+              "type": "radio",
+              "required": false,
+              "options": [
+                {
+                  "value": "yes",
+                  "label": "Yes"
+                },
+                {
+                  "value": "no",
+                  "label": "No"
+                }
+              ]
+            },
+            {
+              "name": "child_uses_puffer",
+              "label": "Is your child using a puffer?",
+              "type": "radio",
+              "required": false,
+              "options": [
+                {
+                  "value": "yes",
+                  "label": "Yes"
+                },
+                {
+                  "value": "no",
+                  "label": "No"
+                }
+              ]
+            },
+            {
+              "name": "last_medical_exam_date",
+              "label": "Date of last medical examination",
+              "type": "date",
+              "required": false
+            },
+            {
+              "name": "current_weight",
+              "label": "Current weight (kg)",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "free_of_disease",
+              "label": "At the present time is the child free of communicable diseases?",
+              "type": "radio",
+              "required": false,
+              "options": [
+                {
+                  "value": "yes",
+                  "label": "Yes"
+                },
+                {
+                  "value": "no",
+                  "label": "No"
+                }
+              ]
+            },
+            {
+              "name": "disease_history",
+              "label": "Previous history of any communicable diseases",
+              "type": "textarea",
+              "required": false
+            },
+            {
+              "name": "special_requirements",
+              "label": "Special requirements for diet, rest or exercise",
+              "type": "textarea",
+              "required": false
+            }
+          ]
+        },
+        {
+          "id": "water_sanitizer",
+          "title": "Water Play & Hand Sanitizer",
+          "fields": [
+            {
+              "name": "water_play_consent",
+              "label": "Authorization for recreational water play (splash pads, supervised pools, etc.)",
+              "type": "radio",
+              "required": true,
+              "options": [
+                {
+                  "value": "yes",
+                  "label": "I consent"
+                },
+                {
+                  "value": "no",
+                  "label": "I do not consent"
+                }
+              ]
+            },
+            {
+              "name": "hand_sanitizer_consent",
+              "label": "Authorization for the use of hand sanitizer (70\u201390% alcohol, as per Toronto Public Health)",
+              "type": "radio",
+              "required": true,
+              "options": [
+                {
+                  "value": "yes",
+                  "label": "I consent"
+                },
+                {
+                  "value": "no",
+                  "label": "I do not consent"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "interview_arrival",
+      "title": "Initial Interview & Arrival / Departure",
+      "description": "Tell us more about your child and review arrival & departure procedures.",
+      "groups": [
+        {
+          "id": "initial_interview",
+          "title": "Initial Parent/Guardian Interview",
+          "fields": [
+            {
+              "name": "child_disposition",
+              "label": "Child\u2019s disposition / temperament",
+              "type": "textarea",
+              "required": false
+            },
+            {
+              "name": "eating_habits",
+              "label": "General information about eating habits or food restrictions",
+              "type": "textarea",
+              "required": false
+            },
+            {
+              "name": "languages_spoken",
+              "label": "Language(s) spoken at home",
+              "type": "textarea",
+              "required": false
+            },
+            {
+              "name": "child_talking_comprehending",
+              "label": "Is your child talking and comprehending?",
+              "type": "textarea",
+              "required": false
+            },
+            {
+              "name": "discipline_method",
+              "label": "What method of discipline do you use in your home?",
+              "type": "textarea",
+              "required": false
+            },
+            {
+              "name": "child_fears",
+              "label": "Does your child have any specific fears?",
+              "type": "textarea",
+              "required": false
+            },
+            {
+              "name": "fear_reaction",
+              "label": "Reaction to fear & how you handle it",
+              "type": "textarea",
+              "required": false
+            },
+            {
+              "name": "child_frustrations",
+              "label": "What frustrates your child & how do you deal with it?",
+              "type": "textarea",
+              "required": false
+            },
+            {
+              "name": "child_special_needs",
+              "label": "Child\u2019s special needs or cultural interests",
+              "type": "textarea",
+              "required": false
+            },
+            {
+              "name": "child_interests",
+              "label": "Child\u2019s interests (activities, sports, hobbies, etc.)",
+              "type": "textarea",
+              "required": false
+            }
+          ]
+        },
+        {
+          "id": "arrival_departure",
+          "title": "Arrival & Departure Procedure",
+          "fields": [
+            {
+              "name": "arrival_departure_ack",
+              "label": "I agree to accompany my child to and from GRASP and notify staff verbally upon arrival and departure.",
+              "type": "radio",
+              "required": true,
+              "options": [
+                {
+                  "value": "agree",
+                  "label": "I agree"
+                },
+                {
+                  "value": "disagree",
+                  "label": "I do not agree"
+                }
+              ]
+            },
+            {
+              "name": "arrival_departure_notes",
+              "label": "Additional notes regarding arrival & departure (optional)",
+              "type": "textarea",
+              "required": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "policies_consents",
+      "title": "Policies, Consents & Final Signature",
+      "description": "Review and consent to the GRASP policies, then sign to submit.",
+      "groups": [
+        {
+          "id": "disclosure_travel_photo",
+          "title": "Information Sharing, Travel & Photo/Media",
+          "fields": [
+            {
+              "name": "info_sharing_consent",
+              "label": "I consent to reciprocal exchange of information about my child between GRASP, the school and Toronto Children\u2019s Services.",
+              "type": "radio",
+              "required": true,
+              "options": [
+                {
+                  "value": "yes",
+                  "label": "I consent"
+                },
+                {
+                  "value": "no",
+                  "label": "I do not consent"
+                }
+              ]
+            },
+            {
+              "name": "travel_consent",
+              "label": "I give consent for my child to leave GRASP premises for local outings with qualified staff.",
+              "type": "radio",
+              "required": true,
+              "options": [
+                {
+                  "value": "yes",
+                  "label": "I consent"
+                },
+                {
+                  "value": "no",
+                  "label": "I do not consent"
+                }
+              ]
+            },
+            {
+              "name": "photo_media_consent",
+              "label": "Photo / media release for GRASP activities and promotional materials (see handbook for full wording).",
+              "type": "radio",
+              "required": true,
+              "options": [
+                {
+                  "value": "full",
+                  "label": "I agree to full use as described"
+                },
+                {
+                  "value": "limited",
+                  "label": "Limited use (centre only, internal projects)"
+                },
+                {
+                  "value": "none",
+                  "label": "I do not agree"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "safe_arrival_sun",
+          "title": "Safe Arrival, Dismissal & Sun Safety",
+          "fields": [
+            {
+              "name": "safe_arrival_ack",
+              "label": "I acknowledge the Safe Arrival and Dismissal policy and agree to call the childcare by 10am if my child will be absent.",
+              "type": "radio",
+              "required": true,
+              "options": [
+                {
+                  "value": "yes",
+                  "label": "I acknowledge and agree"
+                },
+                {
+                  "value": "no",
+                  "label": "I do not agree"
+                }
+              ]
+            },
+            {
+              "name": "before_school_program_ack",
+              "label": "I acknowledge that my child may not attend childcare for the before-school program on a daily basis and may be dropped off directly at school.",
+              "type": "radio",
+              "required": false,
+              "options": [
+                {
+                  "value": "yes",
+                  "label": "I acknowledge"
+                },
+                {
+                  "value": "no",
+                  "label": "I do not acknowledge"
+                }
+              ]
+            },
+            {
+              "name": "sunscreen_provided_by",
+              "label": "Sunscreen arrangement",
+              "type": "radio",
+              "required": true,
+              "options": [
+                {
+                  "value": "centre",
+                  "label": "GRASP will provide sunscreen (NO-AD SPF 30\u201345)"
+                },
+                {
+                  "value": "parent",
+                  "label": "I will provide my child\u2019s sunscreen (cream only)"
+                }
+              ]
+            },
+            {
+              "name": "sunscreen_assistance_consent",
+              "label": "GRASP may assist my child in the application of sunscreen if necessary.",
+              "type": "radio",
+              "required": true,
+              "options": [
+                {
+                  "value": "yes",
+                  "label": "I consent"
+                },
+                {
+                  "value": "no",
+                  "label": "I do not consent"
+                }
+              ]
+            },
+            {
+              "name": "sun_safety_ack",
+              "label": "I understand I must send my child with a water bottle and hat each day during July and August.",
+              "type": "radio",
+              "required": true,
+              "options": [
+                {
+                  "value": "yes",
+                  "label": "I understand"
+                },
+                {
+                  "value": "no",
+                  "label": "I do not understand"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "final_signature",
+          "title": "Final Acknowledgement & Signature",
+          "fields": [
+            {
+              "name": "parent_full_name_signature",
+              "label": "Parent/Guardian full name (serves as digital signature)",
+              "type": "text",
+              "required": true
+            },
+            {
+              "name": "signature_date",
+              "label": "Date",
+              "type": "date",
+              "required": true
+            },
+            {
+              "name": "additional_comments",
+              "label": "Additional comments for the Centre (optional)",
+              "type": "textarea",
+              "required": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "validationMessages": {
+    "required": "This field is required.",
+    "radioRequired": "Please select an option."
+  }
+}

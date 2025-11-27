@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Enrollment Form : Greenland Recreational</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Online enrollment form for Greenland Recreational After School Program (GRASP)." />
+  <link href="css/style.css" rel="stylesheet" type="text/css" />
+  <link href="css/enrollment.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+  <div id="wrapper">
+    <!--
+      <div id="logo">
+        <a href="index.html">
+          <img src="img/logo.png" width="335" height="126" alt="Greenland Recreational" />
+        </a>
+      </div>
+-->
+    <div id="navigation">
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="program_statement.html">Program Statement</a></li>
+        <li><a href="programs_fees.html">Programs And Fees</a></li>
+        <li><a href="grasp_summer_camp.html">Summer Camp and Trips</a></li>
+        <li><a href="location.html">Location</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="forms.html">Forms</a></li>
+      </ul>
+    </div>
+
+    <div id="banner">
+      <img src="img/banner.jpg" height="254" width="990" alt="Greenland Recreational After School Program" />
+    </div>
+
+    <div id="cont-seclft">
+      <img src="img/side-6.jpg" alt="Happy Children" />
+    </div>
+
+    <div id="cont-secrht">
+      <div id="enrollment-root">
+        <h2>Enrollment Form</h2>
+        <p class="enrollment-intro">
+          Please complete this secure online enrollment form. You may save your progress on this device
+          and return later using the same browser. Required fields are marked with an asterisk (*).
+        </p>
+
+        <div class="grasp-wizard">
+          <div class="grasp-wizard-progress">
+            <div class="grasp-wizard-progress-bar-bg">
+              <div id="grasp-wizard-progress-fill" class="grasp-wizard-progress-bar-fill"></div>
+            </div>
+          </div>
+
+          <ol id="grasp-wizard-step-list" class="grasp-wizard-steps"></ol>
+
+          <div id="grasp-wizard-step-content"></div>
+
+          <div class="grasp-wizard-nav">
+            <button id="grasp-btn-prev" class="grasp-btn secondary" type="button">Previous</button>
+            <button id="grasp-btn-save" class="grasp-btn secondary" type="button">Save for later</button>
+            <button id="grasp-btn-next" class="grasp-btn" type="button">Next</button>
+            <button id="grasp-btn-submit" class="grasp-btn" type="button" style="display:none;">Submit</button>
+          </div>
+
+          <div id="grasp-wizard-status" class="grasp-wizard-status" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="footer">
+      Copyright &copy; 2016 Greenland Recreational. All Rights Reserved.
+      <p>
+        This enrollment form is provided for your convenience. If you prefer, you may still download
+        the PDF version from the Forms page and submit it in person.
+      </p>
+    </div>
+  </div>
+
+  <script src="js/enrollment-app.js" type="module"></script>
+</body>
+
+</html>
