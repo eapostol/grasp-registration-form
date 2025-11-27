@@ -1,0 +1,70 @@
+# Visual Studio Code
+.vscode/
+*.code-workspace
+.history/
+
+# JetBrains IDEs
+.idea/
+*.iml
+out/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+.pnpm-debug.log*
+dist/
+coverage/
+.tmp/
+.temp/
+.cache/
+
+# Node.js temporary files
+*.log
+*.pid
+*.seed
+*.tmp
+*.temp
+
+# PHP (common non-commit artifacts)
+vendor/
+composer.phar
+.env
+.env.*
+.phpunit.result.cache
+.phpunit.cache
+phpunit.xml.cache
+storage/
+cache/
+logs/
+bootstrap/cache/
+
+# OS / editor temp files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Backup/old/new files
+*.old
+*.new
+*.bak
+
+# Archives
+*.zip
+*.rar
+
+# Workspaces and project files
+*.sublime-workspace
+*.sublime-project
+
+# DDEV (keep .ddev config; ignore ephemeral/local artifacts)
+.ddev/.downloads/
+.ddev/.importdb/
+.ddev/.snapshots/
+.ddev/.tmp/
+.ddev/logs/
+.ddev/*.local.yaml
