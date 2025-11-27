@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS enrollments (
 
   -- Tracks whether this row is only a draft or a final submitted enrollment.
   -- Values currently used by the PHP code are 'draft' and 'submitted'.
-  status VARCHAR(20) NOT NULL DEFAULT 'draft',
+  status enum('draft', 'submitted') NOT NULL DEFAULT 'draft',
 
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   -- Last time this row was touched. It will also be updated explicitly
