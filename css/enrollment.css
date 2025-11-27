@@ -1,0 +1,222 @@
+/* Enrollment multi-step wizard styles
+   This file is meant to sit alongside the existing css/style.css
+   from the Greenland Recreational site.
+*/
+
+#enrollment-root {
+  background: #fff;
+  padding: 20px;
+  margin: 0 0 30px 0;
+  border-radius: 4px;
+}
+
+#enrollment-root h2 {
+  margin-top: 0;
+  font-size: 26px;
+}
+
+.enrollment-intro {
+  font-size: 15px;
+  margin-bottom: 20px;
+}
+
+.grasp-wizard {
+  border-top: 3px solid #7b905b;
+  padding-top: 15px;
+}
+
+.grasp-wizard-progress {
+  margin-bottom: 15px;
+}
+
+.grasp-wizard-progress-bar-bg {
+  width: 100%;
+  height: 8px;
+  background: #eee;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.grasp-wizard-progress-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: #7b905b;
+  transition: width 0.3s ease;
+}
+
+.grasp-wizard-steps {
+  list-style: none;
+  margin: 10px 0 20px 0;
+  padding: 0;
+  font-size: 14px;
+}
+
+.grasp-wizard-steps li {
+  display: inline-block;
+  margin-right: 10px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  background: #f6f6f6;
+  cursor: pointer;
+}
+
+.grasp-wizard-steps li.active-step {
+  background: #7b905b;
+  color: #fff;
+  font-weight: bold;
+}
+
+.grasp-wizard-step-title {
+  font-size: 20px;
+  margin-bottom: 5px;
+}
+
+.grasp-wizard-step-description {
+  font-size: 14px;
+  margin-bottom: 15px;
+}
+
+.grasp-form-group {
+  margin-bottom: 20px;
+}
+
+.grasp-form-group-title {
+  font-size: 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 4px;
+}
+
+.grasp-field-row {
+  margin-bottom: 10px;
+}
+
+.grasp-field-label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 2px;
+}
+
+.grasp-field-help {
+  font-size: 12px;
+  color: #555;
+  margin: 2px 0 4px 0;
+}
+
+.grasp-input,
+.grasp-textarea,
+.grasp-select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.grasp-textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.grasp-radio-group,
+.grasp-checkbox-group {
+  margin-top: 4px;
+}
+
+.grasp-radio-option,
+.grasp-checkbox-option {
+  display: inline-block;
+  margin-right: 12px;
+  font-size: 14px;
+}
+
+.grasp-error-text {
+  color: #b00020;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.grasp-wizard-nav {
+  margin-top: 20px;
+  text-align: right;
+  border-top: 1px solid #eee;
+  padding-top: 10px;
+}
+
+.grasp-btn {
+  display: inline-block;
+  padding: 6px 14px;
+  margin-left: 6px;
+  border-radius: 3px;
+  border: 1px solid #333333;
+  background: #333333;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.grasp-btn.secondary {
+  background: #fff;
+  color: #333333;
+}
+
+.grasp-btn[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.grasp-wizard-status {
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.grasp-wizard-status.success {
+  color: #0b7a20;
+}
+
+.grasp-wizard-status.error {
+  color: #b00020;
+}
+
+.grasp-required {
+  color: #b00020;
+}
+
+@media (max-width: 768px) {
+  #enrollment-root {
+    padding: 15px;
+  }
+}
+
+
+/* === Preview modal + utility styles (2025-11-26 patch) === */
+.grasp-modal.hidden { display: none; }
+.grasp-modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.grasp-modal-dialog { position: relative; background: #fff; max-width: 980px; width: calc(100% - 24px); max-height: 85vh; overflow: auto; border-radius: 14px; padding: 20px 20px 16px; box-shadow: 0 12px 48px rgba(0,0,0,.28); }
+.grasp-modal-close { position: absolute; top: 10px; right: 12px; font-size: 22px; border: 0; background: transparent; cursor: pointer; }
+.grasp-preview-content { margin-top: 6px; padding: 10px 4px; }
+.grasp-modal-actions { display: flex; gap: 12px; justify-content: flex-end; padding-top: 10px; border-top: 1px solid #e8e8e8; }
+
+/* Buttons + layout helpers */
+.grasp-actions { display: flex; gap: 10px; align-items: center; }
+.grasp-actions .grow { flex: 1; }
+.grasp-btn { appearance: none; border: 1px solid #0b4; background: #0b4; color: #fff; padding: 10px 14px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+.grasp-btn.secondary { background: #f3f6f9; color: #113; border-color: #d0d7de; }
+.grasp-btn.ghost { background: transparent; color: #113; border-color: #d0d7de; }
+.grasp-btn:disabled { opacity: .6; cursor: not-allowed; }
+.grasp-wizard-status { margin-top: 10px; font-size: .95rem; color: #333; }
+
+/* Basic form layout for generated fields */
+.grasp-step { margin: 8px 0 20px; }
+.grasp-field { margin: 8px 0 14px; }
+.grasp-field label { display: block; font-weight: 600; margin-bottom: 6px; }
+.grasp-field input[type="text"],
+.grasp-field input[type="email"],
+.grasp-field input[type="tel"],
+.grasp-field input[type="date"],
+.grasp-field textarea,
+.grasp-field select { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
+.grasp-error { color: #b00020; font-size: .9rem; margin-top: 4px; }
+.grasp-step-title { font-size: 1.25rem; font-weight: 700; margin: 8px 0 6px; }
