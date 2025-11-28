@@ -749,6 +749,19 @@ async function initEnrollmentForm() {
 
   renderCurrentStep();
   setStatus("");
+
+  // Notify optional debug helpers that initialization is complete.
+  if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+    try {
+      const evt = new CustomEvent("graspEnrollmentInit", {
+        detail: { config, formState, sessionId },
+      });
+      window.dispatchEvent(evt);
+    } catch (e) {
+      // Older browsers may not support CustomEvent without a polyfill; fail silently.
+      console.warn("Failed to dispatch graspEnrollmentInit event", e);
+    }
+  }
 }
 
 function openPreview() {
