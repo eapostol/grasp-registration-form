@@ -612,6 +612,100 @@ async function handleSave() {
  * the PDF structure, using the JSON config + formState.
  */
 function buildEmailHtml() {
+  const submittedAt = new Date().toISOString();
+  const debugMode =
+    typeof window !== "undefined" && window.GRASP_DEBUG === true;
+
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function formatFieldValue(field, value) {
+    if (value === null || value === undefined) return "";
+    if (Array.isArray(value)) {
+      return value.join(", ");
+    }
+    if (typeof value === "boolean") {
+      return value ? "yes" : "no";
+    }
+    return String(value);
+  }
+
+  function getFriendlyLabel(field) {
+    if (!field) return "";
+    if (field.label) return field.label;
+    // Fallback: prettify the raw field name if no label exists
+    const raw = (field.name || "").replace(/^field_/, "");
+    return raw
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (ch) => ch.toUpperCase());
+  }
+
+  let html = "";
+  html += "<h2>GRASP Enrollment Submission</h2>";
+  html +=
+    '<p>Submitted at: <span style="font-family:monospace;">' +
+    escapeHtml(submittedAt) +
+    "</span></p>";
+  html +=
+    '<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:100%;max-width:800px;">';
+  html += "<tbody>";
+
+  const steps = (config && config.steps) || [];
+  steps.forEach((step) => {
+    (step.groups || []).forEach((group) => {
+      (group.fields || []).forEach((field) => {
+        if (!field || !field.name) return;
+
+        const rawName = (field.name || "").replace(/^field_/, "");
+        const friendly = getFriendlyLabel(field);
+        const value = formatFieldValue(field, formState[field.name]);
+
+        let labelHtml;
+        if (debugMode) {
+          // DEBUG ON: show raw field name + friendly label (smaller) in same cell
+          labelHtml =
+            '<div style="font-weight:bold;">' +
+            escapeHtml(rawName) +
+            "</div>" +
+            '<div style="font-size:11px;color:#555;margin-top:2px;">' +
+            escapeHtml(friendly) +
+            "</div>";
+        } else {
+          // DEBUG OFF: show only the friendly label
+          labelHtml =
+            '<div style="font-weight:bold;">' +
+            escapeHtml(friendly) +
+            "</div>";
+        }
+
+        html += "<tr>";
+        html +=
+          '<td style="border:1px solid #ccc;padding:4px 6px;vertical-align:top;width:40%;">' +
+          labelHtml +
+          "</td>";
+        html +=
+          '<td style="border:1px solid #ccc;padding:4px 6px;vertical-align:top;width:60%;">' +
+          escapeHtml(value) +
+          "</td>";
+        html += "</tr>";
+      });
+    });
+  });
+
+  html += "</tbody></table>";
+  return html;
+}
+
+
+
+function buildEmailHtmlOld() {
   if (!config) return "";
 
   const escapeHtml = (str) => {
