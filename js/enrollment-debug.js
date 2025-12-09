@@ -8,10 +8,10 @@
 
   function detectDebugMode() {
     try {
-      const params = new URLSearchParams(window.location.search);
-      const raw = params.get("DEBUG") || params.get("debug");
+      var params = new URLSearchParams(window.location.search);
+      var raw = params.get("DEBUG") || params.get("debug");
       if (!raw) return false;
-      const value = String(raw).toLowerCase();
+      var value = String(raw).toLowerCase();
       return value === "true" || value === "1" || value === "yes";
     } catch (e) {
       console.warn("DEBUG: failed to read DEBUG query param", e);
@@ -23,7 +23,9 @@
     if (!str) return "";
     return String(str)
       .toLowerCase()
-      .replace(/\b\w/g, function (ch) { return ch.toUpperCase(); });
+      .replace(/\b\w/g, function (ch) {
+        return ch.toUpperCase();
+      });
   }
 
   function generateRandomCanadianPostalCode() {
@@ -74,7 +76,8 @@
     badge.style.background = "rgba(200, 0, 0, 0.9)";
     badge.style.color = "#ffffff";
     badge.style.fontSize = "11px";
-    badge.style.fontFamily = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    badge.style.fontFamily =
+      "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
     badge.style.letterSpacing = "0.05em";
     badge.style.textTransform = "uppercase";
     badge.style.borderRadius = "4px";
@@ -114,14 +117,17 @@
       return {
         childName: childFirst + " " + lastName,
         parent1Name: parent1First + " " + lastName,
-        parent2Name: parent2First + " " + lastName
+        parent2Name: parent2First + " " + lastName,
       };
     } catch (e) {
-      console.warn("DEBUG: failed to fetch random names, falling back to defaults", e);
+      console.warn(
+        "DEBUG: failed to fetch random names, falling back to defaults",
+        e
+      );
       return {
         childName: "Test Registrant",
         parent1Name: "Parent " + fallbackLast,
-        parent2Name: "Guardian " + fallbackLast
+        parent2Name: "Guardian " + fallbackLast,
       };
     }
   }
@@ -158,14 +164,162 @@
       parent2_postal_code: postal2,
       parent2_phones: "111-222-3333",
       parent2_work_address: workAddress,
-      parent2_work_phone: "222-333-4444"
+      parent2_work_phone: "222-333-4444",
     };
 
     return overrides;
   }
 
+  function generateDebugFieldValue(field) {
+    if (!field) return undefined;
+
+    var type = field.type || "text";
+    var name = (field.name || "").toLowerCase();
+    var label = (field.label || "").toLowerCase();
+    var options = field.options || [];
+
+    // Emails
+    if (label.includes("email") || name.includes("email")) {
+      return "test@test.com";
+    }
+
+    // Phones
+    if (
+      label.includes("phone") ||
+      label.includes("cell") ||
+      label.includes("home #") ||
+      name.includes("phone") ||
+      name.includes("phones")
+    ) {
+      // Work phones
+      if (label.includes("work") || name.includes("work")) {
+        return "222-333-4444";
+      }
+      return "111-222-3333";
+    }
+
+    // Postal codes
+    if (label.includes("postal") || name.includes("postal")) {
+      return generateRandomCanadianPostalCode();
+    }
+
+    // Addresses
+    if (label.includes("address") || name.includes("address")) {
+      return "123 Anywhere Street\nToronto, Ontario\nM1M 2M2";
+    }
+
+    // City / Province
+    if (label.includes("city") || name.includes("city")) {
+      return "Toronto";
+    }
+    if (label.includes("province") || label.includes("state")) {
+      return "Ontario";
+    }
+
+    // Relationship
+    if (label.includes("relationship")) {
+      return "Parent";
+    }
+
+    // Emergency / pickup contacts
+    if (label.includes("emergency contact") && label.includes("name")) {
+      return "Test Emergency Contact";
+    }
+    if (label.includes("emergency contact") && label.includes("phone")) {
+      return "333-444-5555";
+    }
+    if (label.includes("authorized") && label.includes("pickup")) {
+      return "Test Authorized Pickup";
+    }
+
+    // Doctors / clinics
+    if (label.includes("doctor")) {
+      return "Dr. Test Physician";
+    }
+    if (label.includes("clinic")) {
+      return "Test Clinic";
+    }
+
+    // Allergies / medical / medications
+    if (label.includes("allerg")) {
+      return "No known allergies.";
+    }
+    if (label.includes("medical") || label.includes("condition")) {
+      return "No known medical conditions.";
+    }
+    if (label.includes("medication")) {
+      return "None.";
+    }
+
+    // School / grade
+    if (label.includes("school")) {
+      return "Sample Elementary School";
+    }
+    if (label.includes("grade")) {
+      return "3";
+    }
+
+    // Dates (other than birth date, which we explicitly handle)
+    if (label.includes("date")) {
+      var now = new Date();
+      var year = now.getFullYear();
+      return String(year) + "-09-01";
+    }
+
+    // Radio / select: choose "yes" if available, otherwise first option
+    if (type === "radio" || type === "select") {
+      var selected = null;
+      // prefer an option whose value looks like "yes"
+      for (var i = 0; i < options.length; i++) {
+        var opt = options[i];
+        if (!opt) continue;
+        var v =
+          typeof opt === "string"
+            ? opt
+            : typeof opt.value !== "undefined"
+            ? opt.value
+            : null;
+        if (v && String(v).toLowerCase() === "yes") {
+          selected = v;
+          break;
+        }
+      }
+      // if nothing matched "yes", pick the first non-empty option
+      if (!selected) {
+        for (var j = 0; j < options.length; j++) {
+          var opt2 = options[j];
+          if (!opt2) continue;
+          var v2 =
+            typeof opt2 === "string"
+              ? opt2
+              : typeof opt2.value !== "undefined"
+              ? opt2.value
+              : null;
+          if (v2) {
+            selected = v2;
+            break;
+          }
+        }
+      }
+      return selected || "";
+    }
+
+    // Checkboxes: default to true (consent given)
+    if (type === "checkbox") {
+      return true;
+    }
+
+    // Notes / comments
+    if (label.includes("notes") || label.includes("comment")) {
+      return "Test notes for DEBUG submission.";
+    }
+
+    // Default fallback for text-ish fields
+    return "Test value";
+  }
+
   async function applyDebugDefaults() {
-    if (typeof config === "undefined" || !config) {
+    if (typeof config === "undefined" || !config || !config.steps) {
       console.warn("DEBUG: config not available; cannot apply debug defaults.");
       return;
     }
@@ -176,15 +330,32 @@
 
     try {
       var overrides = await buildDebugFormStateOverrides();
-      var allowedNames = collectAllFieldNamesFromConfig(config);
+      var steps = config.steps || [];
 
       // Start from a clean state for test purposes.
       formState = {};
 
-      Object.keys(overrides).forEach(function (name) {
-        if (allowedNames.has(name)) {
-          formState[name] = overrides[name];
-        }
+      steps.forEach(function (step) {
+        (step.groups || []).forEach(function (group) {
+          (group.fields || []).forEach(function (field) {
+            if (!field || !field.name) return;
+            var name = field.name;
+
+            var hasExplicit = Object.prototype.hasOwnProperty.call(
+              overrides,
+              name
+            );
+            var explicitValue = hasExplicit ? overrides[name] : undefined;
+            var value =
+              typeof explicitValue !== "undefined"
+                ? explicitValue
+                : generateDebugFieldValue(field);
+
+            if (typeof value !== "undefined" && value !== null) {
+              formState[name] = value;
+            }
+          });
+        });
       });
 
       if (typeof saveFormState === "function") {
@@ -203,10 +374,18 @@
     }
   }
 
-  // Only attach listeners if DEBUG mode is actually requested.
-  if (!detectDebugMode()) {
-    return;
-  }
+// Only attach listeners if DEBUG mode is actually requested.
+var debugEnabled = detectDebugMode();
+if (!debugEnabled) {
+  return;
+}
+
+// Expose a simple global flag so other scripts (like the email
+// builder) can tell when DEBUG mode was enabled at submission time.
+if (typeof window !== "undefined") {
+  window.GRASP_DEBUG = true;
+}
+
 
   // Once the core enrollment script finishes its initial bootstrapping,
   // we apply our overrides and show the badge.
