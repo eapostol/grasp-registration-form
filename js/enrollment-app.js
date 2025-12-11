@@ -557,6 +557,18 @@ function createFieldRow(fieldDef) {
     control.type = fieldDef.inputType || fieldDef.type || "text";
     control.value = value;
     control.addEventListener("input", () => {
+      // [GRASP-POSTAL] Normalize postal halves (A1A / 1A1) on each keystroke.
+      if (
+        typeof window !== "undefined" &&
+        window.GRASP_POSTAL &&
+        typeof window.GRASP_POSTAL.normalizeInput === "function"
+      ) {
+        control.value = window.GRASP_POSTAL.normalizeInput(
+          fieldDef.name,
+          control.value
+        );
+      }
+
       setFieldValue(fieldDef.name, control.value);
     });
     wrapper.appendChild(control);
@@ -637,11 +649,30 @@ function validateStep(stepIndex) {
       // They will be populated by derived logic (names/addresses).
       if (fieldDef.type === "hidden") return;
 
-      if (!fieldDef.required) return;
-
       const value = formState[fieldDef.name];
       const errorEl = byId("error_" + fieldDef.name);
       if (errorEl) errorEl.textContent = "";
+
+      // [GRASP-POSTAL] Postal-specific pattern validation (A1A / 1A1).
+      if (
+        typeof window !== "undefined" &&
+        window.GRASP_POSTAL &&
+        typeof window.GRASP_POSTAL.validateField === "function"
+      ) {
+        const postalResult = window.GRASP_POSTAL.validateField(fieldDef, value);
+        if (!postalResult.ok) {
+          valid = false;
+          if (errorEl) {
+            errorEl.textContent = postalResult.message;
+          }
+          // Skip generic "required" checks for this field so we don't
+          // overwrite the more specific postal error.
+          return;
+        }
+      }
+
+      // If the field is not required, no further validation needed.
+      if (!fieldDef.required) return;
 
       if (fieldDef.type === "radio") {
         if (!value) {
@@ -651,16 +682,6 @@ function validateStep(stepIndex) {
               (config.validationMessages &&
                 config.validationMessages.radioRequired) ||
               "Please select an option.";
-          }
-        }
-      } else if (fieldDef.type === "checkbox") {
-        if (!value) {
-          valid = false;
-          if (errorEl) {
-            errorEl.textContent =
-              (config.validationMessages &&
-                config.validationMessages.required) ||
-              "This field is required.";
           }
         }
       } else {
@@ -676,6 +697,7 @@ function validateStep(stepIndex) {
       }
     });
   });
+
 
   return valid;
 }
