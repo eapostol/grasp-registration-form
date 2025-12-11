@@ -1127,12 +1127,47 @@ function openPreview() {
   // [GRASP-DERIVED] Make sure combined fields reflect latest parts
   syncDerivedFields();
 
+  // Validate all steps before allowing preview
+  let allValid = true;
+  let firstInvalidStep = -1;
+
+  for (let i = 0; i < config.steps.length; i++) {
+    const stepOk = validateStep(i);
+    if (!stepOk) {
+      allValid = false;
+      if (firstInvalidStep === -1) {
+        firstInvalidStep = i;
+      }
+    }
+  }
+
+  if (!allValid) {
+    // Show a global status message
+    setStatus(
+      "Please correct the highlighted errors before previewing your submission.",
+      "error"
+    );
+
+    // Jump to the first invalid step so the user can see and fix the issue
+    if (firstInvalidStep !== -1 && firstInvalidStep !== currentStepIndex) {
+      currentStepIndex = firstInvalidStep;
+      renderCurrentStep();
+      // After rendering, run validation again so error messages appear
+      validateStep(firstInvalidStep);
+    }
+
+    return; // Do not open preview
+  }
+
+  // All steps valid: build preview as before
   const modal = byId("grasp-preview-modal");
   const content = byId("grasp-preview-content");
   content.innerHTML = buildEmailHtml(); // reuse your existing HTML
   modal.classList.remove("hidden");
   modal.setAttribute("aria-hidden", "false");
 }
+
+
 function closePreview() {
   const modal = byId("grasp-preview-modal");
   modal.classList.add("hidden");
