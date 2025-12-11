@@ -806,6 +806,12 @@ function buildEmailHtml() {
   const debugMode =
     typeof window !== "undefined" && window.GRASP_DEBUG === true;
 
+  // [GRASP-EMAIL] Internal/meta field names that should not appear
+  // in the outgoing email or preview.
+  const INTERNAL_FIELD_NAMES = new Set([
+    "parent2_home_same_as_parent1", // copy Parent 1 home address checkbox
+  ]);
+
   function escapeHtml(str) {
     if (str === null || str === undefined) return "";
     return String(str)
@@ -850,6 +856,11 @@ function buildEmailHtml() {
     (step.groups || []).forEach((group) => {
       (group.fields || []).forEach((field) => {
         if (!field || !field.name) return;
+
+        // [GRASP-EMAIL] Skip internal/meta fields like the "same as Parent 1" checkbox.
+        if (INTERNAL_FIELD_NAMES.has(field.name)) {
+          return;
+        }
 
         const rawName = (field.name || "").replace(/^field_/, "");
         const friendly = getFriendlyLabel(field);
