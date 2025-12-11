@@ -556,9 +556,43 @@ function createFieldRow(fieldDef) {
     control.id = "field_" + fieldDef.name;
     control.type = fieldDef.inputType || fieldDef.type || "text";
     control.value = value;
+
     control.addEventListener("input", () => {
-      setFieldValue(fieldDef.name, control.value);
+      let currentValue = control.value;
+
+      // [GRASP-POSTAL] Normalize postal halves (A1A / 1A1) if helper is available.
+      if (
+        typeof window !== "undefined" &&
+        window.GRASP_POSTAL &&
+        typeof window.GRASP_POSTAL.normalizeInput === "function"
+      ) {
+        const normalized = window.GRASP_POSTAL.normalizeInput(
+          fieldDef.name,
+          currentValue
+        );
+        if (normalized !== currentValue) {
+          currentValue = normalized;
+          control.value = normalized;
+        }
+      }
+
+      // Update form state
+      setFieldValue(fieldDef.name, currentValue);
+
+      // [GRASP-POSTAL] Auto-advance from *_postal1 to *_postal2 once 3 chars entered.
+      // We rely on the naming convention like: parent1_home_postal1 / parent1_home_postal2
+      if (/_postal1$/i.test(fieldDef.name) && currentValue.length === 3) {
+        const nextName = fieldDef.name.replace(/_postal1$/i, "_postal2");
+        const nextInput = document.getElementById("field_" + nextName);
+        if (nextInput && typeof nextInput.focus === "function") {
+          nextInput.focus();
+          if (typeof nextInput.select === "function") {
+            nextInput.select();
+          }
+        }
+      }
     });
+
     wrapper.appendChild(control);
   }
 
@@ -637,11 +671,30 @@ function validateStep(stepIndex) {
       // They will be populated by derived logic (names/addresses).
       if (fieldDef.type === "hidden") return;
 
-      if (!fieldDef.required) return;
-
       const value = formState[fieldDef.name];
       const errorEl = byId("error_" + fieldDef.name);
       if (errorEl) errorEl.textContent = "";
+
+      // [GRASP-POSTAL] Postal-specific pattern validation (A1A / 1A1).
+      if (
+        typeof window !== "undefined" &&
+        window.GRASP_POSTAL &&
+        typeof window.GRASP_POSTAL.validateField === "function"
+      ) {
+        const postalResult = window.GRASP_POSTAL.validateField(fieldDef, value);
+        if (!postalResult.ok) {
+          valid = false;
+          if (errorEl) {
+            errorEl.textContent = postalResult.message;
+          }
+          // Skip generic "required" checks for this field so we don't
+          // overwrite the more specific postal error.
+          return;
+        }
+      }
+
+      // If the field is not required, no further validation needed.
+      if (!fieldDef.required) return;
 
       if (fieldDef.type === "radio") {
         if (!value) {
@@ -651,16 +704,6 @@ function validateStep(stepIndex) {
               (config.validationMessages &&
                 config.validationMessages.radioRequired) ||
               "Please select an option.";
-          }
-        }
-      } else if (fieldDef.type === "checkbox") {
-        if (!value) {
-          valid = false;
-          if (errorEl) {
-            errorEl.textContent =
-              (config.validationMessages &&
-                config.validationMessages.required) ||
-              "This field is required.";
           }
         }
       } else {
@@ -1105,12 +1148,46 @@ function openPreview() {
   // [GRASP-DERIVED] Make sure combined fields reflect latest parts
   syncDerivedFields();
 
+  // Validate all steps before allowing preview
+  let allValid = true;
+  let firstInvalidStep = -1;
+
+  for (let i = 0; i < config.steps.length; i++) {
+    const stepOk = validateStep(i);
+    if (!stepOk) {
+      allValid = false;
+      if (firstInvalidStep === -1) {
+        firstInvalidStep = i;
+      }
+    }
+  }
+
+  if (!allValid) {
+    // Show a global status message
+    setStatus(
+      "Please correct the highlighted errors before previewing your submission.",
+      "error"
+    );
+
+    // Jump to the first invalid step so the user can see and fix the issue
+    if (firstInvalidStep !== -1 && firstInvalidStep !== currentStepIndex) {
+      currentStepIndex = firstInvalidStep;
+      renderCurrentStep();
+      // After rendering, run validation again so error messages appear
+      validateStep(firstInvalidStep);
+    }
+
+    return; // Do not open preview
+  }
+
+  // All steps valid: build preview as before
   const modal = byId("grasp-preview-modal");
   const content = byId("grasp-preview-content");
   content.innerHTML = buildEmailHtml(); // reuse your existing HTML
   modal.classList.remove("hidden");
   modal.setAttribute("aria-hidden", "false");
 }
+
 function closePreview() {
   const modal = byId("grasp-preview-modal");
   modal.classList.add("hidden");
