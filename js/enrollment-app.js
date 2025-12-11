@@ -556,21 +556,43 @@ function createFieldRow(fieldDef) {
     control.id = "field_" + fieldDef.name;
     control.type = fieldDef.inputType || fieldDef.type || "text";
     control.value = value;
+
     control.addEventListener("input", () => {
-      // [GRASP-POSTAL] Normalize postal halves (A1A / 1A1) on each keystroke.
+      let currentValue = control.value;
+
+      // [GRASP-POSTAL] Normalize postal halves (A1A / 1A1) if helper is available.
       if (
         typeof window !== "undefined" &&
         window.GRASP_POSTAL &&
         typeof window.GRASP_POSTAL.normalizeInput === "function"
       ) {
-        control.value = window.GRASP_POSTAL.normalizeInput(
+        const normalized = window.GRASP_POSTAL.normalizeInput(
           fieldDef.name,
-          control.value
+          currentValue
         );
+        if (normalized !== currentValue) {
+          currentValue = normalized;
+          control.value = normalized;
+        }
       }
 
-      setFieldValue(fieldDef.name, control.value);
+      // Update form state
+      setFieldValue(fieldDef.name, currentValue);
+
+      // [GRASP-POSTAL] Auto-advance from *_postal1 to *_postal2 once 3 chars entered.
+      // We rely on the naming convention like: parent1_home_postal1 / parent1_home_postal2
+      if (/_postal1$/i.test(fieldDef.name) && currentValue.length === 3) {
+        const nextName = fieldDef.name.replace(/_postal1$/i, "_postal2");
+        const nextInput = document.getElementById("field_" + nextName);
+        if (nextInput && typeof nextInput.focus === "function") {
+          nextInput.focus();
+          if (typeof nextInput.select === "function") {
+            nextInput.select();
+          }
+        }
+      }
     });
+
     wrapper.appendChild(control);
   }
 
@@ -697,7 +719,6 @@ function validateStep(stepIndex) {
       }
     });
   });
-
 
   return valid;
 }
@@ -1166,7 +1187,6 @@ function openPreview() {
   modal.classList.remove("hidden");
   modal.setAttribute("aria-hidden", "false");
 }
-
 
 function closePreview() {
   const modal = byId("grasp-preview-modal");
