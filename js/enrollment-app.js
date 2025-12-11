@@ -200,6 +200,158 @@ function clearLocalStorage() {
   }
 }
 
+// ===============================
+// [GRASP-NAMES] Derived name helpers
+// ===============================
+
+function buildFullName(first, middle, last) {
+  if (!first && !last) return "";
+  const parts = [];
+  if (first) parts.push(first.trim());
+  if (middle && middle.trim()) parts.push(middle.trim());
+  if (last) parts.push(last.trim());
+  return parts.join(" ");
+}
+
+function syncDerivedNames() {
+  if (!formState) return;
+
+  // Child full name from parts
+  const cf = formState["child_first_name"] || "";
+  const cm = formState["child_middle_name_or_initial"] || "";
+  const cl = formState["child_last_name"] || "";
+  const childFull = buildFullName(cf, cm, cl);
+  if (childFull) {
+    formState["child_name"] = childFull;
+  }
+
+  // Parent 1 full name
+  const p1f = formState["parent1_first_name"] || "";
+  const p1l = formState["parent1_last_name"] || "";
+  const parent1Full = buildFullName(p1f, "", p1l);
+  if (parent1Full) {
+    formState["parent1_name"] = parent1Full;
+  }
+
+  // Parent 2 full name
+  const p2f = formState["parent2_first_name"] || "";
+  const p2l = formState["parent2_last_name"] || "";
+  const parent2Full = buildFullName(p2f, "", p2l);
+  if (parent2Full) {
+    formState["parent2_name"] = parent2Full;
+  }
+}
+
+// ===============================
+// [GRASP-ADDR] Derived address helpers
+// ===============================
+
+function composePostalCode(part1, part2) {
+  const p1 = (part1 || "").trim().toUpperCase();
+  const p2 = (part2 || "").trim().toUpperCase();
+  if (!p1 && !p2) return "";
+  return (p1 + " " + p2).trim();
+}
+
+function composeAddress(street, unit, city, province, postalFull) {
+  const lines = [];
+  if (street && street.trim()) lines.push(street.trim());
+  if (unit && unit.trim()) lines.push(unit.trim());
+
+  const lastLineParts = [];
+  if (city && city.trim()) lastLineParts.push(city.trim());
+  if (province && province.trim()) lastLineParts.push(province.trim());
+  if (postalFull && postalFull.trim()) lastLineParts.push(postalFull.trim());
+
+  if (lastLineParts.length) {
+    lines.push(
+      lastLineParts.join(", ").replace(", ", ", ").replace(", ON", ", ON")
+    );
+  }
+
+  return lines.join("\n");
+}
+
+function syncDerivedAddresses() {
+  if (!formState) return;
+
+  // Helper to apply pattern to a specific prefix and target fields
+  function applyAddress(prefix, fullField, postalField) {
+    const street = formState[`${prefix}_street`] || "";
+    const unit = formState[`${prefix}_unit`] || "";
+    const city = formState[`${prefix}_city`] || "";
+    const prov = formState[`${prefix}_province`] || "";
+    const p1 = formState[`${prefix}_postal1`] || "";
+    const p2 = formState[`${prefix}_postal2`] || "";
+
+    const postalFull = composePostalCode(p1, p2);
+    if (postalField) {
+      formState[postalField] = postalFull;
+    }
+
+    const addrFull = composeAddress(street, unit, city, prov, postalFull);
+    if (fullField) {
+      formState[fullField] = addrFull;
+    }
+  }
+
+  // Parent 1 home
+  applyAddress("parent1_home", "parent1_home_address", "parent1_postal_code");
+
+  // Parent 2 home
+  applyAddress("parent2_home", "parent2_home_address", "parent2_postal_code");
+
+  // Parent 1 work/school
+  applyAddress(
+    "parent1_work",
+    "parent1_work_address",
+    "parent1_work_postal_code"
+  );
+
+  // Parent 2 work/school
+  applyAddress(
+    "parent2_work",
+    "parent2_work_address",
+    "parent2_work_postal_code"
+  );
+
+  // Doctor/clinic
+  applyAddress("doctor", "doctor_address", "doctor_postal_code");
+}
+
+// Wrapper to keep things in sync whenever we touch fields.
+function syncDerivedFields() {
+  syncDerivedNames();
+  syncDerivedAddresses();
+}
+
+// [GRASP-ADDR] Copy Parent 1 home address into Parent 2 when checkbox is toggled
+function applyParent2SameAsParent1() {
+  const same = !!formState["parent2_home_same_as_parent1"];
+
+  const keys = [
+    "home_street",
+    "home_unit",
+    "home_city",
+    "home_province",
+    "home_postal1",
+    "home_postal2",
+  ];
+
+  if (same) {
+    keys.forEach((suffix) => {
+      formState[`parent2_${suffix}`] = formState[`parent1_${suffix}`] || "";
+    });
+  } else {
+    keys.forEach((suffix) => {
+      formState[`parent2_${suffix}`] = "";
+    });
+  }
+
+  // After copying/clearing, update derived fields too
+  syncDerivedFields();
+}
+
 /**
  * Global form state
  */
@@ -229,7 +381,7 @@ function renderStepList() {
 
   config.steps.forEach((step, index) => {
     const li = document.createElement("li");
-    li.textContent = (index + 1) + ". " + step.title;
+    li.textContent = index + 1 + ". " + step.title;
     if (index === currentStepIndex) {
       li.classList.add("active-step");
     }
@@ -257,23 +409,32 @@ function getFieldValue(name) {
   return formState[name] ?? "";
 }
 
-let draftTimer=null;
-function scheduleDraftSave(){
+let draftTimer = null;
+function scheduleDraftSave() {
   clearTimeout(draftTimer);
-  draftTimer = setTimeout(async ()=>{
+  draftTimer = setTimeout(async () => {
     try {
       await fetch("api/save_draft.php", {
-        method:"POST", headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ formId: FORM_ID, sessionId, data: formState })
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ formId: FORM_ID, sessionId, data: formState }),
       });
-    } catch(e) {}
+    } catch (e) {}
   }, 800);
 }
 
 function setFieldValue(name, value) {
   formState[name] = value;
+
+  if (name === "parent2_home_same_as_parent1") {
+    applyParent2SameAsParent1();
+  }
+
   // existing local save call if present...
   scheduleDraftSave();
+  // [GRASP-DERIVED] Keep derived names/addresses
+  // in sync whenever base fields change
+  syncDerivedFields();
 }
 
 function createFieldRow(fieldDef) {
@@ -382,7 +543,9 @@ function createFieldRow(fieldDef) {
     lbl.className = "grasp-checkbox-option";
     lbl.htmlFor = input.id;
     lbl.appendChild(input);
-    lbl.appendChild(document.createTextNode(" " + (fieldDef.checkboxLabel || "Yes")));
+    lbl.appendChild(
+      document.createTextNode(" " + (fieldDef.checkboxLabel || "Yes"))
+    );
 
     group.appendChild(lbl);
     wrapper.appendChild(group);
@@ -407,6 +570,9 @@ function createFieldRow(fieldDef) {
   return wrapper;
 }
 
+/**
+ * Render the current step
+ */
 /**
  * Render the current step
  */
@@ -439,6 +605,12 @@ function renderCurrentStep() {
     groupEl.appendChild(gTitle);
 
     (group.fields || []).forEach((fieldDef) => {
+      // [GRASP-HIDDEN] Skip hidden/derived fields when rendering the UI.
+      // They still exist in config + formState for email/DB use.
+      if (fieldDef.type === "hidden") {
+        return;
+      }
+
       const row = createFieldRow(fieldDef);
       groupEl.appendChild(row);
     });
@@ -461,6 +633,10 @@ function validateStep(stepIndex) {
 
   (step.groups || []).forEach((group) => {
     (group.fields || []).forEach((fieldDef) => {
+      // [GRASP-HIDDEN] Do not validate hidden/derived fields directly.
+      // They will be populated by derived logic (names/addresses).
+      if (fieldDef.type === "hidden") return;
+
       if (!fieldDef.required) return;
 
       const value = formState[fieldDef.name];
@@ -472,7 +648,8 @@ function validateStep(stepIndex) {
           valid = false;
           if (errorEl) {
             errorEl.textContent =
-              (config.validationMessages && config.validationMessages.radioRequired) ||
+              (config.validationMessages &&
+                config.validationMessages.radioRequired) ||
               "Please select an option.";
           }
         }
@@ -481,7 +658,8 @@ function validateStep(stepIndex) {
           valid = false;
           if (errorEl) {
             errorEl.textContent =
-              (config.validationMessages && config.validationMessages.required) ||
+              (config.validationMessages &&
+                config.validationMessages.required) ||
               "This field is required.";
           }
         }
@@ -490,7 +668,8 @@ function validateStep(stepIndex) {
           valid = false;
           if (errorEl) {
             errorEl.textContent =
-              (config.validationMessages && config.validationMessages.required) ||
+              (config.validationMessages &&
+                config.validationMessages.required) ||
               "This field is required.";
           }
         }
@@ -556,6 +735,9 @@ async function loadFormState() {
   }
 
   formState = payload.data || {};
+
+  // [GRASP-DERIVED] Make sure combined fields reflect latest parts
+  syncDerivedFields();
 }
 
 /**
@@ -571,10 +753,12 @@ function updateNavButtons() {
     btnPrev.disabled = currentStepIndex === 0;
   }
   if (btnNext) {
-    btnNext.style.display = currentStepIndex === lastIndex ? "none" : "inline-block";
+    btnNext.style.display =
+      currentStepIndex === lastIndex ? "none" : "inline-block";
   }
   if (btnSubmit) {
-    btnSubmit.style.display = currentStepIndex === lastIndex ? "inline-block" : "none";
+    btnSubmit.style.display =
+      currentStepIndex === lastIndex ? "inline-block" : "none";
   }
 }
 
@@ -603,8 +787,14 @@ async function handleNext() {
 }
 
 async function handleSave() {
+  // [GRASP-DERIVED] Make sure combined fields reflect latest parts
+  syncDerivedFields();
+
   await saveFormState();
-  setStatus("Saved on this device. You can return later using the same browser.", "success");
+  setStatus(
+    "Saved on this device. You can return later using the same browser.",
+    "success"
+  );
 }
 
 /**
@@ -642,9 +832,7 @@ function buildEmailHtml() {
     if (field.label) return field.label;
     // Fallback: prettify the raw field name if no label exists
     const raw = (field.name || "").replace(/^field_/, "");
-    return raw
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (ch) => ch.toUpperCase());
+    return raw.replace(/_/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase());
   }
 
   let html = "";
@@ -680,9 +868,7 @@ function buildEmailHtml() {
         } else {
           // DEBUG OFF: show only the friendly label
           labelHtml =
-            '<div style="font-weight:bold;">' +
-            escapeHtml(friendly) +
-            "</div>";
+            '<div style="font-weight:bold;">' + escapeHtml(friendly) + "</div>";
         }
 
         html += "<tr>";
@@ -703,8 +889,6 @@ function buildEmailHtml() {
   return html;
 }
 
-
-
 function buildEmailHtmlOld() {
   if (!config) return "";
 
@@ -719,20 +903,28 @@ function buildEmailHtmlOld() {
   };
 
   let html = "";
-  html += "<h2>Greenland Recreational After School Program – Enrollment Form</h2>";
-  html += "<p><strong>Submitted at:</strong> " + new Date().toLocaleString() + "</p>";
+  html +=
+    "<h2>Greenland Recreational After School Program – Enrollment Form</h2>";
+  html +=
+    "<p><strong>Submitted at:</strong> " + new Date().toLocaleString() + "</p>";
   html += "<p><strong>Session ID:</strong> " + escapeHtml(sessionId) + "</p>";
 
   config.steps.forEach((step, stepIndex) => {
-    html += '<h3 style="margin-top:18px;border-top:1px solid #ccc;padding-top:8px;">'
-      + (stepIndex + 1) + ". " + escapeHtml(step.title) + "</h3>";
+    html +=
+      '<h3 style="margin-top:18px;border-top:1px solid #ccc;padding-top:8px;">' +
+      (stepIndex + 1) +
+      ". " +
+      escapeHtml(step.title) +
+      "</h3>";
     if (step.description) {
       html += "<p>" + escapeHtml(step.description) + "</p>";
     }
 
     (step.groups || []).forEach((group) => {
-      html += '<h4 style="margin:8px 0 4px 0;">' + escapeHtml(group.title) + "</h4>";
-      html += '<table cellpadding="4" cellspacing="0" border="0" style="border-collapse:collapse;width:100%;font-size:13px;">';
+      html +=
+        '<h4 style="margin:8px 0 4px 0;">' + escapeHtml(group.title) + "</h4>";
+      html +=
+        '<table cellpadding="4" cellspacing="0" border="0" style="border-collapse:collapse;width:100%;font-size:13px;">';
       (group.fields || []).forEach((field) => {
         const rawVal = formState[field.name];
         let displayVal = "";
@@ -744,10 +936,14 @@ function buildEmailHtmlOld() {
           displayVal = String(rawVal);
         }
         html += "<tr>";
-        html += '<td style="border-bottom:1px solid #eee;width:35%;vertical-align:top;"><strong>' +
-          escapeHtml(field.label || field.name) + "</strong></td>";
-        html += '<td style="border-bottom:1px solid #eee;width:65%;vertical-align:top;">' +
-          escapeHtml(displayVal) + "</td>";
+        html +=
+          '<td style="border-bottom:1px solid #eee;width:35%;vertical-align:top;"><strong>' +
+          escapeHtml(field.label || field.name) +
+          "</strong></td>";
+        html +=
+          '<td style="border-bottom:1px solid #eee;width:65%;vertical-align:top;">' +
+          escapeHtml(displayVal) +
+          "</td>";
         html += "</tr>";
       });
       html += "</table>";
@@ -758,6 +954,9 @@ function buildEmailHtmlOld() {
 }
 
 async function handleSubmit() {
+  // [GRASP-DERIVED] Make sure combined fields reflect latest parts
+  syncDerivedFields();
+
   // validate all steps before submit
   let allValid = true;
   for (let i = 0; i < config.steps.length; i++) {
@@ -766,7 +965,10 @@ async function handleSubmit() {
     }
   }
   if (!allValid) {
-    setStatus("Please complete all required fields before submitting.", "error");
+    setStatus(
+      "Please complete all required fields before submitting.",
+      "error"
+    );
     // jump to the first invalid step for convenience
     currentStepIndex = 0;
     renderCurrentStep();
@@ -800,14 +1002,23 @@ async function handleSubmit() {
 
     const result = await response.json();
     if (result && result.success) {
-      setStatus("Thank you! Your enrollment form has been submitted.", "success");
+      setStatus(
+        "Thank you! Your enrollment form has been submitted.",
+        "success"
+      );
       clearLocalStorage();
     } else {
-      setStatus("There was a problem sending your form. Please contact the office.", "error");
+      setStatus(
+        "There was a problem sending your form. Please contact the office.",
+        "error"
+      );
     }
   } catch (err) {
     console.error(err);
-    setStatus("Network error while submitting the form. Please try again later.", "error");
+    setStatus(
+      "Network error while submitting the form. Please try again later.",
+      "error"
+    );
   }
 }
 
@@ -820,7 +1031,9 @@ async function initEnrollmentForm() {
 
   // Load config
   try {
-    const res = await fetch("config/enrollment-fields.json", { cache: "no-cache" });
+    const res = await fetch("config/enrollment-fields.json", {
+      cache: "no-cache",
+    });
     config = await res.json();
   } catch (err) {
     console.error("Failed to load fields config", err);
@@ -836,16 +1049,35 @@ async function initEnrollmentForm() {
   const btnSave = byId("grasp-btn-save");
   const btnSubmit = byId("grasp-btn-submit");
 
-  if (btnPrev) btnPrev.addEventListener("click", (e) => { e.preventDefault(); handlePrev(); });
-  if (btnNext) btnNext.addEventListener("click", (e) => { e.preventDefault(); handleNext(); });
-  if (btnSave) btnSave.addEventListener("click", (e) => { e.preventDefault(); handleSave(); });
-  if (btnSubmit) btnSubmit.addEventListener("click", (e) => { e.preventDefault(); handleSubmit(); });
+  if (btnPrev)
+    btnPrev.addEventListener("click", (e) => {
+      e.preventDefault();
+      handlePrev();
+    });
+  if (btnNext)
+    btnNext.addEventListener("click", (e) => {
+      e.preventDefault();
+      handleNext();
+    });
+  if (btnSave)
+    btnSave.addEventListener("click", (e) => {
+      e.preventDefault();
+      handleSave();
+    });
+  if (btnSubmit)
+    btnSubmit.addEventListener("click", (e) => {
+      e.preventDefault();
+      handleSubmit();
+    });
 
   renderCurrentStep();
   setStatus("");
 
   // Notify optional debug helpers that initialization is complete.
-  if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+  if (
+    typeof window !== "undefined" &&
+    typeof window.dispatchEvent === "function"
+  ) {
     try {
       const evt = new CustomEvent("graspEnrollmentInit", {
         detail: { config, formState, sessionId },
@@ -859,6 +1091,9 @@ async function initEnrollmentForm() {
 }
 
 function openPreview() {
+  // [GRASP-DERIVED] Make sure combined fields reflect latest parts
+  syncDerivedFields();
+
   const modal = byId("grasp-preview-modal");
   const content = byId("grasp-preview-content");
   content.innerHTML = buildEmailHtml(); // reuse your existing HTML
@@ -873,16 +1108,25 @@ function closePreview() {
 
 document.addEventListener("DOMContentLoaded", () => {
   initEnrollmentForm();
-    const btnPreview = byId("grasp-btn-preview");
+  const btnPreview = byId("grasp-btn-preview");
   const btnPrevClose = byId("grasp-preview-close");
   const btnPrevEdit = byId("grasp-preview-edit");
   const btnPrevConfirm = byId("grasp-preview-confirm");
-  if (btnPreview) btnPreview.addEventListener("click", (e)=>{e.preventDefault(); openPreview();});
+  if (btnPreview)
+    btnPreview.addEventListener("click", (e) => {
+      e.preventDefault();
+      openPreview();
+    });
   if (btnPrevClose) btnPrevClose.addEventListener("click", closePreview);
-  if (btnPrevEdit) btnPrevEdit.addEventListener("click", (e)=>{e.preventDefault(); closePreview();});
-  if (btnPrevConfirm) btnPrevConfirm.addEventListener("click", async (e)=>{
-    e.preventDefault();
-    closePreview();
-    await handleSubmit(); // submits to PHP as before
-  });
+  if (btnPrevEdit)
+    btnPrevEdit.addEventListener("click", (e) => {
+      e.preventDefault();
+      closePreview();
+    });
+  if (btnPrevConfirm)
+    btnPrevConfirm.addEventListener("click", async (e) => {
+      e.preventDefault();
+      closePreview();
+      await handleSubmit(); // submits to PHP as before
+    });
 });

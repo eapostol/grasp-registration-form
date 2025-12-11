@@ -10,13 +10,33 @@
       "groups": [
         {
           "id": "child_basic",
-          "title": "Child",
+          "title": "Child's Primary Information",
           "fields": [
             {
-              "name": "child_name",
-              "label": "Child\u2019s name",
+              "name": "child_first_name",
+              "label": "Child’s first name",
               "type": "text",
               "inputType": "text",
+              "required": true
+            },
+            {
+              "name": "child_middle_name_or_initial",
+              "label": "Child’s middle name or initial (optional)",
+              "type": "text",
+              "inputType": "text",
+              "required": false
+            },
+            {
+              "name": "child_last_name",
+              "label": "Child’s last name",
+              "type": "text",
+              "inputType": "text",
+              "required": true
+            },
+            {
+              "name": "child_name",
+              "label": "Child’s full name",
+              "type": "hidden",
               "required": true
             },
             {
@@ -38,9 +58,21 @@
           "title": "Parent / Guardian 1",
           "fields": [
             {
-              "name": "parent1_name",
-              "label": "Parent/Guardian\u2019s name",
+              "name": "parent1_first_name",
+              "label": "Parent/Guardian 1 first name",
               "type": "text",
+              "required": true
+            },
+            {
+              "name": "parent1_last_name",
+              "label": "Parent/Guardian 1 last name",
+              "type": "text",
+              "required": true
+            },
+            {
+              "name": "parent1_name",
+              "label": "Parent/Guardian 1 full name",
+              "type": "hidden",
               "required": true
             },
             {
@@ -51,15 +83,108 @@
               "required": true
             },
             {
+              "name": "parent1_home_street",
+              "label": "Home street address",
+              "type": "text",
+              "required": true
+            },
+            {
+              "name": "parent1_home_unit",
+              "label": "Apartment / Suite / Unit (optional)",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "parent1_home_city",
+              "label": "Home city",
+              "type": "text",
+              "required": true
+            },
+            {
+              "name": "parent1_home_province",
+              "label": "Home province / territory",
+              "type": "select",
+              "required": true,
+              "default": "ON",
+              "options": [
+                {
+                  "value": "AB",
+                  "label": "Alberta"
+                },
+                {
+                  "value": "BC",
+                  "label": "British Columbia"
+                },
+                {
+                  "value": "MB",
+                  "label": "Manitoba"
+                },
+                {
+                  "value": "NB",
+                  "label": "New Brunswick"
+                },
+                {
+                  "value": "NL",
+                  "label": "Newfoundland and Labrador"
+                },
+                {
+                  "value": "NS",
+                  "label": "Nova Scotia"
+                },
+                {
+                  "value": "NT",
+                  "label": "Northwest Territories"
+                },
+                {
+                  "value": "NU",
+                  "label": "Nunavut"
+                },
+                {
+                  "value": "ON",
+                  "label": "Ontario"
+                },
+                {
+                  "value": "PE",
+                  "label": "Prince Edward Island"
+                },
+                {
+                  "value": "QC",
+                  "label": "Quebec"
+                },
+                {
+                  "value": "SK",
+                  "label": "Saskatchewan"
+                },
+                {
+                  "value": "YT",
+                  "label": "Yukon"
+                }
+              ]
+            },
+            {
+              "name": "parent1_home_postal1",
+              "label": "Home postal code (first part: A1A)",
+              "type": "text",
+              "required": true,
+              "maxLength": 3
+            },
+            {
+              "name": "parent1_home_postal2",
+              "label": "Home postal code (second part: 1A1)",
+              "type": "text",
+              "required": true,
+              "maxLength": 3
+            },
+            {
               "name": "parent1_home_address",
-              "label": "Home address",
-              "type": "textarea",
+              "label": "Home address (full, derived)",
+              "type": "hidden",
               "required": true
             },
             {
               "name": "parent1_postal_code",
-              "label": "Postal code",
-              "type": "text",
+              "label": "Postal code (full, derived)",
+              "type": "hidden",
               "required": true
             },
             {
@@ -69,9 +194,108 @@
               "required": true
             },
             {
+              "name": "parent1_work_street",
+              "label": "Parent Work/School street address",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "parent1_work_unit",
+              "label": "Parent Work/School unit / suite / extra (optional)",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "parent1_work_city",
+              "label": "Parent Work/School city",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "parent1_work_province",
+              "label": "Parent Work/School province / territory",
+              "type": "select",
+              "required": false,
+              "default": "ON",
+              "options": [
+                {
+                  "value": "AB",
+                  "label": "Alberta"
+                },
+                {
+                  "value": "BC",
+                  "label": "British Columbia"
+                },
+                {
+                  "value": "MB",
+                  "label": "Manitoba"
+                },
+                {
+                  "value": "NB",
+                  "label": "New Brunswick"
+                },
+                {
+                  "value": "NL",
+                  "label": "Newfoundland and Labrador"
+                },
+                {
+                  "value": "NS",
+                  "label": "Nova Scotia"
+                },
+                {
+                  "value": "NT",
+                  "label": "Northwest Territories"
+                },
+                {
+                  "value": "NU",
+                  "label": "Nunavut"
+                },
+                {
+                  "value": "ON",
+                  "label": "Ontario"
+                },
+                {
+                  "value": "PE",
+                  "label": "Prince Edward Island"
+                },
+                {
+                  "value": "QC",
+                  "label": "Quebec"
+                },
+                {
+                  "value": "SK",
+                  "label": "Saskatchewan"
+                },
+                {
+                  "value": "YT",
+                  "label": "Yukon"
+                }
+              ]
+            },
+            {
+              "name": "parent1_work_postal1",
+              "label": "Parent Work/School postal code (first part: A1A)",
+              "type": "text",
+              "required": false,
+              "maxLength": 3
+            },
+            {
+              "name": "parent1_work_postal2",
+              "label": "Parent Work/School postal code (second part: 1A1)",
+              "type": "text",
+              "required": false,
+              "maxLength": 3
+            },
+            {
               "name": "parent1_work_address",
-              "label": "Parent Work/School address & postal code",
-              "type": "textarea",
+              "label": "Parent Work/School address (full, derived)",
+              "type": "hidden",
+              "required": false
+            },
+            {
+              "name": "parent1_work_postal_code",
+              "label": "Parent Work/School postal code (full, derived)",
+              "type": "hidden",
               "required": false
             },
             {
@@ -87,9 +311,21 @@
           "title": "Parent / Guardian 2 (optional)",
           "fields": [
             {
-              "name": "parent2_name",
-              "label": "Parent/Guardian\u2019s name",
+              "name": "parent2_first_name",
+              "label": "Parent/Guardian 2 first name",
               "type": "text",
+              "required": false
+            },
+            {
+              "name": "parent2_last_name",
+              "label": "Parent/Guardian 2 last name",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "parent2_name",
+              "label": "Parent/Guardian 2 full name",
+              "type": "hidden",
               "required": false
             },
             {
@@ -100,15 +336,114 @@
               "required": false
             },
             {
+              "name": "parent2_home_street",
+              "label": "Home street address",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "parent2_home_unit",
+              "label": "Apartment / Suite / Unit (optional)",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "parent2_home_city",
+              "label": "Home city",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "parent2_home_province",
+              "label": "Home province / territory",
+              "type": "select",
+              "required": false,
+              "default": "ON",
+              "options": [
+                {
+                  "value": "AB",
+                  "label": "Alberta"
+                },
+                {
+                  "value": "BC",
+                  "label": "British Columbia"
+                },
+                {
+                  "value": "MB",
+                  "label": "Manitoba"
+                },
+                {
+                  "value": "NB",
+                  "label": "New Brunswick"
+                },
+                {
+                  "value": "NL",
+                  "label": "Newfoundland and Labrador"
+                },
+                {
+                  "value": "NS",
+                  "label": "Nova Scotia"
+                },
+                {
+                  "value": "NT",
+                  "label": "Northwest Territories"
+                },
+                {
+                  "value": "NU",
+                  "label": "Nunavut"
+                },
+                {
+                  "value": "ON",
+                  "label": "Ontario"
+                },
+                {
+                  "value": "PE",
+                  "label": "Prince Edward Island"
+                },
+                {
+                  "value": "QC",
+                  "label": "Quebec"
+                },
+                {
+                  "value": "SK",
+                  "label": "Saskatchewan"
+                },
+                {
+                  "value": "YT",
+                  "label": "Yukon"
+                }
+              ]
+            },
+            {
+              "name": "parent2_home_postal1",
+              "label": "Home postal code (first part: A1A)",
+              "type": "text",
+              "required": false,
+              "maxLength": 3
+            },
+            {
+              "name": "parent2_home_postal2",
+              "label": "Home postal code (second part: 1A1)",
+              "type": "text",
+              "required": false,
+              "maxLength": 3
+            },
+            {
+              "name": "parent2_home_same_as_parent1",
+              "label": "Same as Parent/Guardian 1 home address",
+              "type": "checkbox",
+              "required": false
+            },
+            {
               "name": "parent2_home_address",
-              "label": "Home address",
-              "type": "textarea",
+              "label": "Home address (full, derived)",
+              "type": "hidden",
               "required": false
             },
             {
               "name": "parent2_postal_code",
-              "label": "Postal code",
-              "type": "text",
+              "label": "Postal code (full, derived)",
+              "type": "hidden",
               "required": false
             },
             {
@@ -118,9 +453,108 @@
               "required": false
             },
             {
+              "name": "parent2_work_street",
+              "label": "Parent Work/School street address",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "parent2_work_unit",
+              "label": "Parent Work/School unit / suite / extra (optional)",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "parent2_work_city",
+              "label": "Parent Work/School city",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "parent2_work_province",
+              "label": "Parent Work/School province / territory",
+              "type": "select",
+              "required": false,
+              "default": "ON",
+              "options": [
+                {
+                  "value": "AB",
+                  "label": "Alberta"
+                },
+                {
+                  "value": "BC",
+                  "label": "British Columbia"
+                },
+                {
+                  "value": "MB",
+                  "label": "Manitoba"
+                },
+                {
+                  "value": "NB",
+                  "label": "New Brunswick"
+                },
+                {
+                  "value": "NL",
+                  "label": "Newfoundland and Labrador"
+                },
+                {
+                  "value": "NS",
+                  "label": "Nova Scotia"
+                },
+                {
+                  "value": "NT",
+                  "label": "Northwest Territories"
+                },
+                {
+                  "value": "NU",
+                  "label": "Nunavut"
+                },
+                {
+                  "value": "ON",
+                  "label": "Ontario"
+                },
+                {
+                  "value": "PE",
+                  "label": "Prince Edward Island"
+                },
+                {
+                  "value": "QC",
+                  "label": "Quebec"
+                },
+                {
+                  "value": "SK",
+                  "label": "Saskatchewan"
+                },
+                {
+                  "value": "YT",
+                  "label": "Yukon"
+                }
+              ]
+            },
+            {
+              "name": "parent2_work_postal1",
+              "label": "Parent Work/School postal code (first part: A1A)",
+              "type": "text",
+              "required": false,
+              "maxLength": 3
+            },
+            {
+              "name": "parent2_work_postal2",
+              "label": "Parent Work/School postal code (second part: 1A1)",
+              "type": "text",
+              "required": false,
+              "maxLength": 3
+            },
+            {
               "name": "parent2_work_address",
-              "label": "Parent Work/School address & postal code",
-              "type": "textarea",
+              "label": "Parent Work/School address (full, derived)",
+              "type": "hidden",
+              "required": false
+            },
+            {
+              "name": "parent2_work_postal_code",
+              "label": "Parent Work/School postal code (full, derived)",
+              "type": "hidden",
               "required": false
             },
             {
@@ -137,26 +571,119 @@
           "fields": [
             {
               "name": "doctor_name",
-              "label": "Doctor\u2019s name",
+              "label": "Doctor’s name",
               "type": "text",
               "required": false
             },
             {
               "name": "doctor_phone",
-              "label": "Doctor\u2019s phone #",
+              "label": "Doctor’s phone #",
               "type": "text",
               "required": false
             },
             {
+              "name": "doctor_street",
+              "label": "Doctor/Clinic street address",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "doctor_unit",
+              "label": "Additional address (suite, clinic name, etc.)",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "doctor_city",
+              "label": "City",
+              "type": "text",
+              "required": false
+            },
+            {
+              "name": "doctor_province",
+              "label": "Province / territory",
+              "type": "select",
+              "required": false,
+              "default": "ON",
+              "options": [
+                {
+                  "value": "AB",
+                  "label": "Alberta"
+                },
+                {
+                  "value": "BC",
+                  "label": "British Columbia"
+                },
+                {
+                  "value": "MB",
+                  "label": "Manitoba"
+                },
+                {
+                  "value": "NB",
+                  "label": "New Brunswick"
+                },
+                {
+                  "value": "NL",
+                  "label": "Newfoundland and Labrador"
+                },
+                {
+                  "value": "NS",
+                  "label": "Nova Scotia"
+                },
+                {
+                  "value": "NT",
+                  "label": "Northwest Territories"
+                },
+                {
+                  "value": "NU",
+                  "label": "Nunavut"
+                },
+                {
+                  "value": "ON",
+                  "label": "Ontario"
+                },
+                {
+                  "value": "PE",
+                  "label": "Prince Edward Island"
+                },
+                {
+                  "value": "QC",
+                  "label": "Quebec"
+                },
+                {
+                  "value": "SK",
+                  "label": "Saskatchewan"
+                },
+                {
+                  "value": "YT",
+                  "label": "Yukon"
+                }
+              ]
+            },
+            {
+              "name": "doctor_postal1",
+              "label": "Postal code (first part: A1A)",
+              "type": "text",
+              "required": false,
+              "maxLength": 3
+            },
+            {
+              "name": "doctor_postal2",
+              "label": "Postal code (second part: 1A1)",
+              "type": "text",
+              "required": false,
+              "maxLength": 3
+            },
+            {
               "name": "doctor_address",
-              "label": "Doctor\u2019s address",
-              "type": "textarea",
+              "label": "Doctor/Clinic address (full, derived)",
+              "type": "hidden",
               "required": false
             },
             {
               "name": "doctor_postal_code",
-              "label": "Doctor\u2019s postal code",
-              "type": "text",
+              "label": "Doctor/Clinic postal code (full, derived)",
+              "type": "hidden",
               "required": false
             },
             {

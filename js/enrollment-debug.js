@@ -96,6 +96,7 @@
     }
   }
 
+  // [GRASP-DEBUG] Build a bundle of first/last names for split-name fields.
   async function buildDebugNameBundle() {
     var fallbackLast = "Registrant";
     try {
@@ -115,9 +116,15 @@
       var parent2First = toTitleCase(parent2User.name.first);
 
       return {
-        childName: childFirst + " " + lastName,
-        parent1Name: parent1First + " " + lastName,
-        parent2Name: parent2First + " " + lastName,
+        // Child
+        childFirst: childFirst,
+        childLast: lastName,
+        // Parent / Guardian 1
+        parent1First: parent1First,
+        parent1Last: lastName,
+        // Parent / Guardian 2
+        parent2First: parent2First,
+        parent2Last: lastName,
       };
     } catch (e) {
       console.warn(
@@ -125,46 +132,108 @@
         e
       );
       return {
-        childName: "Test Registrant",
-        parent1Name: "Parent " + fallbackLast,
-        parent2Name: "Guardian " + fallbackLast,
+        childFirst: "Test",
+        childLast: "Registrant",
+        parent1First: "Parent",
+        parent1Last: fallbackLast,
+        parent2First: "Guardian",
+        parent2Last: fallbackLast,
       };
     }
   }
 
+  // [GRASP-DEBUG] Provide explicit overrides for key split fields (names + addresses).
   async function buildDebugFormStateOverrides() {
     var names = await buildDebugNameBundle();
     var now = new Date();
     var testYear = now.getFullYear() - 3; // three years younger than current year
     var testBirthDate = String(testYear).padStart(4, "0") + "-12-12";
 
-    var homeAddress = "456 Sample Street\nToronto, Ontario";
-    var workAddress = "123 Anywhere Street\nToronto, Ontario\nM1M 2M2";
-    var postal1 = generateRandomCanadianPostalCode();
-    var postal2 = generateRandomCanadianPostalCode();
+    // Use valid-looking Canadian postal codes and split into halves.
+    function splitPostal(code) {
+      if (!code || code.length < 7) {
+        return { p1: "", p2: "" };
+      }
+      return {
+        p1: code.substring(0, 3),
+        p2: code.substring(4, 7),
+      };
+    }
+
+    var homePostalFull = generateRandomCanadianPostalCode();
+    var workPostalFull = generateRandomCanadianPostalCode();
+    var doctorPostalFull = generateRandomCanadianPostalCode();
+
+    var homePostal = splitPostal(homePostalFull);
+    var workPostal = splitPostal(workPostalFull);
+    var doctorPostal = splitPostal(doctorPostalFull);
 
     var overrides = {
+      // -------------------------
       // Child
-      child_name: names.childName,
+      // -------------------------
+      child_first_name: names.childFirst,
+      child_middle_name_or_initial: "",
+      child_last_name: names.childLast,
       child_birth_date: testBirthDate,
 
+      // -------------------------
       // Parent / Guardian 1
-      parent1_name: names.parent1Name,
+      // -------------------------
+      parent1_first_name: names.parent1First,
+      parent1_last_name: names.parent1Last,
       parent1_email: "test@test.com",
-      parent1_home_address: homeAddress,
-      parent1_postal_code: postal1,
+
+      parent1_home_street: "456 Sample Street",
+      parent1_home_unit: "",
+      parent1_home_city: "Toronto",
+      parent1_home_province: "ON",
+      parent1_home_postal1: homePostal.p1,
+      parent1_home_postal2: homePostal.p2,
       parent1_phones: "111-222-3333",
-      parent1_work_address: workAddress,
+
+      parent1_work_street: "123 Anywhere Street",
+      parent1_work_unit: "",
+      parent1_work_city: "Toronto",
+      parent1_work_province: "ON",
+      parent1_work_postal1: workPostal.p1,
+      parent1_work_postal2: workPostal.p2,
       parent1_work_phone: "222-333-4444",
 
+      // -------------------------
       // Parent / Guardian 2 (optional)
-      parent2_name: names.parent2Name,
+      // -------------------------
+      parent2_first_name: names.parent2First,
+      parent2_last_name: names.parent2Last,
       parent2_email: "test@test.com",
-      parent2_home_address: homeAddress,
-      parent2_postal_code: postal2,
+
+      parent2_home_street: "456 Sample Street",
+      parent2_home_unit: "",
+      parent2_home_city: "Toronto",
+      parent2_home_province: "ON",
+      parent2_home_postal1: homePostal.p1,
+      parent2_home_postal2: homePostal.p2,
       parent2_phones: "111-222-3333",
-      parent2_work_address: workAddress,
+
+      parent2_work_street: "123 Anywhere Street",
+      parent2_work_unit: "",
+      parent2_work_city: "Toronto",
+      parent2_work_province: "ON",
+      parent2_work_postal1: workPostal.p1,
+      parent2_work_postal2: workPostal.p2,
       parent2_work_phone: "222-333-4444",
+
+      // -------------------------
+      // Doctor / Clinic
+      // -------------------------
+      doctor_name: "Dr. Test Physician",
+      doctor_phone: "333-444-5555",
+      doctor_street: "789 Clinic Road",
+      doctor_unit: "Suite 10",
+      doctor_city: "Toronto",
+      doctor_province: "ON",
+      doctor_postal1: doctorPostal.p1,
+      doctor_postal2: doctorPostal.p2,
     };
 
     return overrides;
@@ -172,6 +241,12 @@
 
   function generateDebugFieldValue(field) {
     if (!field) return undefined;
+
+    // [GRASP-DEBUG] Hidden / derived fields are computed via syncDerivedFields,
+    // so we do not assign them directly in DEBUG mode.
+    if (field.type === "hidden") {
+      return undefined;
+    }
 
     var type = field.type || "text";
     var name = (field.name || "").toLowerCase();
@@ -324,7 +399,9 @@
       return;
     }
     if (typeof formState === "undefined") {
-      console.warn("DEBUG: formState not available; cannot apply debug defaults.");
+      console.warn(
+        "DEBUG: formState not available; cannot apply debug defaults."
+      );
       return;
     }
 
@@ -358,6 +435,16 @@
         });
       });
 
+      // [GRASP-DEBUG] After populating base fields, compute all derived
+      // name/address fields so preview/email/DB see consistent values.
+      if (typeof syncDerivedFields === "function") {
+        try {
+          syncDerivedFields();
+        } catch (e) {
+          console.warn("DEBUG: syncDerivedFields failed", e);
+        }
+      }
+
       if (typeof saveFormState === "function") {
         try {
           await saveFormState();
@@ -374,18 +461,17 @@
     }
   }
 
-// Only attach listeners if DEBUG mode is actually requested.
-var debugEnabled = detectDebugMode();
-if (!debugEnabled) {
-  return;
-}
+  // Only attach listeners if DEBUG mode is actually requested.
+  var debugEnabled = detectDebugMode();
+  if (!debugEnabled) {
+    return;
+  }
 
-// Expose a simple global flag so other scripts (like the email
-// builder) can tell when DEBUG mode was enabled at submission time.
-if (typeof window !== "undefined") {
-  window.GRASP_DEBUG = true;
-}
-
+  // Expose a simple global flag so other scripts (like the email
+  // builder) can tell when DEBUG mode was enabled at submission time.
+  if (typeof window !== "undefined") {
+    window.GRASP_DEBUG = true;
+  }
 
   // Once the core enrollment script finishes its initial bootstrapping,
   // we apply our overrides and show the badge.
