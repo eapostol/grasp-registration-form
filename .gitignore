@@ -68,3 +68,7 @@ Thumbs.db
 .ddev/.tmp/
 .ddev/logs/
 .ddev/*.local.yaml
+
+# Ignore local API test scripts
+/api/db_test.php
+/api/mail_test.php
