@@ -14,34 +14,34 @@
           "fields": [
             {
               "name": "child_first_name",
-              "label": "Child’s first name",
+              "label": "Child's First Name",
               "type": "text",
               "inputType": "text",
               "required": true
             },
             {
               "name": "child_middle_name_or_initial",
-              "label": "Child’s middle name or initial (optional)",
+              "label": "Child's Middle Name or Initial (optional)",
               "type": "text",
               "inputType": "text",
               "required": false
             },
             {
               "name": "child_last_name",
-              "label": "Child’s last name",
+              "label": "Child's Last Name",
               "type": "text",
               "inputType": "text",
               "required": true
             },
             {
               "name": "child_name",
-              "label": "Child’s full name",
+              "label": "Child's Full Name",
               "type": "hidden",
               "required": true
             },
             {
               "name": "child_birth_date",
-              "label": "Birth date",
+              "label": "Birth Date",
               "type": "date",
               "required": true
             },
@@ -59,32 +59,32 @@
           "fields": [
             {
               "name": "parent1_first_name",
-              "label": "Parent/Guardian 1 first name",
+              "label": "Parent/Guardian 1 First Name",
               "type": "text",
               "required": true
             },
             {
               "name": "parent1_last_name",
-              "label": "Parent/Guardian 1 last name",
+              "label": "Parent/Guardian 1 Last Name",
               "type": "text",
               "required": true
             },
             {
               "name": "parent1_name",
-              "label": "Parent/Guardian 1 full name",
+              "label": "Parent/Guardian 1 Full Name",
               "type": "hidden",
               "required": true
             },
             {
               "name": "parent1_email",
-              "label": "E-mail address",
+              "label": "E-mail Address",
               "type": "text",
               "inputType": "email",
               "required": true
             },
             {
               "name": "parent1_home_street",
-              "label": "Home street address",
+              "label": "Home Street Address",
               "type": "text",
               "required": true
             },
@@ -96,13 +96,13 @@
             },
             {
               "name": "parent1_home_city",
-              "label": "Home city",
+              "label": "Home City",
               "type": "text",
               "required": true
             },
             {
               "name": "parent1_home_province",
-              "label": "Home province / territory",
+              "label": "Home Province / Territory",
               "type": "select",
               "required": true,
               "default": "ON",
@@ -163,27 +163,27 @@
             },
             {
               "name": "parent1_home_postal1",
-              "label": "Home postal code (first part: A1A)",
+              "label": "Home Postal Code (first part: A1A)",
               "type": "text",
               "required": true,
               "maxLength": 3
             },
             {
               "name": "parent1_home_postal2",
-              "label": "Home postal code (second part: 1A1)",
+              "label": "Home Postal Code (second part: 1A1)",
               "type": "text",
               "required": true,
               "maxLength": 3
             },
             {
               "name": "parent1_home_address",
-              "label": "Home address (full, derived)",
+              "label": "Home Address (full, derived)",
               "type": "hidden",
               "required": true
             },
             {
               "name": "parent1_postal_code",
-              "label": "Postal code (full, derived)",
+              "label": "Postal Code (full, derived)",
               "type": "hidden",
               "required": true
             },
@@ -416,21 +416,21 @@
             },
             {
               "name": "parent2_home_postal1",
-              "label": "Home postal code (first part: A1A)",
+              "label": "Home Postal Code (first part: A1A)",
               "type": "text",
               "required": false,
               "maxLength": 3
             },
             {
               "name": "parent2_home_postal2",
-              "label": "Home postal code (second part: 1A1)",
+              "label": "Home Postal Code (second part: 1A1)",
               "type": "text",
               "required": false,
               "maxLength": 3
             },
             {
               "name": "parent2_home_same_as_parent1",
-              "label": "Same as Parent/Guardian 1 home address",
+              "label": "Same as Parent/Guardian 1's Home Address",
               "type": "checkbox",
               "required": false
             },
@@ -571,13 +571,13 @@
           "fields": [
             {
               "name": "doctor_name",
-              "label": "Doctor’s name",
+              "label": "Doctor's name",
               "type": "text",
               "required": false
             },
             {
               "name": "doctor_phone",
-              "label": "Doctor’s phone #",
+              "label": "Doctor's phone #",
               "type": "text",
               "required": false
             },
