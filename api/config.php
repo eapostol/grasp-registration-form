@@ -1,6 +1,7 @@
 <?php
 // api/config.php
 // Environment-aware config for GRASP enrollment backend.
+// 2025-12-12 E. Apostol
 
 $host = $_SERVER['HTTP_HOST'] ?? '';
 $uri  = $_SERVER['REQUEST_URI'] ?? '';
