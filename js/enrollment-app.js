@@ -64,9 +64,8 @@ async function decryptData(encrypted) {
   try {
     const key = await getCryptoKey();
     const ivBytes = Uint8Array.from(atob(encrypted.iv), (c) => c.charCodeAt(0));
-    const dataBytes = Uint8Array.from(
-      atob(encrypted.data),
-      (c) => c.charCodeAt(0)
+    const dataBytes = Uint8Array.from(atob(encrypted.data), (c) =>
+      c.charCodeAt(0)
     );
 
     const decrypted = await window.crypto.subtle.decrypt(
@@ -203,7 +202,9 @@ function setStatus(message, type = "info") {
  * Load config JSON
  */
 async function loadConfig() {
-  const res = await fetch("../config/enrollment-fields.json", { cache: "no-store" });
+  const res = await fetch("../config/enrollment-fields.json", {
+    cache: "no-store",
+  });
   if (!res.ok) {
     throw new Error("Failed to load enrollment-fields.json");
   }
@@ -293,7 +294,11 @@ async function loadDraft() {
 
   try {
     const payload = JSON.parse(decrypted);
-    if (payload.formId === FORM_ID && payload.data && typeof payload.data === "object") {
+    if (
+      payload.formId === FORM_ID &&
+      payload.data &&
+      typeof payload.data === "object"
+    ) {
       formState = { ...payload.data };
     }
   } catch (err) {
@@ -346,7 +351,7 @@ function buildAddressAndPostal(contextPrefix) {
   const line2Parts = [];
   if (city) line2Parts.push(city);
   if (province) line2Parts.push(province);
-  const fullPostal = (p1 && p2) ? `${p1} ${p2}` : (p1 || p2);
+  const fullPostal = p1 && p2 ? `${p1} ${p2}` : p1 || p2;
   if (fullPostal) line2Parts.push(fullPostal);
 
   if (line2Parts.length) {
@@ -390,14 +395,7 @@ function syncDerivedFields() {
 function applyParent2SameAsParent1() {
   const same = !!formState["parent2_home_same_as_parent1"];
 
-  const fields = [
-    "street",
-    "unit",
-    "city",
-    "province",
-    "postal1",
-    "postal2",
-  ];
+  const fields = ["street", "unit", "city", "province", "postal1", "postal2"];
 
   if (same) {
     fields.forEach((suffix) => {
@@ -481,9 +479,10 @@ function getPostalPairLabel(fieldDef) {
       return "Doctor's Postal Code (A1A 1A1)";
     default:
       // Fallback: use existing label but normalise the hint
-      const base = (fieldDef && fieldDef.label)
-        ? String(fieldDef.label).split("(")[0].trim()
-        : "Postal Code";
+      const base =
+        fieldDef && fieldDef.label
+          ? String(fieldDef.label).split("(")[0].trim()
+          : "Postal Code";
       return base + " (A1A 1A1)";
   }
 }
@@ -505,7 +504,7 @@ function createPostalHalfControl(fieldDef) {
   const maxLen = fieldDef.maxLength || 3;
   input.maxLength = maxLen;
   input.size = maxLen;
-  input.style.width = (maxLen+1) + "ch";
+  input.style.width = maxLen + 1 + "ch";
 
   input.addEventListener("input", () => {
     let currentValue = input.value;
@@ -605,20 +604,21 @@ function createFieldRow(fieldDef) {
   wrapper.className = "grasp-field-row";
   wrapper.dataset.fieldName = fieldDef.name;
 
-  const label = document.createElement("label");
-  label.className = "grasp-field-label";
-  // label.htmlFor = "field_" + fieldDef.name;
-  // label.textContent = fieldDef.label || fieldDef.name;
-
+  // [GRASP-A11Y] For radio groups, use a non-label heading element so we
+  // don't have a <label> without a corresponding control. The group is still
+  // labelled via aria-labelledby on the radiogroup container.
   const labelText = fieldDef.label || fieldDef.name;
+  let label;
 
   if (fieldDef.type === "radio") {
-    // Group label: no `for`, but give it an ID so we can link the radiogroup
+    label = document.createElement("div");
+    label.className = "grasp-field-label";
     const labelId = "label_" + fieldDef.name;
     label.id = labelId;
     label.textContent = labelText;
   } else {
-    // Single-field label: tie directly to the input by ID
+    label = document.createElement("label");
+    label.className = "grasp-field-label";
     label.htmlFor = "field_" + fieldDef.name;
     label.textContent = labelText;
   }
@@ -675,7 +675,6 @@ function createFieldRow(fieldDef) {
     wrapper.appendChild(control);
   } else if (fieldDef.type === "radio") {
     const group = document.createElement("div");
-
     group.className = "grasp-radio-group";
 
     // Accessibility: tie this group to the main label above.
@@ -922,9 +921,7 @@ function validateStep(stepIndex) {
           }
         } else if (
           fieldDef.type !== "checkbox" &&
-          (value === undefined ||
-            value === null ||
-            String(value).trim() === "")
+          (value === undefined || value === null || String(value).trim() === "")
         ) {
           valid = false;
           if (errorEl) {
@@ -951,10 +948,7 @@ function goToStep(index) {
 
 function handleNext() {
   if (!validateStep(currentStepIndex)) {
-    setStatus(
-      "Please fix the errors on this step before continuing.",
-      "error"
-    );
+    setStatus("Please fix the errors on this step before continuing.", "error");
     return;
   }
 
@@ -1030,7 +1024,11 @@ function buildEmailHtml(data, submittedAt, emailHtmlFromClient) {
 
   let rows = "";
 
-  const debugMode = !!(window && window.GRASP_DEBUG && window.GRASP_DEBUG.enabled);
+  const debugMode = !!(
+    window &&
+    window.GRASP_DEBUG &&
+    window.GRASP_DEBUG.enabled
+  );
 
   const labelMap = {};
   (config.steps || []).forEach((step) => {
@@ -1065,7 +1063,7 @@ function buildEmailHtml(data, submittedAt, emailHtmlFromClient) {
     }
 
     rows +=
-      '<tr>' +
+      "<tr>" +
       '<td style="border:1px solid #e5e7eb;padding:6px 8px;font-weight:600;width:38%;">' +
       cellLabel +
       "</td>" +
@@ -1184,11 +1182,7 @@ async function openPreview() {
     data: { ...formState },
   };
 
-  const previewHtml = buildEmailHtml(
-    payload.data,
-    payload.submittedAt,
-    null
-  );
+  const previewHtml = buildEmailHtml(payload.data, payload.submittedAt, null);
 
   const onSubmit = async () => {
     await submitEnrollment(payload, previewHtml);
@@ -1226,10 +1220,7 @@ async function submitEnrollment(payload, previewHtml) {
 
     clearLocalStorage();
 
-    setStatus(
-      "Thank you! Your enrollment form has been submitted.",
-      "success"
-    );
+    setStatus("Thank you! Your enrollment form has been submitted.", "success");
 
     formState = {};
     sessionId = null;
@@ -1263,7 +1254,11 @@ async function initWizard() {
       window.localStorage.setItem(STORAGE_KEY_SESSION_ID, sessionId);
     }
 
-    if (isDebugMode && window.GRASP_DEBUG && typeof window.GRASP_DEBUG.applyDebugDefaults === "function") {
+    if (
+      isDebugMode &&
+      window.GRASP_DEBUG &&
+      typeof window.GRASP_DEBUG.applyDebugDefaults === "function"
+    ) {
       window.GRASP_DEBUG.applyDebugDefaults(config.steps, formState, () => {
         syncDerivedFields();
         renderCurrentStep();
