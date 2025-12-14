@@ -10,7 +10,7 @@ const STORAGE_DB_STORE = "sessions";
 // NOTE: This secret key is embedded in the front-end, so it provides
 // obfuscation and basic protection if the device is lost, but it is not
 // equivalent to server-side encryption. For a production deployment,
-// consider deriving a key from a user-provided passphrase or device‑specific secret.
+// consider deriving a key from a user-provided passphrase or device-specific secret.
 const SECRET_KEY_STRING = "grasp-enrollment-demo-secret-32-chars!!";
 
 let cryptoKeyCache = null;
@@ -21,83 +21,125 @@ let cryptoKeyCache = null;
 async function getCryptoKey() {
   if (cryptoKeyCache) return cryptoKeyCache;
 
-  const encoder = new TextEncoder();
-  // Ensure we have 32 bytes for AES-256
-  let keyBytes = encoder.encode(SECRET_KEY_STRING);
-  if (keyBytes.length < 32) {
-    const padded = new Uint8Array(32);
-    padded.set(keyBytes);
-    keyBytes = padded;
-  } else if (keyBytes.length > 32) {
-    keyBytes = keyBytes.slice(0, 32);
-  }
+  const enc = new TextEncoder();
+  const rawKey = enc.encode(SECRET_KEY_STRING.padEnd(32, "0").slice(0, 32));
 
   cryptoKeyCache = await window.crypto.subtle.importKey(
     "raw",
-    keyBytes,
+    rawKey,
     { name: "AES-GCM" },
     false,
     ["encrypt", "decrypt"]
   );
+
   return cryptoKeyCache;
 }
 
 /**
- * Encrypt an object to a base64 string.
+ * Encrypt data (ArrayBuffer or string) to { iv, ciphertext } Base64.
  */
-async function encryptData(obj) {
+async function encryptData(plainText) {
   const key = await getCryptoKey();
-  const encoder = new TextEncoder();
-  const json = JSON.stringify(obj);
-  const data = encoder.encode(json);
   const iv = window.crypto.getRandomValues(new Uint8Array(12));
 
-  const cipherBuffer = await window.crypto.subtle.encrypt(
+  const encoder = new TextEncoder();
+  const encoded = encoder.encode(plainText);
+
+  const ciphertext = await window.crypto.subtle.encrypt(
     { name: "AES-GCM", iv },
     key,
-    data
+    encoded
   );
 
-  const combined = new Uint8Array(iv.byteLength + cipherBuffer.byteLength);
-  combined.set(iv, 0);
-  combined.set(new Uint8Array(cipherBuffer), iv.byteLength);
-
-  let binary = "";
-  combined.forEach((b) => (binary += String.fromCharCode(b)));
-  return btoa(binary);
+  return {
+    iv: btoa(String.fromCharCode(...iv)),
+    data: btoa(String.fromCharCode(...new Uint8Array(ciphertext))),
+  };
 }
 
 /**
- * Decrypt a base64 string to an object (or null on failure).
+ * Decrypt data from { iv, data } Base64 to string.
  */
-async function decryptData(base64Str) {
+async function decryptData(encrypted) {
   try {
     const key = await getCryptoKey();
-    const binary = atob(base64Str);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-
-    const iv = bytes.slice(0, 12);
-    const cipherBytes = bytes.slice(12);
-
-    const plainBuffer = await window.crypto.subtle.decrypt(
-      { name: "AES-GCM", iv },
-      key,
-      cipherBytes
+    const ivBytes = Uint8Array.from(atob(encrypted.iv), (c) => c.charCodeAt(0));
+    const dataBytes = Uint8Array.from(
+      atob(encrypted.data),
+      (c) => c.charCodeAt(0)
     );
+
+    const decrypted = await window.crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: ivBytes },
+      key,
+      dataBytes
+    );
+
     const decoder = new TextDecoder();
-    const json = decoder.decode(plainBuffer);
-    return JSON.parse(json);
+    return decoder.decode(decrypted);
   } catch (err) {
-    console.warn("Failed to decrypt data", err);
+    console.error("decryptData error", err);
     return null;
   }
 }
 
 /**
- * Generate a simple random session ID.
+ * IndexedDB helpers for storing encrypted form sessions
+ */
+function openIndexedDB() {
+  return new Promise((resolve, reject) => {
+    const request = window.indexedDB.open(STORAGE_DB_NAME, 1);
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(STORAGE_DB_STORE)) {
+        db.createObjectStore(STORAGE_DB_STORE, { keyPath: "sessionId" });
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function saveSessionToIndexedDB(sessionId, encryptedPayload) {
+  try {
+    const db = await openIndexedDB();
+    const tx = db.transaction(STORAGE_DB_STORE, "readwrite");
+    const store = tx.objectStore(STORAGE_DB_STORE);
+    await new Promise((resolve, reject) => {
+      const req = store.put({ sessionId, payload: encryptedPayload });
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+    db.close();
+  } catch (err) {
+    console.warn("IndexedDB save failed", err);
+  }
+}
+
+async function loadSessionFromIndexedDB(sessionId) {
+  try {
+    const db = await openIndexedDB();
+    const tx = db.transaction(STORAGE_DB_STORE, "readonly");
+    const store = tx.objectStore(STORAGE_DB_STORE);
+
+    const payload = await new Promise((resolve, reject) => {
+      const req = store.get(sessionId);
+      req.onsuccess = () => resolve(req.result ? req.result.payload : null);
+      req.onerror = () => reject(req.error);
+    });
+
+    db.close();
+    return payload;
+  } catch (err) {
+    console.warn("IndexedDB load failed", err);
+    return null;
+  }
+}
+
+/**
+ * Utility: Generate a pseudo-random session ID
  */
 function generateSessionId() {
   const arr = new Uint8Array(16);
@@ -108,302 +150,283 @@ function generateSessionId() {
 }
 
 /**
- * IndexedDB helpers (best-effort)
+ * Utility: get query params
  */
-function openIndexedDb() {
-  return new Promise((resolve, reject) => {
-    if (!("indexedDB" in window)) {
-      resolve(null);
-      return;
-    }
+function getQueryParams() {
+  const params = {};
+  const search = window.location.search.substring(1);
+  if (!search) return params;
 
-    const req = window.indexedDB.open(STORAGE_DB_NAME, 1);
-    req.onerror = () => resolve(null);
-    req.onsuccess = () => resolve(req.result);
-    req.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains(STORAGE_DB_STORE)) {
-        db.createObjectStore(STORAGE_DB_STORE, { keyPath: "sessionId" });
-      }
-    };
+  search.split("&").forEach((pair) => {
+    const [k, v] = pair.split("=");
+    if (!k) return;
+    params[decodeURIComponent(k)] = v ? decodeURIComponent(v) : "";
   });
-}
 
-async function saveToIndexedDb(sessionId, encryptedPayload) {
-  const db = await openIndexedDb();
-  if (!db) return false;
-
-  return new Promise((resolve) => {
-    const tx = db.transaction(STORAGE_DB_STORE, "readwrite");
-    const store = tx.objectStore(STORAGE_DB_STORE);
-    const record = {
-      sessionId,
-      encryptedPayload,
-      updatedAt: new Date().toISOString(),
-    };
-    store.put(record);
-    tx.oncomplete = () => resolve(true);
-    tx.onerror = () => resolve(false);
-  });
-}
-
-async function loadFromIndexedDb(sessionId) {
-  const db = await openIndexedDb();
-  if (!db) return null;
-
-  return new Promise((resolve) => {
-    const tx = db.transaction(STORAGE_DB_STORE, "readonly");
-    const store = tx.objectStore(STORAGE_DB_STORE);
-    const req = store.get(sessionId);
-    req.onsuccess = () => resolve(req.result || null);
-    req.onerror = () => resolve(null);
-  });
+  return params;
 }
 
 /**
- * Local storage helpers (fallback)
+ * Global state
  */
-function saveToLocalStorage(sessionId, encryptedPayload) {
-  try {
-    const wrapper = {
-      formId: FORM_ID,
-      sessionId,
-      encryptedPayload,
-      updatedAt: new Date().toISOString(),
-    };
-    window.localStorage.setItem(STORAGE_KEY_ENCRYPTED, JSON.stringify(wrapper));
-    window.localStorage.setItem(STORAGE_KEY_SESSION_ID, sessionId);
-    return true;
-  } catch (e) {
-    console.warn("Failed to save to localStorage", e);
-    return false;
+let config = null; // enrollment-fields.json contents
+let currentStepIndex = 0;
+let formState = {}; // name -> value
+let sessionId = null;
+let isDebugMode = false;
+
+/**
+ * Helper to get an element by ID
+ */
+function byId(id) {
+  return document.getElementById(id);
+}
+
+/**
+ * Set a user-facing status message at the top of the form
+ */
+function setStatus(message, type = "info") {
+  const el = byId("grasp-form-status");
+  if (!el) return;
+
+  el.textContent = message || "";
+  el.className = "grasp-form-status";
+  if (message) {
+    el.classList.add("grasp-form-status--visible");
+    el.classList.add(`grasp-form-status--${type}`);
+  } else {
+    el.classList.remove("grasp-form-status--visible");
   }
 }
 
-function loadFromLocalStorage() {
+/**
+ * Load config JSON
+ */
+async function loadConfig() {
+  const res = await fetch("../config/enrollment-fields.json", { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error("Failed to load enrollment-fields.json");
+  }
+  config = await res.json();
+}
+
+/**
+ * Local storage helpers
+ */
+function getEncryptedFromLocalStorage() {
   try {
-    const wrapperStr = window.localStorage.getItem(STORAGE_KEY_ENCRYPTED);
-    if (!wrapperStr) return null;
-    return JSON.parse(wrapperStr);
-  } catch (e) {
-    console.warn("Failed to load from localStorage", e);
+    const raw = window.localStorage.getItem(STORAGE_KEY_ENCRYPTED);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (err) {
+    console.warn("Failed to parse encrypted data from localStorage", err);
     return null;
+  }
+}
+
+function setEncryptedToLocalStorage(obj) {
+  try {
+    window.localStorage.setItem(STORAGE_KEY_ENCRYPTED, JSON.stringify(obj));
+  } catch (err) {
+    console.warn("Failed to write encrypted data to localStorage", err);
   }
 }
 
 function clearLocalStorage() {
   try {
     window.localStorage.removeItem(STORAGE_KEY_ENCRYPTED);
-    // keep session ID so we can correlate submissions with later edits if needed
-  } catch (e) {
-    console.warn("Failed to clear localStorage", e);
+    window.localStorage.removeItem(STORAGE_KEY_SESSION_ID);
+  } catch (err) {
+    console.warn("Failed to clear localStorage", err);
   }
 }
 
-// ===============================
-// [GRASP-NAMES] Derived name helpers
-// ===============================
+/**
+ * Serialize the current form state
+ */
+function serializeFormState() {
+  return {
+    formId: FORM_ID,
+    sessionId,
+    data: { ...formState },
+    updatedAt: new Date().toISOString(),
+  };
+}
 
+/**
+ * Save the current state (encrypted) to local storage + IndexedDB
+ */
+async function saveDraft() {
+  if (!sessionId) {
+    sessionId = generateSessionId();
+    window.localStorage.setItem(STORAGE_KEY_SESSION_ID, sessionId);
+  }
+
+  const payload = serializeFormState();
+  const json = JSON.stringify(payload);
+
+  const encrypted = await encryptData(json);
+  setEncryptedToLocalStorage(encrypted);
+  await saveSessionToIndexedDB(sessionId, encrypted);
+}
+
+/**
+ * Load any previously saved draft
+ */
+async function loadDraft() {
+  const storedSessionId = window.localStorage.getItem(STORAGE_KEY_SESSION_ID);
+  if (!storedSessionId) {
+    return;
+  }
+
+  sessionId = storedSessionId;
+
+  let encrypted = getEncryptedFromLocalStorage();
+
+  if (!encrypted) {
+    encrypted = await loadSessionFromIndexedDB(sessionId);
+    if (!encrypted) return;
+  }
+
+  const decrypted = await decryptData(encrypted);
+  if (!decrypted) return;
+
+  try {
+    const payload = JSON.parse(decrypted);
+    if (payload.formId === FORM_ID && payload.data && typeof payload.data === "object") {
+      formState = { ...payload.data };
+    }
+  } catch (err) {
+    console.warn("Failed to parse decrypted payload", err);
+  }
+}
+
+/**
+ * Derived field logic (names + addresses)
+ */
+
+// Build full name from parts
 function buildFullName(first, middle, last) {
-  if (!first && !last) return "";
   const parts = [];
   if (first) parts.push(first.trim());
-  if (middle && middle.trim()) parts.push(middle.trim());
+  if (middle) parts.push(middle.trim());
   if (last) parts.push(last.trim());
   return parts.join(" ");
 }
 
+// [GRASP-DERIVED] Synchronise derived name fields
 function syncDerivedNames() {
-  if (!formState) return;
+  const childFirst = formState["child_first_name"] || "";
+  const childMiddle = formState["child_middle_name_or_initial"] || "";
+  const childLast = formState["child_last_name"] || "";
+  formState["child_name"] = buildFullName(childFirst, childMiddle, childLast);
 
-  // Child full name from parts
-  const cf = formState["child_first_name"] || "";
-  const cm = formState["child_middle_name_or_initial"] || "";
-  const cl = formState["child_last_name"] || "";
-  const childFull = buildFullName(cf, cm, cl);
-  if (childFull) {
-    formState["child_name"] = childFull;
-  }
+  const p1First = formState["parent1_first_name"] || "";
+  const p1Last = formState["parent1_last_name"] || "";
+  formState["parent1_name"] = buildFullName(p1First, "", p1Last);
 
-  // Parent 1 full name
-  const p1f = formState["parent1_first_name"] || "";
-  const p1l = formState["parent1_last_name"] || "";
-  const parent1Full = buildFullName(p1f, "", p1l);
-  if (parent1Full) {
-    formState["parent1_name"] = parent1Full;
-  }
-
-  // Parent 2 full name
-  const p2f = formState["parent2_first_name"] || "";
-  const p2l = formState["parent2_last_name"] || "";
-  const parent2Full = buildFullName(p2f, "", p2l);
-  if (parent2Full) {
-    formState["parent2_name"] = parent2Full;
-  }
+  const p2First = formState["parent2_first_name"] || "";
+  const p2Last = formState["parent2_last_name"] || "";
+  formState["parent2_name"] = buildFullName(p2First, "", p2Last);
 }
 
-// ===============================
-// [GRASP-ADDR] Derived address helpers
-// ===============================
+// Build multiline address and full postal
+function buildAddressAndPostal(contextPrefix) {
+  const street = (formState[contextPrefix + "_street"] || "").trim();
+  const unit = (formState[contextPrefix + "_unit"] || "").trim();
+  const city = (formState[contextPrefix + "_city"] || "").trim();
+  const province = (formState[contextPrefix + "_province"] || "").trim();
+  const p1 = (formState[contextPrefix + "_postal1"] || "").trim();
+  const p2 = (formState[contextPrefix + "_postal2"] || "").trim();
 
-function composePostalCode(part1, part2) {
-  const p1 = (part1 || "").trim().toUpperCase();
-  const p2 = (part2 || "").trim().toUpperCase();
-  if (!p1 && !p2) return "";
-  return (p1 + " " + p2).trim();
-}
-
-function composeAddress(street, unit, city, province, postalFull) {
   const lines = [];
-  if (street && street.trim()) lines.push(street.trim());
-  if (unit && unit.trim()) lines.push(unit.trim());
+  const line1 = unit ? `${unit} ${street}`.trim() : street;
+  if (line1) lines.push(line1);
 
-  const lastLineParts = [];
-  if (city && city.trim()) lastLineParts.push(city.trim());
-  if (province && province.trim()) lastLineParts.push(province.trim());
-  if (postalFull && postalFull.trim()) lastLineParts.push(postalFull.trim());
+  const line2Parts = [];
+  if (city) line2Parts.push(city);
+  if (province) line2Parts.push(province);
+  const fullPostal = (p1 && p2) ? `${p1} ${p2}` : (p1 || p2);
+  if (fullPostal) line2Parts.push(fullPostal);
 
-  if (lastLineParts.length) {
-    lines.push(
-      lastLineParts.join(", ").replace(", ", ", ").replace(", ON", ", ON")
-    );
+  if (line2Parts.length) {
+    lines.push(line2Parts.join(", "));
   }
 
-  return lines.join("\n");
+  return {
+    address: lines.join("\n"),
+    postal: fullPostal,
+  };
 }
 
+// [GRASP-DERIVED] Synchronise all derived addresses
 function syncDerivedAddresses() {
-  if (!formState) return;
-
-  // Helper to apply pattern to a specific prefix and target fields
-  function applyAddress(prefix, fullField, postalField) {
-    const street = formState[`${prefix}_street`] || "";
-    const unit = formState[`${prefix}_unit`] || "";
-    const city = formState[`${prefix}_city`] || "";
-    const prov = formState[`${prefix}_province`] || "";
-    const p1 = formState[`${prefix}_postal1`] || "";
-    const p2 = formState[`${prefix}_postal2`] || "";
-
-    const postalFull = composePostalCode(p1, p2);
-    if (postalField) {
-      formState[postalField] = postalFull;
-    }
-
-    const addrFull = composeAddress(street, unit, city, prov, postalFull);
-    if (fullField) {
-      formState[fullField] = addrFull;
-    }
-  }
-
-  // Parent 1 home
-  applyAddress("parent1_home", "parent1_home_address", "parent1_postal_code");
-
-  // Parent 2 home
-  applyAddress("parent2_home", "parent2_home_address", "parent2_postal_code");
-
-  // Parent 1 work/school
-  applyAddress(
+  const contexts = [
+    "parent1_home",
     "parent1_work",
-    "parent1_work_address",
-    "parent1_work_postal_code"
-  );
-
-  // Parent 2 work/school
-  applyAddress(
+    "parent2_home",
     "parent2_work",
-    "parent2_work_address",
-    "parent2_work_postal_code"
-  );
+    "doctor",
+  ];
 
-  // Doctor/clinic
-  applyAddress("doctor", "doctor_address", "doctor_postal_code");
+  contexts.forEach((ctx) => {
+    const result = buildAddressAndPostal(ctx);
+    formState[ctx.replace("_home", "").replace("_work", "") + "_address"] =
+      result.address;
+    formState[ctx.replace("_home", "").replace("_work", "") + "_postal_code"] =
+      result.postal;
+  });
 }
 
-// Wrapper to keep things in sync whenever we touch fields.
+// [GRASP-DERIVED] Wrapper to sync all derived fields
 function syncDerivedFields() {
   syncDerivedNames();
   syncDerivedAddresses();
 }
 
-// [GRASP-ADDR] Copy Parent 1 home address into Parent 2 when checkbox is toggled
+/**
+ * Parent 2 "same as Parent 1 home address" logic
+ */
 function applyParent2SameAsParent1() {
   const same = !!formState["parent2_home_same_as_parent1"];
 
-  const keys = [
-    "home_street",
-    "home_unit",
-    "home_city",
-    "home_province",
-    "home_postal1",
-    "home_postal2",
+  const fields = [
+    "street",
+    "unit",
+    "city",
+    "province",
+    "postal1",
+    "postal2",
   ];
 
   if (same) {
-    keys.forEach((suffix) => {
-      formState[`parent2_${suffix}`] = formState[`parent1_${suffix}`] || "";
+    fields.forEach((suffix) => {
+      const srcKey = `parent1_home_${suffix}`;
+      const dstKey = `parent2_home_${suffix}`;
+      const value = formState[srcKey] || "";
+      formState[dstKey] = value;
+
+      const input = byId("field_" + dstKey);
+      if (input) {
+        input.value = value;
+      }
     });
   } else {
-    keys.forEach((suffix) => {
-      formState[`parent2_${suffix}`] = "";
+    fields.forEach((suffix) => {
+      const dstKey = `parent2_home_${suffix}`;
+      formState[dstKey] = "";
+      const input = byId("field_" + dstKey);
+      if (input) {
+        input.value = "";
+      }
     });
   }
 
-  // After copying/clearing, update derived fields too
-  syncDerivedFields();
+  syncDerivedAddresses();
 }
 
 /**
- * Global form state
- */
-let config = null;
-let currentStepIndex = 0;
-let formState = {};
-let sessionId = null;
-
-function byId(id) {
-  return document.getElementById(id);
-}
-
-function setStatus(message, type = "") {
-  const el = byId("grasp-wizard-status");
-  if (!el) return;
-  el.textContent = message || "";
-  el.className = "grasp-wizard-status" + (type ? " " + type : "");
-}
-
-/**
- * Render step list and progress bar
- */
-function renderStepList() {
-  const listEl = byId("grasp-wizard-step-list");
-  if (!listEl || !config) return;
-  listEl.innerHTML = "";
-
-  config.steps.forEach((step, index) => {
-    const li = document.createElement("li");
-    li.textContent = index + 1 + ". " + step.title;
-    if (index === currentStepIndex) {
-      li.classList.add("active-step");
-    }
-    li.addEventListener("click", () => {
-      goToStep(index);
-    });
-    listEl.appendChild(li);
-  });
-
-  updateProgressBar();
-}
-
-function updateProgressBar() {
-  const fill = byId("grasp-wizard-progress-fill");
-  if (!fill || !config) return;
-  const total = config.steps.length || 1;
-  const pct = ((currentStepIndex + 1) / total) * 100;
-  fill.style.width = pct.toFixed(0) + "%";
-}
-
-/**
- * Create a field DOM node from field definition
+ * Generic helpers for reading/writing field values
  */
 function getFieldValue(name) {
   return formState[name] ?? "";
@@ -411,15 +434,11 @@ function getFieldValue(name) {
 
 let draftTimer = null;
 function scheduleDraftSave() {
-  clearTimeout(draftTimer);
-  draftTimer = setTimeout(async () => {
-    try {
-      await fetch("api/save_draft.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ formId: FORM_ID, sessionId, data: formState }),
-      });
-    } catch (e) {}
+  if (draftTimer) {
+    clearTimeout(draftTimer);
+  }
+  draftTimer = setTimeout(() => {
+    saveDraft().catch((err) => console.error("saveDraft error", err));
   }, 800);
 }
 
@@ -435,6 +454,150 @@ function setFieldValue(name, value) {
   // [GRASP-DERIVED] Keep derived names/addresses
   // in sync whenever base fields change
   syncDerivedFields();
+}
+
+// [GRASP-POSTAL-UX] Helpers for combined postal-code UI (two 3-character inputs with one label).
+function isPostalHalfFieldName(fieldName) {
+  return /_postal[12]$/i.test(fieldName || "");
+}
+
+function isPostalFirstHalfFieldName(fieldName) {
+  return /_postal1$/i.test(fieldName || "");
+}
+
+// Build a single, user-friendly label for a postal-code pair based on the first half's field name.
+function getPostalPairLabel(fieldDef) {
+  const name = fieldDef && fieldDef.name ? fieldDef.name : "";
+  switch (name) {
+    case "parent1_home_postal1":
+      return "Home Postal Code (A1A 1A1)";
+    case "parent1_work_postal1":
+      return "Parent Work / School Postal Code (A1A 1A1)";
+    case "parent2_home_postal1":
+      return "Parent / Guardian 2 Home Postal Code (A1A 1A1)";
+    case "parent2_work_postal1":
+      return "Parent / Guardian 2 Work / School Postal Code (A1A 1A1)";
+    case "doctor_postal1":
+      return "Doctor's Postal Code (A1A 1A1)";
+    default:
+      // Fallback: use existing label but normalise the hint
+      const base = (fieldDef && fieldDef.label)
+        ? String(fieldDef.label).split("(")[0].trim()
+        : "Postal Code";
+      return base + " (A1A 1A1)";
+  }
+}
+
+// [GRASP-POSTAL-UX] Create one half of a postal code input (A1A or 1A1).
+function createPostalHalfControl(fieldDef) {
+  const partWrapper = document.createElement("div");
+  partWrapper.className = "grasp-postal-part";
+
+  const value = getFieldValue(fieldDef.name);
+
+  const input = document.createElement("input");
+  input.className = "grasp-input grasp-postal-input";
+  input.id = "field_" + fieldDef.name;
+  input.type = fieldDef.inputType || fieldDef.type || "text";
+  input.value = value;
+
+  // Visually and technically limit to 3 characters.
+  const maxLen = fieldDef.maxLength || 3;
+  input.maxLength = maxLen;
+  input.size = maxLen;
+  input.style.width = (maxLen+1) + "ch";
+
+  input.addEventListener("input", () => {
+    let currentValue = input.value;
+
+    // Re-use the existing postal normalisation helper if available.
+    if (
+      typeof window !== "undefined" &&
+      window.GRASP_POSTAL &&
+      typeof window.GRASP_POSTAL.normalizeInput === "function"
+    ) {
+      const normalized = window.GRASP_POSTAL.normalizeInput(
+        fieldDef.name,
+        currentValue
+      );
+      if (normalized !== currentValue) {
+        currentValue = normalized;
+        input.value = normalized;
+      }
+    }
+
+    // Update form state
+    setFieldValue(fieldDef.name, currentValue);
+
+    // Auto-advance from *_postal1 to *_postal2 once 3 chars entered.
+    if (/_postal1$/i.test(fieldDef.name) && currentValue.length === 3) {
+      const nextName = fieldDef.name.replace(/_postal1$/i, "_postal2");
+      const nextInput = document.getElementById("field_" + nextName);
+      if (nextInput && typeof nextInput.focus === "function") {
+        nextInput.focus();
+        if (typeof nextInput.select === "function") {
+          nextInput.select();
+        }
+      }
+    }
+  });
+
+  partWrapper.appendChild(input);
+
+  const error = document.createElement("div");
+  error.className = "grasp-error-text";
+  error.id = "error_" + fieldDef.name;
+  partWrapper.appendChild(error);
+
+  return partWrapper;
+}
+
+// [GRASP-POSTAL-UX] Render a combined postal-code row containing both halves on one line.
+function createPostalRow(postal1Def, postal2Def) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "grasp-field-row grasp-postal-row";
+  wrapper.dataset.fieldName = postal1Def.name;
+
+  const label = document.createElement("label");
+  label.className = "grasp-field-label";
+  label.htmlFor = "field_" + postal1Def.name;
+  label.textContent = getPostalPairLabel(postal1Def);
+
+  if (postal1Def.required || (postal2Def && postal2Def.required)) {
+    const req = document.createElement("span");
+    req.className = "grasp-required";
+    req.textContent = " *";
+    label.appendChild(req);
+  }
+
+  wrapper.appendChild(label);
+
+  if (postal1Def.helpText) {
+    const help = document.createElement("div");
+    help.className = "grasp-field-help";
+    help.textContent = postal1Def.helpText;
+    wrapper.appendChild(help);
+  }
+
+  const inputsRow = document.createElement("div");
+  inputsRow.className = "grasp-postal-inputs";
+  // Inline styles ensure reasonable layout even if CSS is not yet updated.
+  inputsRow.style.display = "flex";
+  inputsRow.style.flexWrap = "nowrap";
+  inputsRow.style.alignItems = "flex-start";
+  inputsRow.style.gap = "0.5rem";
+
+  const part1 = createPostalHalfControl(postal1Def);
+  inputsRow.appendChild(part1);
+
+  if (postal2Def) {
+    const part2 = createPostalHalfControl(postal2Def);
+    inputsRow.appendChild(part2);
+  }
+
+  wrapper.appendChild(inputsRow);
+
+  return wrapper;
 }
 
 function createFieldRow(fieldDef) {
@@ -499,6 +662,7 @@ function createFieldRow(fieldDef) {
     wrapper.appendChild(control);
   } else if (fieldDef.type === "radio") {
     const group = document.createElement("div");
+
     group.className = "grasp-radio-group";
 
     (fieldDef.options || []).forEach((opt, idx) => {
@@ -515,7 +679,7 @@ function createFieldRow(fieldDef) {
 
       input.addEventListener("change", () => {
         if (input.checked) {
-          setFieldValue(fieldDef.name, input.value);
+          setFieldValue(fieldDef.name, opt.value);
         }
       });
 
@@ -556,6 +720,10 @@ function createFieldRow(fieldDef) {
     control.id = "field_" + fieldDef.name;
     control.type = fieldDef.inputType || fieldDef.type || "text";
     control.value = value;
+    // [GRASP-POSTAL-UX] Honour any maxLength hint for text inputs (e.g., short 3-character fields).
+    if (typeof fieldDef.maxLength === "number") {
+      control.maxLength = fieldDef.maxLength;
+    }
 
     control.addEventListener("input", () => {
       let currentValue = control.value;
@@ -579,8 +747,7 @@ function createFieldRow(fieldDef) {
       // Update form state
       setFieldValue(fieldDef.name, currentValue);
 
-      // [GRASP-POSTAL] Auto-advance from *_postal1 to *_postal2 once 3 chars entered.
-      // We rely on the naming convention like: parent1_home_postal1 / parent1_home_postal2
+      // Auto-focus on the second half when first half has 3 chars
       if (/_postal1$/i.test(fieldDef.name) && currentValue.length === 3) {
         const nextName = fieldDef.name.replace(/_postal1$/i, "_postal2");
         const nextInput = document.getElementById("field_" + nextName);
@@ -604,9 +771,6 @@ function createFieldRow(fieldDef) {
   return wrapper;
 }
 
-/**
- * Render the current step
- */
 /**
  * Render the current step
  */
@@ -638,10 +802,30 @@ function renderCurrentStep() {
     gTitle.textContent = group.title;
     groupEl.appendChild(gTitle);
 
-    (group.fields || []).forEach((fieldDef) => {
+    (group.fields || []).forEach((fieldDef, index, allFields) => {
       // [GRASP-HIDDEN] Skip hidden/derived fields when rendering the UI.
       // They still exist in config + formState for email/DB use.
       if (fieldDef.type === "hidden") {
+        return;
+      }
+
+      const fieldName = fieldDef.name || "";
+
+      // [GRASP-POSTAL-UX] Render postal halves as a single combined row with one label.
+      // *_postal2 fields are skipped here because they are rendered together with *_postal1.
+      if (isPostalHalfFieldName(fieldName)) {
+        if (!isPostalFirstHalfFieldName(fieldName)) {
+          // This is the second half (e.g., *_postal2); it will be rendered
+          // alongside its *_postal1 partner, so do nothing here.
+          return;
+        }
+
+        const partnerName = fieldName.replace(/_postal1$/i, "_postal2");
+        const partnerDef =
+          (allFields || []).find((f) => f && f.name === partnerName) || null;
+
+        const postalRow = createPostalRow(fieldDef, partnerDef);
+        groupEl.appendChild(postalRow);
         return;
       }
 
@@ -652,7 +836,6 @@ function renderCurrentStep() {
     container.appendChild(groupEl);
   });
 
-  renderStepList();
   updateNavButtons();
 }
 
@@ -667,53 +850,67 @@ function validateStep(stepIndex) {
 
   (step.groups || []).forEach((group) => {
     (group.fields || []).forEach((fieldDef) => {
-      // [GRASP-HIDDEN] Do not validate hidden/derived fields directly.
-      // They will be populated by derived logic (names/addresses).
-      if (fieldDef.type === "hidden") return;
+      // [GRASP-HIDDEN] Do not validate hidden
+      if (fieldDef.type === "hidden") {
+        return;
+      }
 
-      const value = formState[fieldDef.name];
-      const errorEl = byId("error_" + fieldDef.name);
-      if (errorEl) errorEl.textContent = "";
+      const name = fieldDef.name;
+      const value = formState[name];
 
-      // [GRASP-POSTAL] Postal-specific pattern validation (A1A / 1A1).
+      const errorEl = byId("error_" + name);
+      if (errorEl) {
+        errorEl.textContent = "";
+      }
+
+      // Postal-specific validation
+      let postalResult = null;
       if (
         typeof window !== "undefined" &&
         window.GRASP_POSTAL &&
         typeof window.GRASP_POSTAL.validateField === "function"
       ) {
-        const postalResult = window.GRASP_POSTAL.validateField(fieldDef, value);
-        if (!postalResult.ok) {
-          valid = false;
-          if (errorEl) {
-            errorEl.textContent = postalResult.message;
-          }
-          // Skip generic "required" checks for this field so we don't
-          // overwrite the more specific postal error.
-          return;
-        }
+        postalResult = window.GRASP_POSTAL.validateField(fieldDef, value);
       }
 
-      // If the field is not required, no further validation needed.
-      if (!fieldDef.required) return;
-
-      if (fieldDef.type === "radio") {
-        if (!value) {
-          valid = false;
-          if (errorEl) {
-            errorEl.textContent =
-              (config.validationMessages &&
-                config.validationMessages.radioRequired) ||
-              "Please select an option.";
-          }
+      if (postalResult && !postalResult.ok) {
+        valid = false;
+        if (errorEl) {
+          errorEl.textContent = postalResult.message || "Invalid postal code.";
         }
-      } else {
-        if (!value || String(value).trim() === "") {
+        return;
+      }
+
+      if (fieldDef.required) {
+        if (fieldDef.type === "radio") {
+          const selected = (fieldDef.options || []).some(
+            (opt) => formState[name] === opt.value
+          );
+          if (!selected) {
+            valid = false;
+            if (errorEl) {
+              errorEl.textContent = "This field is required.";
+            }
+          }
+        } else if (
+          fieldDef.type === "checkbox" &&
+          fieldDef.enforceChecked === true
+        ) {
+          if (!value) {
+            valid = false;
+            if (errorEl) {
+              errorEl.textContent = "You must check this box to proceed.";
+            }
+          }
+        } else if (
+          fieldDef.type !== "checkbox" &&
+          (value === undefined ||
+            value === null ||
+            String(value).trim() === "")
+        ) {
           valid = false;
           if (errorEl) {
-            errorEl.textContent =
-              (config.validationMessages &&
-                config.validationMessages.required) ||
-              "This field is required.";
+            errorEl.textContent = "This field is required.";
           }
         }
       }
@@ -723,140 +920,88 @@ function validateStep(stepIndex) {
   return valid;
 }
 
-async function saveFormState() {
-  if (!config) return;
-
-  const payload = {
-    formId: FORM_ID,
-    sessionId,
-    updatedAt: new Date().toISOString(),
-    data: formState,
-  };
-
-  const encryptedPayload = await encryptData(payload);
-  await saveToIndexedDb(sessionId, encryptedPayload);
-  saveToLocalStorage(sessionId, encryptedPayload);
-}
-
-async function loadFormState() {
-  // Try localStorage first to get sessionId
-  let storedSessionId = null;
-  try {
-    storedSessionId = window.localStorage.getItem(STORAGE_KEY_SESSION_ID);
-  } catch (_) {}
-
-  if (storedSessionId) {
-    sessionId = storedSessionId;
-  } else {
-    sessionId = generateSessionId();
-    try {
-      window.localStorage.setItem(STORAGE_KEY_SESSION_ID, sessionId);
-    } catch (_) {}
-  }
-
-  // Try IndexedDB, then localStorage
-  let encryptedPayload = null;
-  const idbRecord = await loadFromIndexedDb(sessionId);
-  if (idbRecord && idbRecord.encryptedPayload) {
-    encryptedPayload = idbRecord.encryptedPayload;
-  } else {
-    const localWrapper = loadFromLocalStorage();
-    if (localWrapper && localWrapper.sessionId === sessionId) {
-      encryptedPayload = localWrapper.encryptedPayload;
-    }
-  }
-
-  if (!encryptedPayload) {
-    formState = {};
-    return;
-  }
-
-  const payload = await decryptData(encryptedPayload);
-  if (!payload || payload.formId !== FORM_ID) {
-    formState = {};
-    return;
-  }
-
-  formState = payload.data || {};
-
-  // [GRASP-DERIVED] Make sure combined fields reflect latest parts
-  syncDerivedFields();
-}
-
 /**
- * Nav button logic
+ * Navigation handlers
  */
-function updateNavButtons() {
-  const btnPrev = byId("grasp-btn-prev");
-  const btnNext = byId("grasp-btn-next");
-  const btnSubmit = byId("grasp-btn-submit");
-
-  const lastIndex = config.steps.length - 1;
-  if (btnPrev) {
-    btnPrev.disabled = currentStepIndex === 0;
+function goToStep(index) {
+  if (!config || !config.steps || index < 0 || index >= config.steps.length) {
+    return;
   }
-  if (btnNext) {
-    btnNext.style.display =
-      currentStepIndex === lastIndex ? "none" : "inline-block";
-  }
-  if (btnSubmit) {
-    btnSubmit.style.display =
-      currentStepIndex === lastIndex ? "inline-block" : "none";
-  }
-}
-
-async function goToStep(targetIndex) {
-  if (targetIndex < 0 || targetIndex >= config.steps.length) return;
-  // Validate current step before moving forward
-  if (targetIndex > currentStepIndex) {
-    const valid = validateStep(currentStepIndex);
-    if (!valid) {
-      setStatus("Please complete required fields before continuing.", "error");
-      return;
-    }
-  }
-  setStatus("");
-  currentStepIndex = targetIndex;
-  await saveFormState();
+  currentStepIndex = index;
   renderCurrentStep();
 }
 
-async function handlePrev() {
-  await goToStep(currentStepIndex - 1);
+function handleNext() {
+  if (!validateStep(currentStepIndex)) {
+    setStatus(
+      "Please fix the errors on this step before continuing.",
+      "error"
+    );
+    return;
+  }
+
+  setStatus("");
+
+  if (currentStepIndex < config.steps.length - 1) {
+    currentStepIndex += 1;
+    renderCurrentStep();
+  }
 }
 
-async function handleNext() {
-  await goToStep(currentStepIndex + 1);
+function handlePrev() {
+  if (currentStepIndex > 0) {
+    currentStepIndex -= 1;
+    renderCurrentStep();
+  }
 }
 
-async function handleSave() {
-  // [GRASP-DERIVED] Make sure combined fields reflect latest parts
-  syncDerivedFields();
+function updateNavButtons() {
+  const prevBtn = byId("grasp-btn-prev");
+  const nextBtn = byId("grasp-btn-next");
+  const saveBtn = byId("grasp-btn-save");
+  const previewBtn = byId("grasp-btn-preview");
 
-  await saveFormState();
-  setStatus(
-    "Saved on this device. You can return later using the same browser.",
-    "success"
-  );
+  if (!config || !config.steps) return;
+
+  if (prevBtn) {
+    prevBtn.disabled = currentStepIndex === 0;
+  }
+
+  if (nextBtn) {
+    nextBtn.disabled = currentStepIndex >= config.steps.length - 1;
+  }
+
+  if (saveBtn) {
+    saveBtn.disabled = false;
+  }
+
+  if (previewBtn) {
+    previewBtn.disabled = currentStepIndex !== config.steps.length - 1;
+  }
 }
 
 /**
- * Build an HTML representation of the submission that roughly matches
- * the PDF structure, using the JSON config + formState.
+ * Save draft button handler
  */
-function buildEmailHtml() {
-  const submittedAt = new Date().toISOString();
-  const debugMode =
-    typeof window !== "undefined" && window.GRASP_DEBUG === true;
+async function handleSaveDraft() {
+  try {
+    await saveDraft();
+    setStatus("Your progress has been saved.", "success");
+  } catch (err) {
+    console.error("handleSaveDraft error", err);
+    setStatus("Failed to save your progress. Please try again.", "error");
+  }
+}
 
-  // [GRASP-EMAIL] Internal/meta field names that should not appear
-  // in the outgoing email or preview.
-  const INTERNAL_FIELD_NAMES = new Set([
-    "parent2_home_same_as_parent1", // copy Parent 1 home address checkbox
-  ]);
+/**
+ * Email preview builder
+ */
+function buildEmailHtml(data, submittedAt, emailHtmlFromClient) {
+  if (emailHtmlFromClient) {
+    return emailHtmlFromClient;
+  }
 
   function escapeHtml(str) {
-    if (str === null || str === undefined) return "";
     return String(str)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
@@ -865,356 +1010,275 @@ function buildEmailHtml() {
       .replace(/'/g, "&#39;");
   }
 
-  function formatFieldValue(field, value) {
-    if (value === null || value === undefined) return "";
-    if (Array.isArray(value)) {
-      return value.join(", ");
-    }
-    if (typeof value === "boolean") {
-      return value ? "yes" : "no";
-    }
-    return String(value);
-  }
+  let rows = "";
 
-  function getFriendlyLabel(field) {
-    if (!field) return "";
-    if (field.label) return field.label;
-    // Fallback: prettify the raw field name if no label exists
-    const raw = (field.name || "").replace(/^field_/, "");
-    return raw.replace(/_/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase());
-  }
+  const debugMode = !!(window && window.GRASP_DEBUG && window.GRASP_DEBUG.enabled);
 
-  let html = "";
-  html += "<h2>GRASP Enrollment Submission</h2>";
-  html +=
-    '<p>Submitted at: <span style="font-family:monospace;">' +
-    escapeHtml(submittedAt) +
-    "</span></p>";
-  html +=
-    '<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:100%;max-width:800px;">';
-  html += "<tbody>";
-
-  const steps = (config && config.steps) || [];
-  steps.forEach((step) => {
+  const labelMap = {};
+  (config.steps || []).forEach((step) => {
     (step.groups || []).forEach((group) => {
       (group.fields || []).forEach((field) => {
-        if (!field || !field.name) return;
-
-        // [GRASP-EMAIL] Skip internal/meta fields like the "same as Parent 1" checkbox.
-        if (INTERNAL_FIELD_NAMES.has(field.name)) {
-          return;
-        }
-
-        const rawName = (field.name || "").replace(/^field_/, "");
-        const friendly = getFriendlyLabel(field);
-        const value = formatFieldValue(field, formState[field.name]);
-
-        let labelHtml;
-        if (debugMode) {
-          // DEBUG ON: show raw field name + friendly label (smaller) in same cell
-          labelHtml =
-            '<div style="font-weight:bold;">' +
-            escapeHtml(rawName) +
-            "</div>" +
-            '<div style="font-size:11px;color:#555;margin-top:2px;">' +
-            escapeHtml(friendly) +
-            "</div>";
-        } else {
-          // DEBUG OFF: show only the friendly label
-          labelHtml =
-            '<div style="font-weight:bold;">' + escapeHtml(friendly) + "</div>";
-        }
-
-        html += "<tr>";
-        html +=
-          '<td style="border:1px solid #ccc;padding:4px 6px;vertical-align:top;width:40%;">' +
-          labelHtml +
-          "</td>";
-        html +=
-          '<td style="border:1px solid #ccc;padding:4px 6px;vertical-align:top;width:60%;">' +
-          escapeHtml(value) +
-          "</td>";
-        html += "</tr>";
+        if (field.type === "hidden") return;
+        labelMap[field.name] = field.label || field.name;
       });
     });
   });
 
-  html += "</tbody></table>";
-  return html;
-}
+  Object.keys(data).forEach((name) => {
+    const label = labelMap[name] || name;
+    const value = data[name];
 
-function buildEmailHtmlOld() {
-  if (!config) return "";
+    if (name === "parent2_home_same_as_parent1") return;
 
-  const escapeHtml = (str) => {
-    if (str === null || str === undefined) return "";
-    return String(str)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  };
+    const displayValue =
+      value === undefined || value === null || value === ""
+        ? ""
+        : String(value);
 
-  let html = "";
-  html +=
-    "<h2>Greenland Recreational After School Program – Enrollment Form</h2>";
-  html +=
-    "<p><strong>Submitted at:</strong> " + new Date().toLocaleString() + "</p>";
-  html += "<p><strong>Session ID:</strong> " + escapeHtml(sessionId) + "</p>";
+    const rawName = name.startsWith("field_") ? name.slice(6) : name;
 
-  config.steps.forEach((step, stepIndex) => {
-    html +=
-      '<h3 style="margin-top:18px;border-top:1px solid #ccc;padding-top:8px;">' +
-      (stepIndex + 1) +
-      ". " +
-      escapeHtml(step.title) +
-      "</h3>";
-    if (step.description) {
-      html += "<p>" + escapeHtml(step.description) + "</p>";
+    let cellLabel = escapeHtml(label);
+    if (debugMode) {
+      cellLabel =
+        escapeHtml(rawName) +
+        '<div style="font-size: 11px; color: #6b7280; margin-top: 2px;">' +
+        escapeHtml(label) +
+        "</div>";
     }
 
-    (step.groups || []).forEach((group) => {
-      html +=
-        '<h4 style="margin:8px 0 4px 0;">' + escapeHtml(group.title) + "</h4>";
-      html +=
-        '<table cellpadding="4" cellspacing="0" border="0" style="border-collapse:collapse;width:100%;font-size:13px;">';
-      (group.fields || []).forEach((field) => {
-        const rawVal = formState[field.name];
-        let displayVal = "";
-        if (rawVal === null || rawVal === undefined || rawVal === "") {
-          displayVal = "";
-        } else if (field.type === "checkbox") {
-          displayVal = rawVal ? "Yes" : "No";
-        } else {
-          displayVal = String(rawVal);
-        }
-        html += "<tr>";
-        html +=
-          '<td style="border-bottom:1px solid #eee;width:35%;vertical-align:top;"><strong>' +
-          escapeHtml(field.label || field.name) +
-          "</strong></td>";
-        html +=
-          '<td style="border-bottom:1px solid #eee;width:65%;vertical-align:top;">' +
-          escapeHtml(displayVal) +
-          "</td>";
-        html += "</tr>";
-      });
-      html += "</table>";
-    });
+    rows +=
+      '<tr>' +
+      '<td style="border:1px solid #e5e7eb;padding:6px 8px;font-weight:600;width:38%;">' +
+      cellLabel +
+      "</td>" +
+      '<td style="border:1px solid #e5e7eb;padding:6px 8px;">' +
+      escapeHtml(displayValue) +
+      "</td>" +
+      "</tr>";
   });
 
+  const html =
+    '<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;">' +
+    '<h2 style="margin:0 0 10px;">GRASP Enrollment Submission</h2>' +
+    '<p style="margin:0 0 12px;">Submitted at: ' +
+    escapeHtml(submittedAt || new Date().toISOString()) +
+    "</p>" +
+    '<table style="border-collapse:collapse;width:100%;max-width:900px;">' +
+    rows +
+    "</table>" +
+    "</div>";
+
   return html;
 }
 
-async function handleSubmit() {
-  // [GRASP-DERIVED] Make sure combined fields reflect latest parts
-  syncDerivedFields();
+/**
+ * Preview modal
+ */
+function buildPreviewModal(html, onSubmit, onClose) {
+  const overlay = document.createElement("div");
+  overlay.className = "grasp-modal-overlay";
 
-  // validate all steps before submit
-  let allValid = true;
-  for (let i = 0; i < config.steps.length; i++) {
-    if (!validateStep(i)) {
-      allValid = false;
+  const modal = document.createElement("div");
+  modal.className = "grasp-modal";
+
+  const header = document.createElement("div");
+  header.className = "grasp-modal-header";
+  header.textContent = "Review Enrollment Details";
+  modal.appendChild(header);
+
+  const body = document.createElement("div");
+  body.className = "grasp-modal-body";
+  body.innerHTML = html;
+  modal.appendChild(body);
+
+  const footer = document.createElement("div");
+  footer.className = "grasp-modal-footer";
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.type = "button";
+  cancelBtn.textContent = "Close";
+  cancelBtn.className = "grasp-btn grasp-btn-secondary";
+  cancelBtn.addEventListener("click", () => {
+    if (onClose) onClose();
+    document.body.removeChild(overlay);
+  });
+
+  const submitBtn = document.createElement("button");
+  submitBtn.type = "button";
+  submitBtn.textContent = "Submit Enrollment";
+  submitBtn.className = "grasp-btn grasp-btn-primary";
+  submitBtn.addEventListener("click", async () => {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Submitting...";
+
+    try {
+      await onSubmit();
+      document.body.removeChild(overlay);
+    } catch (err) {
+      console.error("Error in preview submit", err);
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Submit Enrollment";
+      alert(
+        "Sorry, an error occurred while submitting your enrollment. Please try again."
+      );
     }
-  }
+  });
+
+  footer.appendChild(cancelBtn);
+  footer.appendChild(submitBtn);
+  modal.appendChild(footer);
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+}
+
+/**
+ * Preview + submit handler
+ */
+async function openPreview() {
+  const allValid = config.steps.every((_, idx) => validateStep(idx));
   if (!allValid) {
     setStatus(
-      "Please complete all required fields before submitting.",
+      "Please fix the errors on the form before opening the preview.",
       "error"
     );
-    // jump to the first invalid step for convenience
-    currentStepIndex = 0;
-    renderCurrentStep();
+
+    for (let i = 0; i < config.steps.length; i++) {
+      if (!validateStep(i)) {
+        currentStepIndex = i;
+        renderCurrentStep();
+        validateStep(i);
+        break;
+      }
+    }
+
     return;
   }
 
-  setStatus("Submitting, please wait…");
+  setStatus("");
 
-  await saveFormState();
+  const submittedAt = new Date().toISOString();
 
   const payload = {
     formId: FORM_ID,
     sessionId,
-    submittedAt: new Date().toISOString(),
-    data: formState,
-    emailHtml: buildEmailHtml(),
+    submittedAt,
+    data: { ...formState },
   };
 
+  const previewHtml = buildEmailHtml(
+    payload.data,
+    payload.submittedAt,
+    null
+  );
+
+  const onSubmit = async () => {
+    await submitEnrollment(payload, previewHtml);
+  };
+
+  const onClose = () => {};
+
+  buildPreviewModal(previewHtml, onSubmit, onClose);
+}
+
+/**
+ * Submit enrollment to backend
+ */
+async function submitEnrollment(payload, previewHtml) {
   try {
-    const response = await fetch("api/submit_enrollment.php", {
+    const res = await fetch("api/submit_enrollment.php", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        emailHtml: previewHtml,
+      }),
     });
 
-    if (!response.ok) {
-      throw new Error("HTTP error " + response.status);
+    if (!res.ok) {
+      throw new Error("Non-200 response from submit_enrollment.php");
     }
 
-    const result = await response.json();
-    if (result && result.success) {
-      setStatus(
-        "Thank you! Your enrollment form has been submitted.",
-        "success"
-      );
-      clearLocalStorage();
-    } else {
-      setStatus(
-        "There was a problem sending your form. Please contact the office.",
-        "error"
-      );
+    const json = await res.json();
+    if (!json.success) {
+      throw new Error(json.error || "Unknown error");
     }
-  } catch (err) {
-    console.error(err);
+
+    clearLocalStorage();
+
     setStatus(
-      "Network error while submitting the form. Please try again later.",
+      "Thank you! Your enrollment form has been submitted.",
+      "success"
+    );
+
+    formState = {};
+    sessionId = null;
+    currentStepIndex = 0;
+    renderCurrentStep();
+  } catch (err) {
+    console.error("submitEnrollment error", err);
+    setStatus(
+      "Sorry, there was a problem submitting your enrollment. Please try again.",
       "error"
     );
   }
 }
 
 /**
- * Initial bootstrapping
+ * Initialise the wizard
  */
-async function initEnrollmentForm() {
-  const root = byId("enrollment-root");
-  if (!root) return;
-
-  // Load config
+async function initWizard() {
   try {
-    const res = await fetch("config/enrollment-fields.json", {
-      cache: "no-cache",
-    });
-    config = await res.json();
-  } catch (err) {
-    console.error("Failed to load fields config", err);
-    setStatus("Unable to load enrollment form configuration.", "error");
-    return;
-  }
+    const params = getQueryParams();
+    isDebugMode =
+      params.DEBUG === "true" ||
+      params.debug === "true" ||
+      params.debug === "1";
 
-  await loadFormState();
+    await loadConfig();
+    await loadDraft();
 
-  // Wire up buttons
-  const btnPrev = byId("grasp-btn-prev");
-  const btnNext = byId("grasp-btn-next");
-  const btnSave = byId("grasp-btn-save");
-  const btnSubmit = byId("grasp-btn-submit");
+    if (!sessionId) {
+      sessionId = generateSessionId();
+      window.localStorage.setItem(STORAGE_KEY_SESSION_ID, sessionId);
+    }
 
-  if (btnPrev)
-    btnPrev.addEventListener("click", (e) => {
-      e.preventDefault();
-      handlePrev();
-    });
-  if (btnNext)
-    btnNext.addEventListener("click", (e) => {
-      e.preventDefault();
-      handleNext();
-    });
-  if (btnSave)
-    btnSave.addEventListener("click", (e) => {
-      e.preventDefault();
-      handleSave();
-    });
-  if (btnSubmit)
-    btnSubmit.addEventListener("click", (e) => {
-      e.preventDefault();
-      handleSubmit();
-    });
-
-  renderCurrentStep();
-  setStatus("");
-
-  // Notify optional debug helpers that initialization is complete.
-  if (
-    typeof window !== "undefined" &&
-    typeof window.dispatchEvent === "function"
-  ) {
-    try {
-      const evt = new CustomEvent("graspEnrollmentInit", {
-        detail: { config, formState, sessionId },
+    if (isDebugMode && window.GRASP_DEBUG && typeof window.GRASP_DEBUG.applyDebugDefaults === "function") {
+      window.GRASP_DEBUG.applyDebugDefaults(config.steps, formState, () => {
+        syncDerivedFields();
+        renderCurrentStep();
       });
-      window.dispatchEvent(evt);
-    } catch (e) {
-      // Older browsers may not support CustomEvent without a polyfill; fail silently.
-      console.warn("Failed to dispatch graspEnrollmentInit event", e);
+    } else {
+      syncDerivedFields();
+      renderCurrentStep();
     }
-  }
-}
 
-function openPreview() {
-  // [GRASP-DERIVED] Make sure combined fields reflect latest parts
-  syncDerivedFields();
+    const btnPrev = byId("grasp-btn-prev");
+    const btnNext = byId("grasp-btn-next");
+    const btnSave = byId("grasp-btn-save");
+    const btnPreview = byId("grasp-btn-preview");
 
-  // Validate all steps before allowing preview
-  let allValid = true;
-  let firstInvalidStep = -1;
+    if (btnPrev) btnPrev.addEventListener("click", handlePrev);
+    if (btnNext) btnNext.addEventListener("click", handleNext);
+    if (btnSave) btnSave.addEventListener("click", handleSaveDraft);
+    if (btnPreview) btnPreview.addEventListener("click", openPreview);
 
-  for (let i = 0; i < config.steps.length; i++) {
-    const stepOk = validateStep(i);
-    if (!stepOk) {
-      allValid = false;
-      if (firstInvalidStep === -1) {
-        firstInvalidStep = i;
-      }
+    updateNavButtons();
+
+    if (isDebugMode && window.GRASP_DEBUG && window.GRASP_DEBUG.showBadge) {
+      window.GRASP_DEBUG.showBadge();
     }
-  }
-
-  if (!allValid) {
-    // Show a global status message
+  } catch (err) {
+    console.error("initWizard error", err);
     setStatus(
-      "Please correct the highlighted errors before previewing your submission.",
+      "Sorry, there was a problem loading the enrollment form. Please try again later.",
       "error"
     );
-
-    // Jump to the first invalid step so the user can see and fix the issue
-    if (firstInvalidStep !== -1 && firstInvalidStep !== currentStepIndex) {
-      currentStepIndex = firstInvalidStep;
-      renderCurrentStep();
-      // After rendering, run validation again so error messages appear
-      validateStep(firstInvalidStep);
-    }
-
-    return; // Do not open preview
   }
-
-  // All steps valid: build preview as before
-  const modal = byId("grasp-preview-modal");
-  const content = byId("grasp-preview-content");
-  content.innerHTML = buildEmailHtml(); // reuse your existing HTML
-  modal.classList.remove("hidden");
-  modal.setAttribute("aria-hidden", "false");
-}
-
-function closePreview() {
-  const modal = byId("grasp-preview-modal");
-  modal.classList.add("hidden");
-  modal.setAttribute("aria-hidden", "true");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  initEnrollmentForm();
-  const btnPreview = byId("grasp-btn-preview");
-  const btnPrevClose = byId("grasp-preview-close");
-  const btnPrevEdit = byId("grasp-preview-edit");
-  const btnPrevConfirm = byId("grasp-preview-confirm");
-  if (btnPreview)
-    btnPreview.addEventListener("click", (e) => {
-      e.preventDefault();
-      openPreview();
-    });
-  if (btnPrevClose) btnPrevClose.addEventListener("click", closePreview);
-  if (btnPrevEdit)
-    btnPrevEdit.addEventListener("click", (e) => {
-      e.preventDefault();
-      closePreview();
-    });
-  if (btnPrevConfirm)
-    btnPrevConfirm.addEventListener("click", async (e) => {
-      e.preventDefault();
-      closePreview();
-      await handleSubmit(); // submits to PHP as before
-    });
+  initWizard().catch((err) => console.error("initWizard top-level error", err));
 });

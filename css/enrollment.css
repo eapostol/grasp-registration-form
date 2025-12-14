@@ -220,3 +220,16 @@
 .grasp-field select { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
 .grasp-error { color: #b00020; font-size: .9rem; margin-top: 4px; }
 .grasp-step-title { font-size: 1.25rem; font-weight: 700; margin: 8px 0 6px; }
+
+
+.grasp-postal-row .grasp-postal-inputs {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.3rem;
+  align-items: flex-start;
+}
+
+.grasp-postal-part .grasp-input.grasp-postal-input {
+  box-sizing: content-box; /* ensure width applies to text content */
+  width: 4ch; /* visually shows 3 characters */
+}
