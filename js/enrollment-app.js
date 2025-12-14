@@ -607,8 +607,21 @@ function createFieldRow(fieldDef) {
 
   const label = document.createElement("label");
   label.className = "grasp-field-label";
-  label.htmlFor = "field_" + fieldDef.name;
-  label.textContent = fieldDef.label || fieldDef.name;
+  // label.htmlFor = "field_" + fieldDef.name;
+  // label.textContent = fieldDef.label || fieldDef.name;
+
+  const labelText = fieldDef.label || fieldDef.name;
+
+  if (fieldDef.type === "radio") {
+    // Group label: no `for`, but give it an ID so we can link the radiogroup
+    const labelId = "label_" + fieldDef.name;
+    label.id = labelId;
+    label.textContent = labelText;
+  } else {
+    // Single-field label: tie directly to the input by ID
+    label.htmlFor = "field_" + fieldDef.name;
+    label.textContent = labelText;
+  }
 
   if (fieldDef.required) {
     const req = document.createElement("span");
@@ -664,6 +677,11 @@ function createFieldRow(fieldDef) {
     const group = document.createElement("div");
 
     group.className = "grasp-radio-group";
+
+    // Accessibility: tie this group to the main label above.
+    const labelId = "label_" + fieldDef.name;
+    group.setAttribute("role", "radiogroup");
+    group.setAttribute("aria-labelledby", labelId);
 
     (fieldDef.options || []).forEach((opt, idx) => {
       const optId = "field_" + fieldDef.name + "_" + idx;
