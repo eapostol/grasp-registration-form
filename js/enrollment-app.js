@@ -198,6 +198,76 @@ function setStatus(message, type = "info") {
   }
 }
 
+// Render the clickable step tabs at the top of the wizard.
+function renderStepList() {
+  const list = byId("grasp-wizard-step-list");
+  const header = byId("grasp-wizard-step-header");
+  if (!list || !config) return;
+
+  list.innerHTML = "";
+
+  (config.steps || []).forEach((step, idx) => {
+    const li = document.createElement("li");
+    li.textContent = idx + 1 + ". " + step.title;
+
+    if (idx === currentStepIndex) {
+      li.classList.add("active-step");
+    } else if (idx < currentStepIndex) {
+      li.classList.add("completed-step");
+    }
+
+    // Make each step behave like a button
+    li.dataset.stepIndex = String(idx);
+    li.tabIndex = 0;
+    li.role = "button";
+
+    // Clicking a tab always navigates to that step.
+    li.addEventListener("click", () => {
+      setStatus("");
+      currentStepIndex = idx;
+      renderCurrentStep();
+    });
+
+    // Keyboard access (space / enter)
+    li.addEventListener("keypress", (ev) => {
+      if (ev.key === " " || ev.key === "Enter") {
+        ev.preventDefault();
+        li.click();
+      }
+    });
+
+    list.appendChild(li);
+  });
+
+  // Ensure the header bar is visible once we have steps.
+  if (header) {
+    header.classList.remove("hidden");
+  }
+
+  updateProgressBar();
+}
+
+/* current - can roll back this functionality if needed
+function updateProgressBar() {
+  const fill = byId("grasp-wizard-progress-fill");
+  if (!fill || !config) return;
+  const total = config.steps.length || 1;
+  const pct = ((currentStepIndex + 1) / total) * 100;
+  fill.style.width = pct.toFixed(0) + "%";
+}
+  */
+
+// Update the green progress bar at the very top.
+function updateProgressBar() {
+  const bar = byId("grasp-wizard-progress-bar");
+  if (!bar || !config || !config.steps || !config.steps.length) {
+    return;
+  }
+
+  const pct = ((currentStepIndex + 1) / config.steps.length) * 100;
+  bar.style.width = pct + "%";
+}
+
 /**
  * Load config JSON
  */
@@ -791,6 +861,7 @@ function createFieldRow(fieldDef) {
 /**
  * Render the current step
  */
+/*
 function renderCurrentStep() {
   const step = config.steps[currentStepIndex];
   const container = byId("grasp-wizard-step-content");
@@ -853,6 +924,73 @@ function renderCurrentStep() {
     container.appendChild(groupEl);
   });
 
+  updateNavButtons();
+}
+  */
+// Render the current step's content (title, groups, fields).
+function renderCurrentStep() {
+  if (!config || !config.steps || !config.steps.length) return;
+
+  const step = config.steps[currentStepIndex];
+  const container = byId("grasp-wizard-step-content");
+  if (!step || !container) return;
+
+  container.innerHTML = "";
+
+  // Step title
+  const title = document.createElement("div");
+  title.className = "grasp-wizard-step-title";
+  title.textContent = step.title;
+  container.appendChild(title);
+
+  // Optional step description
+  if (step.description) {
+    const desc = document.createElement("div");
+    desc.className = "grasp-wizard-step-description";
+    desc.textContent = step.description;
+    container.appendChild(desc);
+  }
+
+  // Step groups + fields
+  (step.groups || []).forEach((group) => {
+    const groupEl = document.createElement("section");
+    groupEl.className = "grasp-form-group";
+
+    const gTitle = document.createElement("div");
+    gTitle.className = "grasp-form-group-title";
+    gTitle.textContent = group.title;
+    groupEl.appendChild(gTitle);
+
+    (group.fields || []).forEach((fieldDef, index, allFields) => {
+      // Skip hidden/derived fields in the UI (still exist in formState/email/DB)
+      if (fieldDef.type === "hidden") return;
+
+      const fieldName = fieldDef.name || "";
+
+      // Combined postal-code UI: *_postal1 + *_postal2 on one line with one label
+      if (isPostalHalfFieldName(fieldName)) {
+        // Only render the first half; the second half is rendered alongside it
+        if (!isPostalFirstHalfFieldName(fieldName)) return;
+
+        const partnerName = fieldName.replace(/_postal1$/i, "_postal2");
+        const partnerDef =
+          (allFields || []).find((f) => f && f.name === partnerName) || null;
+
+        const postalRow = createPostalRow(fieldDef, partnerDef);
+        groupEl.appendChild(postalRow);
+        return;
+      }
+
+      // Normal field row
+      const row = createFieldRow(fieldDef);
+      groupEl.appendChild(row);
+    });
+
+    container.appendChild(groupEl);
+  });
+
+  // Keep step tabs + progress bar in sync
+  renderStepList();
   updateNavButtons();
 }
 
@@ -942,13 +1080,28 @@ function goToStep(index) {
   if (!config || !config.steps || index < 0 || index >= config.steps.length) {
     return;
   }
+
+  // Only validate when moving forward via Next / Prev.
+  if (targetIndex > currentStepIndex) {
+    const valid = validateStep(currentStepIndex);
+    if (!valid) {
+      setStatus("Please complete required fields before continuing.", "error");
+      return;
+    }
+  }
+
+  setStatus("");
   currentStepIndex = index;
   renderCurrentStep();
 }
 
+/*
 function handleNext() {
   if (!validateStep(currentStepIndex)) {
-    setStatus("Please fix the errors on this step before continuing.", "error");
+    setStatus(
+      "Please fix the errors on this step before continuing.",
+      "error"
+    );
     return;
   }
 
@@ -965,6 +1118,14 @@ function handlePrev() {
     currentStepIndex -= 1;
     renderCurrentStep();
   }
+}
+  */
+async function handlePrev() {
+  await goToStep(currentStepIndex - 1);
+}
+
+async function handleNext() {
+  await goToStep(currentStepIndex + 1);
 }
 
 function updateNavButtons() {
@@ -1024,11 +1185,10 @@ function buildEmailHtml(data, submittedAt, emailHtmlFromClient) {
 
   let rows = "";
 
-  const debugMode = !!(
-    window &&
-    window.GRASP_DEBUG &&
-    window.GRASP_DEBUG.enabled
-  );
+  // const debugMode = !!(window && window.GRASP_DEBUG && window.GRASP_DEBUG.enabled);
+  const debugMode =
+    typeof window !== "undefined" &&
+    (window.GRASP_DEBUG === true || isDebugMode === true);
 
   const labelMap = {};
   (config.steps || []).forEach((step) => {
@@ -1253,7 +1413,7 @@ async function initWizard() {
       sessionId = generateSessionId();
       window.localStorage.setItem(STORAGE_KEY_SESSION_ID, sessionId);
     }
-
+/*
     if (
       isDebugMode &&
       window.GRASP_DEBUG &&
@@ -1267,6 +1427,29 @@ async function initWizard() {
       syncDerivedFields();
       renderCurrentStep();
     }
+*/
+
+// Once config and any stored draft are loaded, render once.
+syncDerivedFields();
+renderCurrentStep();
+
+// If debug mode is enabled, let enrollment-debug.js know so it
+// can prefill the form and add its badge. It listens for this event.
+if (
+  typeof window !== "undefined" &&
+  (window.GRASP_DEBUG === true || isDebugMode) &&
+  typeof window.dispatchEvent === "function"
+) {
+  try {
+    const evt = new CustomEvent("graspEnrollmentInit", {
+      detail: { config, formState, sessionId },
+    });
+    window.dispatchEvent(evt);
+  } catch (e) {
+    console.warn("Failed to dispatch graspEnrollmentInit", e);
+  }
+}
+
 
     const btnPrev = byId("grasp-btn-prev");
     const btnNext = byId("grasp-btn-next");
