@@ -185,17 +185,16 @@ function byId(id) {
  * Set a user-facing status message at the top of the form
  */
 function setStatus(message, type = "info") {
-  const el = byId("grasp-form-status");
+  // Current markup uses #grasp-wizard-status. Keep a fallback for older IDs.
+  const el = byId("grasp-wizard-status") || byId("grasp-form-status");
   if (!el) return;
 
   el.textContent = message || "";
-  el.className = "grasp-form-status";
-  if (message) {
-    el.classList.add("grasp-form-status--visible");
-    el.classList.add(`grasp-form-status--${type}`);
-  } else {
-    el.classList.remove("grasp-form-status--visible");
-  }
+  // Align to existing CSS classes (.grasp-wizard-status.success/.error).
+  el.classList.remove("success", "error");
+  if (!message) return;
+  if (type === "success") el.classList.add("success");
+  if (type === "error") el.classList.add("error");
 }
 
 // Render the clickable step tabs at the top of the wizard.
@@ -259,7 +258,9 @@ function updateProgressBar() {
 
 // Update the green progress bar at the very top.
 function updateProgressBar() {
-  const bar = byId("grasp-wizard-progress-bar");
+  // Current markup uses #grasp-wizard-progress-fill.
+  // Keep a fallback for older IDs.
+  const bar = byId("grasp-wizard-progress-fill") || byId("grasp-wizard-progress-bar");
   if (!bar || !config || !config.steps || !config.steps.length) {
     return;
   }
@@ -331,6 +332,16 @@ async function saveDraft() {
   if (!sessionId) {
     sessionId = generateSessionId();
     window.localStorage.setItem(STORAGE_KEY_SESSION_ID, sessionId);
+  }
+
+  // Ensure derived hidden fields (full names/addresses/postal codes) are current
+  // before persisting the draft.
+  try {
+    if (typeof syncDerivedFields === "function") {
+      syncDerivedFields();
+    }
+  } catch (e) {
+    console.warn("saveDraft: syncDerivedFields failed", e);
   }
 
   const payload = serializeFormState();
@@ -436,20 +447,20 @@ function buildAddressAndPostal(contextPrefix) {
 
 // [GRASP-DERIVED] Synchronise all derived addresses
 function syncDerivedAddresses() {
-  const contexts = [
-    "parent1_home",
-    "parent1_work",
-    "parent2_home",
-    "parent2_work",
-    "doctor",
+  // Map split-field contexts to the *actual* hidden derived field names
+  // used in config/enrollment-fields.json.
+  const mappings = [
+    { ctx: "parent1_home", address: "parent1_home_address", postal: "parent1_postal_code" },
+    { ctx: "parent1_work", address: "parent1_work_address", postal: "parent1_work_postal_code" },
+    { ctx: "parent2_home", address: "parent2_home_address", postal: "parent2_postal_code" },
+    { ctx: "parent2_work", address: "parent2_work_address", postal: "parent2_work_postal_code" },
+    { ctx: "doctor", address: "doctor_address", postal: "doctor_postal_code" },
   ];
 
-  contexts.forEach((ctx) => {
+  mappings.forEach(({ ctx, address, postal }) => {
     const result = buildAddressAndPostal(ctx);
-    formState[ctx.replace("_home", "").replace("_work", "") + "_address"] =
-      result.address;
-    formState[ctx.replace("_home", "").replace("_work", "") + "_postal_code"] =
-      result.postal;
+    formState[address] = result.address;
+    formState[postal] = result.postal;
   });
 }
 
@@ -1076,8 +1087,13 @@ function validateStep(stepIndex) {
 /**
  * Navigation handlers
  */
-function goToStep(index) {
-  if (!config || !config.steps || index < 0 || index >= config.steps.length) {
+function goToStep(targetIndex) {
+  if (
+    !config ||
+    !config.steps ||
+    targetIndex < 0 ||
+    targetIndex >= config.steps.length
+  ) {
     return;
   }
 
@@ -1091,7 +1107,7 @@ function goToStep(index) {
   }
 
   setStatus("");
-  currentStepIndex = index;
+  currentStepIndex = targetIndex;
   renderCurrentStep();
 }
 
@@ -1194,7 +1210,10 @@ function buildEmailHtml(data, submittedAt, emailHtmlFromClient) {
   (config.steps || []).forEach((step) => {
     (step.groups || []).forEach((group) => {
       (group.fields || []).forEach((field) => {
-        if (field.type === "hidden") return;
+        if (!field || !field.name) return;
+        // Include hidden/derived fields so they can display friendly labels
+        // in the preview/email (they are not rendered in the UI, but they
+        // still matter for submission).
         labelMap[field.name] = field.label || field.name;
       });
     });
@@ -1312,6 +1331,15 @@ function buildPreviewModal(html, onSubmit, onClose) {
  * Preview + submit handler
  */
 async function openPreview() {
+  // Keep derived hidden fields in sync before validating / previewing.
+  try {
+    if (typeof syncDerivedFields === "function") {
+      syncDerivedFields();
+    }
+  } catch (e) {
+    console.warn("openPreview: syncDerivedFields failed", e);
+  }
+
   const allValid = config.steps.every((_, idx) => validateStep(idx));
   if (!allValid) {
     setStatus(
@@ -1455,11 +1483,15 @@ if (
     const btnNext = byId("grasp-btn-next");
     const btnSave = byId("grasp-btn-save");
     const btnPreview = byId("grasp-btn-preview");
+    const btnSubmit = byId("grasp-btn-submit");
 
     if (btnPrev) btnPrev.addEventListener("click", handlePrev);
     if (btnNext) btnNext.addEventListener("click", handleNext);
     if (btnSave) btnSave.addEventListener("click", handleSaveDraft);
     if (btnPreview) btnPreview.addEventListener("click", openPreview);
+    // On the last step, the primary "Submit" button should behave like
+    // "Preview & Submit" (it will validate all steps before opening preview).
+    if (btnSubmit) btnSubmit.addEventListener("click", openPreview);
 
     updateNavButtons();
 

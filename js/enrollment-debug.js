@@ -445,11 +445,13 @@
         }
       }
 
-      if (typeof saveFormState === "function") {
+      // Persist to storage so refresh/resume keeps the DEBUG values.
+      // The main script uses saveDraft().
+      if (typeof saveDraft === "function") {
         try {
-          await saveFormState();
+          await saveDraft();
         } catch (e) {
-          console.warn("DEBUG: saveFormState failed", e);
+          console.warn("DEBUG: saveDraft failed", e);
         }
       }
 
