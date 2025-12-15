@@ -1149,24 +1149,22 @@ function updateNavButtons() {
   const nextBtn = byId("grasp-btn-next");
   const saveBtn = byId("grasp-btn-save");
   const previewBtn = byId("grasp-btn-preview");
+  const submitBtn = byId("grasp-btn-submit");
 
   if (!config || !config.steps) return;
 
-  if (prevBtn) {
-    prevBtn.disabled = currentStepIndex === 0;
-  }
+  const isLast = currentStepIndex >= config.steps.length - 1;
 
-  if (nextBtn) {
-    nextBtn.disabled = currentStepIndex >= config.steps.length - 1;
-  }
+  if (prevBtn) prevBtn.disabled = currentStepIndex === 0;
+  if (nextBtn) nextBtn.disabled = isLast;
+  if (saveBtn) saveBtn.disabled = false;
 
-  if (saveBtn) {
-    saveBtn.disabled = false;
-  }
+  // Preview is allowed on any step.
+  if (previewBtn) previewBtn.disabled = false;
 
-  if (previewBtn) {
-    previewBtn.disabled = currentStepIndex !== config.steps.length - 1;
-  }
+  // Toggle Next vs Submit on the last step
+  if (nextBtn) nextBtn.style.display = isLast ? "none" : "inline-block";
+  if (submitBtn) submitBtn.style.display = isLast ? "inline-block" : "none";
 }
 
 /**
@@ -1207,6 +1205,7 @@ function buildEmailHtml(data, submittedAt, emailHtmlFromClient) {
     (window.GRASP_DEBUG === true || isDebugMode === true);
 
   const labelMap = {};
+  const orderedNames = [];
   (config.steps || []).forEach((step) => {
     (step.groups || []).forEach((group) => {
       (group.fields || []).forEach((field) => {
@@ -1215,19 +1214,19 @@ function buildEmailHtml(data, submittedAt, emailHtmlFromClient) {
         // in the preview/email (they are not rendered in the UI, but they
         // still matter for submission).
         labelMap[field.name] = field.label || field.name;
+        if (!orderedNames.includes(field.name)) orderedNames.push(field.name);
       });
     });
   });
-
-  Object.keys(data).forEach((name) => {
+  (orderedNames.length ? orderedNames : Object.keys(data || {})).forEach((name) => {
     const label = labelMap[name] || name;
-    const value = data[name];
+    const value = (data && Object.prototype.hasOwnProperty.call(data, name)) ? data[name] : undefined;
 
     if (name === "parent2_home_same_as_parent1") return;
 
     const displayValue =
       value === undefined || value === null || value === ""
-        ? ""
+        ? "—"
         : String(value);
 
     const rawName = name.startsWith("field_") ? name.slice(6) : name;
@@ -1269,69 +1268,157 @@ function buildEmailHtml(data, submittedAt, emailHtmlFromClient) {
 /**
  * Preview modal
  */
-function buildPreviewModal(html, onSubmit, onClose) {
-  const overlay = document.createElement("div");
-  overlay.className = "grasp-modal-overlay";
+/**
+ * Preview modal helpers (static markup in index.html)
+ */
+let _previewModalWired = false;
+let _previewOnSubmit = null;
 
-  const modal = document.createElement("div");
-  modal.className = "grasp-modal";
-
-  const header = document.createElement("div");
-  header.className = "grasp-modal-header";
-  header.textContent = "Review Enrollment Details";
-  modal.appendChild(header);
-
-  const body = document.createElement("div");
-  body.className = "grasp-modal-body";
-  body.innerHTML = html;
-  modal.appendChild(body);
-
-  const footer = document.createElement("div");
-  footer.className = "grasp-modal-footer";
-
-  const cancelBtn = document.createElement("button");
-  cancelBtn.type = "button";
-  cancelBtn.textContent = "Close";
-  cancelBtn.className = "grasp-btn grasp-btn-secondary";
-  cancelBtn.addEventListener("click", () => {
-    if (onClose) onClose();
-    document.body.removeChild(overlay);
-  });
-
-  const submitBtn = document.createElement("button");
-  submitBtn.type = "button";
-  submitBtn.textContent = "Submit Enrollment";
-  submitBtn.className = "grasp-btn grasp-btn-primary";
-  submitBtn.addEventListener("click", async () => {
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Submitting...";
-
-    try {
-      await onSubmit();
-      document.body.removeChild(overlay);
-    } catch (err) {
-      console.error("Error in preview submit", err);
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Submit Enrollment";
-      alert(
-        "Sorry, an error occurred while submitting your enrollment. Please try again."
-      );
-    }
-  });
-
-  footer.appendChild(cancelBtn);
-  footer.appendChild(submitBtn);
-  modal.appendChild(footer);
-
-  overlay.appendChild(modal);
-  document.body.appendChild(overlay);
+function hidePreviewModal() {
+  const modal = byId("grasp-preview-modal");
+  if (!modal) return;
+  modal.classList.add("hidden");
+  modal.setAttribute("aria-hidden", "true");
+  // Re-enable page scroll
+  document.body.style.overflow = "";
 }
 
+function showPreviewModal(html, { canSubmit = false, onSubmit = null } = {}) {
+  const modal = byId("grasp-preview-modal");
+  const content = byId("grasp-preview-content");
+  const btnCloseX = byId("grasp-preview-close");
+  const btnClose = byId("grasp-preview-close-btn");
+  const btnEdit = byId("grasp-preview-edit");
+  const btnSubmit = byId("grasp-preview-confirm");
+
+  if (!modal || !content) {
+    console.warn("Preview modal markup not found; cannot show preview.");
+    return;
+  }
+
+  content.innerHTML = html || "";
+  _previewOnSubmit = onSubmit;
+
+  if (btnSubmit) {
+    btnSubmit.disabled = !canSubmit;
+    btnSubmit.textContent = "Submit Enrollment";
+    btnSubmit.title = canSubmit
+      ? ""
+      : "Complete all required fields to enable submission.";
+  }
+
+  if (!_previewModalWired) {
+    const close = () => hidePreviewModal();
+
+    if (btnCloseX) btnCloseX.addEventListener("click", close);
+    if (btnClose) btnClose.addEventListener("click", close);
+    if (btnEdit) btnEdit.addEventListener("click", close);
+
+    // Click outside dialog closes modal
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) close();
+    });
+
+    // ESC closes modal
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      const m = byId("grasp-preview-modal");
+      if (m && !m.classList.contains("hidden")) close();
+    });
+
+    // Submit handler
+    if (btnSubmit) {
+      btnSubmit.addEventListener("click", async () => {
+        const m = byId("grasp-preview-modal");
+        if (!m || m.classList.contains("hidden")) return;
+        if (btnSubmit.disabled) return;
+
+        btnSubmit.disabled = true;
+        const originalText = btnSubmit.textContent;
+        btnSubmit.textContent = "Submitting...";
+
+        try {
+          if (typeof _previewOnSubmit === "function") {
+            await _previewOnSubmit();
+          }
+          hidePreviewModal();
+        } catch (err) {
+          console.error("Error in preview submit", err);
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = originalText || "Submit Enrollment";
+          alert(
+            "Sorry, an error occurred while submitting your enrollment. Please try again."
+          );
+        }
+      });
+    }
+
+    _previewModalWired = true;
+  }
+
+  modal.classList.remove("hidden");
+  modal.setAttribute("aria-hidden", "false");
+  // Prevent background scroll while modal is open
+  document.body.style.overflow = "hidden";
+
+  try {
+    (btnCloseX || btnClose || btnEdit || btnSubmit).focus();
+  } catch {}
+}
+
+function isFormSubmittable() {
+  if (!config || !config.steps) return false;
+
+  for (const step of config.steps) {
+    for (const group of step.groups || []) {
+      for (const fieldDef of group.fields || []) {
+        if (!fieldDef || fieldDef.type === "hidden") continue;
+
+        const name = fieldDef.name;
+        if (!name) continue;
+        if (name === "parent2_home_same_as_parent1") continue;
+
+        const value = formState[name];
+
+        // Postal format validation (if present)
+        if (
+          typeof window !== "undefined" &&
+          window.GRASP_POSTAL &&
+          typeof window.GRASP_POSTAL.validateField === "function"
+        ) {
+          const res = window.GRASP_POSTAL.validateField(fieldDef, value);
+          if (res && !res.ok) return false;
+        }
+
+        if (fieldDef.required) {
+          if (fieldDef.type === "radio") {
+            const selected = (fieldDef.options || []).some(
+              (opt) => formState[name] === opt.value
+            );
+            if (!selected) return false;
+          } else if (
+            fieldDef.type === "checkbox" &&
+            fieldDef.enforceChecked === true
+          ) {
+            if (!value) return false;
+          } else if (
+            fieldDef.type !== "checkbox" &&
+            (value === undefined || value === null || String(value).trim() === "")
+          ) {
+            return false;
+          }
+        }
+      }
+    }
+  }
+
+  return true;
+}
 /**
  * Preview + submit handler
  */
 async function openPreview() {
-  // Keep derived hidden fields in sync before validating / previewing.
+  // Keep derived hidden fields in sync before previewing.
   try {
     if (typeof syncDerivedFields === "function") {
       syncDerivedFields();
@@ -1340,27 +1427,9 @@ async function openPreview() {
     console.warn("openPreview: syncDerivedFields failed", e);
   }
 
-  const allValid = config.steps.every((_, idx) => validateStep(idx));
-  if (!allValid) {
-    setStatus(
-      "Please fix the errors on the form before opening the preview.",
-      "error"
-    );
-
-    for (let i = 0; i < config.steps.length; i++) {
-      if (!validateStep(i)) {
-        currentStepIndex = i;
-        renderCurrentStep();
-        validateStep(i);
-        break;
-      }
-    }
-
-    return;
-  }
-
   setStatus("");
 
+  const canSubmit = isFormSubmittable();
   const submittedAt = new Date().toISOString();
 
   const payload = {
@@ -1370,15 +1439,22 @@ async function openPreview() {
     data: { ...formState },
   };
 
-  const previewHtml = buildEmailHtml(payload.data, payload.submittedAt, null);
+  let previewHtml = buildEmailHtml(payload.data, payload.submittedAt, null);
+
+  if (!canSubmit) {
+    previewHtml =
+      '<div style="padding:10px 12px;border:1px solid #fde68a;background:#fffbeb;border-radius:10px;margin:0 0 12px;">' +
+      '<strong>Preview only:</strong> Some required fields are missing or invalid. ' +
+      'You can review what you\'ve entered so far, but <em>Submit Enrollment</em> is disabled until the form is complete.' +
+      '</div>' +
+      previewHtml;
+  }
 
   const onSubmit = async () => {
     await submitEnrollment(payload, previewHtml);
   };
 
-  const onClose = () => {};
-
-  buildPreviewModal(previewHtml, onSubmit, onClose);
+  showPreviewModal(previewHtml, { canSubmit, onSubmit });
 }
 
 /**
