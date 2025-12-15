@@ -234,3 +234,22 @@
   box-sizing: content-box; /* ensure width applies to text content */
   width: 4ch; /* visually shows 3 characters */
 }
+
+
+/* Date inputs: compact on desktop so the calendar icon sits next to the value */
+.grasp-field-row input.grasp-input[type="date"],
+.grasp-field input[type="date"],
+input.grasp-input[type="date"] {
+  width: 14rem;
+  max-width: 100%;
+}
+
+/* Mobile: full-width for easier tapping */
+@media (max-width: 600px) {
+  .grasp-field-row input.grasp-input[type="date"],
+  .grasp-field input[type="date"],
+  input.grasp-input[type="date"] {
+    width: 100%;
+  }
+}
+

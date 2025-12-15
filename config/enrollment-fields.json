@@ -336,8 +336,14 @@
               "required": false
             },
             {
+              "name": "parent2_home_same_as_parent1",
+              "label": "Parent 2's home address same as Parent/Guardian 1",
+              "type": "checkbox",
+              "required": false
+            },
+            {
               "name": "parent2_home_street",
-              "label": "Home street address",
+              "label": "Home Street Address",
               "type": "text",
               "required": false
             },
@@ -427,12 +433,6 @@
               "type": "text",
               "required": false,
               "maxLength": 3
-            },
-            {
-              "name": "parent2_home_same_as_parent1",
-              "label": "Same as Parent/Guardian 1's Home Address",
-              "type": "checkbox",
-              "required": false
             },
             {
               "name": "parent2_home_address",
@@ -1181,7 +1181,7 @@
             },
             {
               "name": "signature_date",
-              "label": "Date",
+              "label": "Date Signed",
               "type": "date",
               "required": true
             },

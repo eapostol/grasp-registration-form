@@ -1288,7 +1288,6 @@ function showPreviewModal(html, { canSubmit = false, onSubmit = null } = {}) {
   const content = byId("grasp-preview-content");
   const btnCloseX = byId("grasp-preview-close");
   const btnClose = byId("grasp-preview-close-btn");
-  const btnEdit = byId("grasp-preview-edit");
   const btnSubmit = byId("grasp-preview-confirm");
 
   if (!modal || !content) {
@@ -1312,7 +1311,6 @@ function showPreviewModal(html, { canSubmit = false, onSubmit = null } = {}) {
 
     if (btnCloseX) btnCloseX.addEventListener("click", close);
     if (btnClose) btnClose.addEventListener("click", close);
-    if (btnEdit) btnEdit.addEventListener("click", close);
 
     // Click outside dialog closes modal
     modal.addEventListener("click", (e) => {
@@ -1362,7 +1360,7 @@ function showPreviewModal(html, { canSubmit = false, onSubmit = null } = {}) {
   document.body.style.overflow = "hidden";
 
   try {
-    (btnCloseX || btnClose || btnEdit || btnSubmit).focus();
+    (btnCloseX || btnClose || btnSubmit).focus();
   } catch {}
 }
 
