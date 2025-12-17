@@ -194,9 +194,10 @@
 /* === Preview modal + utility styles (2025-11-26 patch) === */
 .grasp-modal.hidden { display: none; }
 .grasp-modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.grasp-modal-dialog { position: relative; background: #fff; max-width: 980px; width: calc(100% - 24px); max-height: 85vh; overflow: auto; border-radius: 14px; padding: 20px 20px 16px; box-shadow: 0 12px 48px rgba(0,0,0,.28); }
+.grasp-modal-dialog { position: relative; background: #fff; max-width: 980px; width: calc(100% - 24px); max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; border-radius: 14px; padding: 20px 20px 16px; box-shadow: 0 12px 48px rgba(0,0,0,.28); }
 .grasp-modal-close { position: absolute; top: 10px; right: 12px; font-size: 22px; border: 0; background: transparent; cursor: pointer; }
-.grasp-preview-content { margin-top: 6px; padding: 10px 4px; }
+.grasp-modal-title { margin: 0 34px 8px 0; font-size: 18px; font-weight: 700; }
+.grasp-preview-content { margin-top: 6px; padding: 10px 4px; overflow: auto; flex: 1; }
 .grasp-modal-actions { display: flex; gap: 12px; justify-content: flex-end; padding-top: 10px; border-top: 1px solid #e8e8e8; }
 
 /* Buttons + layout helpers */
@@ -220,3 +221,35 @@
 .grasp-field select { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
 .grasp-error { color: #b00020; font-size: .9rem; margin-top: 4px; }
 .grasp-step-title { font-size: 1.25rem; font-weight: 700; margin: 8px 0 6px; }
+
+
+.grasp-postal-row .grasp-postal-inputs {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.3rem;
+  align-items: flex-start;
+}
+
+.grasp-postal-part .grasp-input.grasp-postal-input {
+  box-sizing: content-box; /* ensure width applies to text content */
+  width: 4ch; /* visually shows 3 characters */
+}
+
+
+/* Date inputs: compact on desktop so the calendar icon sits next to the value */
+.grasp-field-row input.grasp-input[type="date"],
+.grasp-field input[type="date"],
+input.grasp-input[type="date"] {
+  width: 14rem;
+  max-width: 100%;
+}
+
+/* Mobile: full-width for easier tapping */
+@media (max-width: 600px) {
+  .grasp-field-row input.grasp-input[type="date"],
+  .grasp-field input[type="date"],
+  input.grasp-input[type="date"] {
+    width: 100%;
+  }
+}
+
