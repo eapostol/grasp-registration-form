@@ -1122,7 +1122,7 @@ function validateStep(stepIndex) {
 /**
  * Navigation handlers
  */
-function goToStep(targetIndex) {
+function goToStep(targetIndex, { skipValidation = false } = {}) {
   if (
     !config ||
     !config.steps ||
@@ -1133,7 +1133,7 @@ function goToStep(targetIndex) {
   }
 
   // Only validate when moving forward via Next / Prev.
-  if (targetIndex > currentStepIndex) {
+  if (!skipValidation && targetIndex > currentStepIndex) {
     const valid = validateStep(currentStepIndex);
     if (!valid) {
       setStatus("Please complete required fields before continuing.", "error");
@@ -1386,6 +1386,21 @@ function showPreviewModal(html, { canSubmit = false, onSubmit = null } = {}) {
       });
     }
 
+    if (content) {
+      content.addEventListener("click", (event) => {
+        const target = event.target.closest("[data-preview-jump]");
+        if (!target) return;
+
+        event.preventDefault();
+
+        const stepIndex = Number(target.getAttribute("data-step"));
+        const fieldName = target.getAttribute("data-field") || "";
+
+        hidePreviewModal();
+        jumpToField(stepIndex, fieldName);
+      });
+    }
+
     _previewModalWired = true;
   }
 
@@ -1399,6 +1414,29 @@ function showPreviewModal(html, { canSubmit = false, onSubmit = null } = {}) {
   } catch {}
 }
 
+function jumpToField(stepIndex, fieldName) {
+  if (!Number.isFinite(stepIndex) || stepIndex < 0) return;
+  if (!fieldName) return;
+
+  goToStep(stepIndex, { skipValidation: true });
+
+  window.setTimeout(() => {
+    let field = byId("field_" + fieldName);
+    if (!field) {
+      field = document.querySelector(
+        'input[name="field_' + fieldName + '"]'
+      );
+    }
+
+    if (field && typeof field.scrollIntoView === "function") {
+      field.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    if (field && typeof field.focus === "function") {
+      field.focus();
+    }
+  }, 0);
+}
+
 function collectValidationIssues() {
   const issues = [];
   if (!config || !config.steps) return issues;
@@ -1407,7 +1445,8 @@ function collectValidationIssues() {
   const requiredMsg = messages.required || "This field is required.";
   const radioRequiredMsg = messages.radioRequired || "Please select an option.";
 
-  for (const step of config.steps) {
+  for (let stepIndex = 0; stepIndex < config.steps.length; stepIndex += 1) {
+    const step = config.steps[stepIndex];
     for (const group of step.groups || []) {
       for (const fieldDef of group.fields || []) {
         if (!fieldDef || fieldDef.type === "hidden") continue;
@@ -1430,6 +1469,8 @@ function collectValidationIssues() {
             issues.push({
               name,
               label,
+              stepIndex,
+              stepTitle: step.title || "",
               reason: res.message || "Invalid postal code.",
             });
             continue;
@@ -1442,7 +1483,13 @@ function collectValidationIssues() {
               (opt) => formState[name] === opt.value
             );
             if (!selected) {
-              issues.push({ name, label, reason: radioRequiredMsg });
+              issues.push({
+                name,
+                label,
+                stepIndex,
+                stepTitle: step.title || "",
+                reason: radioRequiredMsg,
+              });
             }
           } else if (
             fieldDef.type === "checkbox" &&
@@ -1452,6 +1499,8 @@ function collectValidationIssues() {
               issues.push({
                 name,
                 label,
+                stepIndex,
+                stepTitle: step.title || "",
                 reason: "You must check this box to proceed.",
               });
             }
@@ -1459,7 +1508,13 @@ function collectValidationIssues() {
             fieldDef.type !== "checkbox" &&
             (value === undefined || value === null || String(value).trim() === "")
           ) {
-            issues.push({ name, label, reason: requiredMsg });
+            issues.push({
+              name,
+              label,
+              stepIndex,
+              stepTitle: step.title || "",
+              reason: requiredMsg,
+            });
           }
         }
       }
@@ -1504,13 +1559,25 @@ async function openPreview() {
     const issueListHtml =
       '<ul style="margin:8px 0 0 18px;">' +
       issues
-        .map((issue) =>
-          '<li><strong>' +
-            escapeHtml(issue.label || issue.name) +
-            '</strong>: ' +
-            escapeHtml(issue.reason || "Missing or invalid") +
-            '</li>'
-        )
+        .map((issue) => {
+          const label = escapeHtml(issue.label || issue.name);
+          const reason = escapeHtml(issue.reason || "Missing or invalid");
+          const stepTitle = escapeHtml(issue.stepTitle || "");
+          const stepMeta = stepTitle ? " (" + stepTitle + ")" : "";
+          return (
+            '<li><button type="button" data-preview-jump="true" data-step="' +
+            String(issue.stepIndex) +
+            '" data-field="' +
+            escapeHtml(issue.name) +
+            '" style="background:none;border:none;color:#2563eb;padding:0;cursor:pointer;text-decoration:underline;">' +
+            label +
+            '</button>' +
+            stepMeta +
+            ": " +
+            reason +
+            "</li>"
+          );
+        })
         .join("") +
       "</ul>";
 

@@ -1034,6 +1034,7 @@
               "label": "I consent to reciprocal exchange of information about my child between GRASP, the school and Toronto Children\u2019s Services.",
               "type": "radio",
               "required": true,
+              "default": "yes",
               "options": [
                 {
                   "value": "yes",
