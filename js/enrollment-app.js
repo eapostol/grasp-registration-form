@@ -1333,6 +1333,23 @@ function showPreviewModal(html, { canSubmit = false, onSubmit = null } = {}) {
   content.innerHTML = html || "";
   _previewOnSubmit = onSubmit;
 
+  const dialog = modal.querySelector(".grasp-modal-dialog");
+  let statusEl = byId("grasp-preview-status");
+  if (!statusEl && dialog) {
+    statusEl = document.createElement("div");
+    statusEl.id = "grasp-preview-status";
+    statusEl.setAttribute("role", "status");
+    statusEl.style.margin = "0 0 12px";
+    statusEl.style.fontWeight = "700";
+    statusEl.style.color = "#b00020";
+    statusEl.style.display = "none";
+    dialog.insertBefore(statusEl, dialog.firstChild);
+  }
+  if (statusEl) {
+    statusEl.textContent = "";
+    statusEl.style.display = "none";
+  }
+
   if (btnSubmit) {
     btnSubmit.disabled = !canSubmit;
     btnSubmit.textContent = "Submit Enrollment";
@@ -1374,11 +1391,25 @@ function showPreviewModal(html, { canSubmit = false, onSubmit = null } = {}) {
           if (typeof _previewOnSubmit === "function") {
             await _previewOnSubmit();
           }
+
+          if (statusEl) {
+            statusEl.textContent =
+              "Form submitted. A staff member from GRASP will contact you shortly.";
+            statusEl.style.display = "block";
+          }
+
+          btnSubmit.textContent = "Submitted";
+
+          await new Promise((resolve) => setTimeout(resolve, 6000));
           hidePreviewModal();
         } catch (err) {
           console.error("Error in preview submit", err);
           btnSubmit.disabled = false;
           btnSubmit.textContent = originalText || "Submit Enrollment";
+          if (statusEl) {
+            statusEl.textContent = "";
+            statusEl.style.display = "none";
+          }
           alert(
             "Sorry, an error occurred while submitting your enrollment. Please try again."
           );
