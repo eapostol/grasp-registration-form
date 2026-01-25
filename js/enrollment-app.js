@@ -175,10 +175,45 @@ let sessionId = null;
 let isDebugMode = false;
 
 /**
+ * Apply default values from config for fields that are empty.
+ */
+function applyFieldDefaults() {
+  if (!config || !config.steps) return;
+
+  (config.steps || []).forEach((step) => {
+    (step.groups || []).forEach((group) => {
+      (group.fields || []).forEach((fieldDef) => {
+        if (!fieldDef || !fieldDef.name) return;
+        if (typeof fieldDef.default === "undefined") return;
+
+        const name = fieldDef.name;
+        const current = formState[name];
+        if (
+          current === undefined ||
+          current === null ||
+          String(current).trim() === ""
+        ) {
+          formState[name] = fieldDef.default;
+        }
+      });
+    });
+  });
+}
+
+/**
  * Helper to get an element by ID
  */
 function byId(id) {
   return document.getElementById(id);
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 /**
@@ -1364,8 +1399,13 @@ function showPreviewModal(html, { canSubmit = false, onSubmit = null } = {}) {
   } catch {}
 }
 
-function isFormSubmittable() {
-  if (!config || !config.steps) return false;
+function collectValidationIssues() {
+  const issues = [];
+  if (!config || !config.steps) return issues;
+
+  const messages = (config && config.validationMessages) || {};
+  const requiredMsg = messages.required || "This field is required.";
+  const radioRequiredMsg = messages.radioRequired || "Please select an option.";
 
   for (const step of config.steps) {
     for (const group of step.groups || []) {
@@ -1377,6 +1417,7 @@ function isFormSubmittable() {
         if (name === "parent2_home_same_as_parent1") continue;
 
         const value = formState[name];
+        const label = fieldDef.label || name;
 
         // Postal format validation (if present)
         if (
@@ -1385,7 +1426,14 @@ function isFormSubmittable() {
           typeof window.GRASP_POSTAL.validateField === "function"
         ) {
           const res = window.GRASP_POSTAL.validateField(fieldDef, value);
-          if (res && !res.ok) return false;
+          if (res && !res.ok) {
+            issues.push({
+              name,
+              label,
+              reason: res.message || "Invalid postal code.",
+            });
+            continue;
+          }
         }
 
         if (fieldDef.required) {
@@ -1393,24 +1441,36 @@ function isFormSubmittable() {
             const selected = (fieldDef.options || []).some(
               (opt) => formState[name] === opt.value
             );
-            if (!selected) return false;
+            if (!selected) {
+              issues.push({ name, label, reason: radioRequiredMsg });
+            }
           } else if (
             fieldDef.type === "checkbox" &&
             fieldDef.enforceChecked === true
           ) {
-            if (!value) return false;
+            if (!value) {
+              issues.push({
+                name,
+                label,
+                reason: "You must check this box to proceed.",
+              });
+            }
           } else if (
             fieldDef.type !== "checkbox" &&
             (value === undefined || value === null || String(value).trim() === "")
           ) {
-            return false;
+            issues.push({ name, label, reason: requiredMsg });
           }
         }
       }
     }
   }
 
-  return true;
+  return issues;
+}
+
+function isFormSubmittable() {
+  return collectValidationIssues().length === 0;
 }
 /**
  * Preview + submit handler
@@ -1427,7 +1487,8 @@ async function openPreview() {
 
   setStatus("");
 
-  const canSubmit = isFormSubmittable();
+  const issues = collectValidationIssues();
+  const canSubmit = issues.length === 0;
   const submittedAt = new Date().toISOString();
 
   const payload = {
@@ -1440,10 +1501,24 @@ async function openPreview() {
   let previewHtml = buildEmailHtml(payload.data, payload.submittedAt, null);
 
   if (!canSubmit) {
+    const issueListHtml =
+      '<ul style="margin:8px 0 0 18px;">' +
+      issues
+        .map((issue) =>
+          '<li><strong>' +
+            escapeHtml(issue.label || issue.name) +
+            '</strong>: ' +
+            escapeHtml(issue.reason || "Missing or invalid") +
+            '</li>'
+        )
+        .join("") +
+      "</ul>";
+
     previewHtml =
       '<div style="padding:10px 12px;border:1px solid #fde68a;background:#fffbeb;border-radius:10px;margin:0 0 12px;">' +
       '<strong>Preview only:</strong> Some required fields are missing or invalid. ' +
       'You can review what you\'ve entered so far, but <em>Submit Enrollment</em> is disabled until the form is complete.' +
+      issueListHtml +
       '</div>' +
       previewHtml;
   }
@@ -1510,6 +1585,8 @@ async function initWizard() {
 
     await loadConfig();
     await loadDraft();
+
+    applyFieldDefaults();
 
     if (!sessionId) {
       sessionId = generateSessionId();
