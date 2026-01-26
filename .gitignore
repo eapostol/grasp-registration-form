@@ -73,3 +73,9 @@ Thumbs.db
 # Ignore local API test scripts
 /api/db_test.php
 /api/mail_test.php
+
+# Ignore git patches
+*.patch
+
+# Ignore "originals" folder
+originals/

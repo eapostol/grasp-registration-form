@@ -184,6 +184,12 @@
   color: #b00020;
 }
 
+.form-header-address {
+  display: block;
+  text-align: center;
+  font-size: clamp(0.75rem, 0.7rem + 0.3vw, 0.875rem);
+}
+
 @media (max-width: 768px) {
   #enrollment-root {
     padding: 15px;

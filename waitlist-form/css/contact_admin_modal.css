@@ -1,0 +1,151 @@
+.contact-admin-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 9999;
+  box-sizing: border-box;
+}
+
+.contact-admin-overlay.is-visible {
+  display: flex;
+}
+
+.contact-admin-modal {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  background: #fff;
+  border: 1px solid #000;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+
+.contact-admin-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.contact-admin-close:hover,
+.contact-admin-close:focus {
+  color: #444;
+}
+
+.contact-admin-modal h2 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 1.25rem;
+}
+
+.contact-admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.contact-admin-field label {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.contact-admin-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #aaa;
+  border-radius: 6px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.contact-admin-input:focus {
+  outline: 2px solid #2c7be5;
+  outline-offset: 2px;
+}
+
+.contact-admin-input[aria-invalid="true"] {
+  border-color: #b00020;
+}
+
+.contact-admin-error {
+  color: #b00020;
+  font-size: 0.85rem;
+  min-height: 1em;
+}
+
+.contact-admin-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.contact-admin-btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid #2c7be5;
+  background: #2c7be5;
+  color: #fff;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.contact-admin-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.contact-admin-btn:hover:not(:disabled) {
+  background: #2266c5;
+  border-color: #2266c5;
+}
+
+.contact-admin-btn-secondary {
+  background: #f1f1f1;
+  border: 1px solid #ccc;
+  color: #333;
+}
+
+.contact-admin-btn-secondary:hover {
+  background: #e4e4e4;
+}
+
+.contact-admin-status {
+  min-height: 1em;
+  font-size: 0.95rem;
+  margin-top: 4px;
+}
+
+.contact-admin-status[data-tone="error"] {
+  color: #b00020;
+}
+
+.contact-admin-status[data-tone="success"] {
+  color: #157347;
+}
+
+.contact-admin-trigger {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #1f6ac7;
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+}
+
+.contact-admin-trigger:hover,
+.contact-admin-trigger:focus {
+  color: #144a90;
+}
