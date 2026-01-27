@@ -56,12 +56,14 @@
   const ENROLLMENT_SESSION_ID_KEY = "graspEnrollmentSessionId";
   const ENROLLMENT_DB_NAME = "graspEnrollmentDB";
   const ENROLLMENT_DB_STORE = "sessions";
-  const ENROLLMENT_SECRET_KEY_STRING = "grasp-enrollment-demo-secret-32-char!"; // must match enrollment-app.js
+  const ENROLLMENT_SECRET_KEY_STRING =
+    "grasp-enrollment-demo-secret-32-chars!!";
+  // must match enrollment-app.js
 
   // Public globals expected by enrollment-debug.js (reused for wait list)
   // NOTE: keep names aligned with enrollment-app.js
-  window.config = null;     // loaded from config/waitlist-fields.json
-  window.formState = {};    // current values
+  window.config = null; // loaded from config/waitlist-fields.json
+  window.formState = {}; // current values
   window.currentStepIndex = 0;
   window.sessionId = null;
   window.isDebugMode = false;
@@ -84,7 +86,7 @@
     modalBody: () => document.getElementById("grasp-preview-body"),
     modalClose: () => document.getElementById("grasp-preview-close"),
     modalCancel: () => document.getElementById("grasp-preview-cancel"),
-    modalSubmit: () => document.getElementById("grasp-preview-submit")
+    modalSubmit: () => document.getElementById("grasp-preview-submit"),
   };
 
   // -----------------------------
@@ -101,12 +103,16 @@
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
-      .replaceAll("\"", "&quot;")
+      .replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
   }
 
   function isEmptyValue(v) {
-    return v === undefined || v === null || (typeof v === "string" && v.trim() === "");
+    return (
+      v === undefined ||
+      v === null ||
+      (typeof v === "string" && v.trim() === "")
+    );
   }
 
   function todayISODate() {
@@ -118,13 +124,18 @@
   }
 
   function normalizeCanadianPostalCode(value) {
-    const raw = String(value ?? "").toUpperCase().replace(/\s+/g, "").trim();
+    const raw = String(value ?? "")
+      .toUpperCase()
+      .replace(/\s+/g, "")
+      .trim();
     if (raw.length !== 6) return value;
     return `${raw.slice(0, 3)} ${raw.slice(3)}`;
   }
 
   function looksLikeCanadianPostalCode(value) {
-    const v = String(value ?? "").toUpperCase().trim();
+    const v = String(value ?? "")
+      .toUpperCase()
+      .trim();
     return /^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/.test(v);
   }
 
@@ -133,23 +144,40 @@
   // -----------------------------
   async function getCryptoKey(secretString) {
     const encoder = new TextEncoder();
-    const hash = await crypto.subtle.digest("SHA-256", encoder.encode(secretString));
-    return crypto.subtle.importKey("raw", hash, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
+    const hash = await crypto.subtle.digest(
+      "SHA-256",
+      encoder.encode(secretString),
+    );
+    return crypto.subtle.importKey("raw", hash, { name: "AES-GCM" }, false, [
+      "encrypt",
+      "decrypt",
+    ]);
   }
 
   async function encryptData(plainText, secretString) {
     const key = await getCryptoKey(secretString);
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const encoder = new TextEncoder();
-    const encryptedBuffer = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoder.encode(plainText));
-    return { iv: Array.from(iv), data: Array.from(new Uint8Array(encryptedBuffer)) };
+    const encryptedBuffer = await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv },
+      key,
+      encoder.encode(plainText),
+    );
+    return {
+      iv: Array.from(iv),
+      data: Array.from(new Uint8Array(encryptedBuffer)),
+    };
   }
 
   async function decryptData(payload, secretString) {
     const key = await getCryptoKey(secretString);
     const iv = new Uint8Array(payload.iv);
     const data = new Uint8Array(payload.data);
-    const decryptedBuffer = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
+    const decryptedBuffer = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv },
+      key,
+      data,
+    );
     const decoder = new TextDecoder();
     return decoder.decode(decryptedBuffer);
   }
@@ -162,7 +190,8 @@
       const request = indexedDB.open(dbName, 1);
       request.onupgradeneeded = () => {
         const db = request.result;
-        if (!db.objectStoreNames.contains(storeName)) db.createObjectStore(storeName);
+        if (!db.objectStoreNames.contains(storeName))
+          db.createObjectStore(storeName);
       };
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
@@ -207,23 +236,48 @@
     return newId;
   }
 
+  window.waitlistDraftVersion = window.waitlistDraftVersion || 0;
+
   async function saveDraft() {
     try {
       ensureSessionId();
+
+      // increment version on each save
+      window.waitlistDraftVersion = Math.max(
+        1,
+        Number(window.waitlistDraftVersion || 0) + 1,
+      );
+
       const payload = {
         formId: FORM_ID,
         sessionId: window.sessionId,
-        savedAt: new Date().toISOString(),
-        data: window.formState
+        version: window.waitlistDraftVersion,
+        updatedAt: new Date().toISOString(),
+        data: window.formState,
       };
 
-      const encrypted = await encryptData(JSON.stringify(payload), SECRET_KEY_STRING);
+      const encrypted = await encryptData(
+        JSON.stringify(payload),
+        SECRET_KEY_STRING,
+      );
 
       // localStorage
       localStorage.setItem(STORAGE_KEY_ENCRYPTED, JSON.stringify(encrypted));
 
-      // IndexedDB (same encrypted payload)
+      // IndexedDB
       await idbSet(DB_NAME, DB_STORE, window.sessionId, encrypted);
+
+      // Update shared package draft (common fields)
+      try {
+        if (window.GRASP_PACKAGE_DRAFT?.upsertRegistrant) {
+          await window.GRASP_PACKAGE_DRAFT.upsertRegistrant(window.formState, {
+            onlyFillMissing: false,
+          });
+        }
+      } catch (e) {
+        console.warn("[GRASP][waitlist] packageDraft upsert failed", e);
+      }
+
       return true;
     } catch (err) {
       console.error("[GRASP][waitlist] Failed to save draft:", err);
@@ -233,36 +287,120 @@
 
   async function loadDraft() {
     try {
-      // Try localStorage first
+      let localEncrypted = null;
+      let localPayload = null;
+
       const stored = localStorage.getItem(STORAGE_KEY_ENCRYPTED);
       if (stored) {
-        const decryptedStr = await decryptData(JSON.parse(stored), SECRET_KEY_STRING);
+        localEncrypted = JSON.parse(stored);
+        const decryptedStr = await decryptData(
+          localEncrypted,
+          SECRET_KEY_STRING,
+        );
         const payload = JSON.parse(decryptedStr);
         if (payload?.formId === FORM_ID && payload?.data) {
-          window.sessionId = payload.sessionId || ensureSessionId();
-          window.formState = payload.data || {};
-          return true;
+          localPayload = payload;
         }
       }
 
-      // Fallback: IndexedDB (requires sessionId key)
-      const sid = localStorage.getItem(SESSION_ID_KEY);
-      if (!sid) return false;
-      const encrypted = await idbGet(DB_NAME, DB_STORE, sid);
-      if (!encrypted) return false;
-
-      const decryptedStr = await decryptData(encrypted, SECRET_KEY_STRING);
-      const payload = JSON.parse(decryptedStr);
-      if (payload?.formId === FORM_ID && payload?.data) {
-        window.sessionId = payload.sessionId || ensureSessionId();
-        window.formState = payload.data || {};
-        return true;
+      // session id from payload or LS
+      if (localPayload?.sessionId) {
+        window.sessionId = localPayload.sessionId;
+        localStorage.setItem(SESSION_ID_KEY, window.sessionId);
+      } else {
+        ensureSessionId();
       }
-      return false;
+
+      let idbEncrypted = null;
+      let idbPayload = null;
+
+      const sid = localStorage.getItem(SESSION_ID_KEY);
+      if (sid) {
+        idbEncrypted = await idbGet(DB_NAME, DB_STORE, sid);
+        if (idbEncrypted) {
+          const decryptedStr = await decryptData(
+            idbEncrypted,
+            SECRET_KEY_STRING,
+          );
+          const payload = JSON.parse(decryptedStr);
+          if (payload?.formId === FORM_ID && payload?.data) {
+            idbPayload = payload;
+          }
+        }
+      }
+
+      function meta(p) {
+        return {
+          version: Number.isFinite(Number(p?.version)) ? Number(p.version) : 0,
+          updatedAtMs: Date.parse(p?.updatedAt || p?.savedAt || "") || 0,
+        };
+      }
+
+      const candidates = [];
+      if (localPayload && localEncrypted)
+        candidates.push({
+          payload: localPayload,
+          encrypted: localEncrypted,
+          src: "ls",
+        });
+      if (idbPayload && idbEncrypted)
+        candidates.push({
+          payload: idbPayload,
+          encrypted: idbEncrypted,
+          src: "idb",
+        });
+
+      if (candidates.length === 0) return false;
+
+      let chosen = candidates[0];
+      if (candidates.length === 2) {
+        const a = candidates[0],
+          b = candidates[1];
+        const ma = meta(a.payload),
+          mb = meta(b.payload);
+        if (ma.version !== mb.version) chosen = ma.version > mb.version ? a : b;
+        else chosen = ma.updatedAtMs >= mb.updatedAtMs ? a : b;
+      }
+
+      window.sessionId = chosen.payload.sessionId || ensureSessionId();
+      window.formState = chosen.payload.data || {};
+      window.waitlistDraftVersion = Number.isFinite(
+        Number(chosen.payload.version),
+      )
+        ? Number(chosen.payload.version)
+        : 0;
+
+      // keep LS + IDB synced to chosen
+      localStorage.setItem(
+        STORAGE_KEY_ENCRYPTED,
+        JSON.stringify(chosen.encrypted),
+      );
+      await idbSet(DB_NAME, DB_STORE, window.sessionId, chosen.encrypted);
+
+      return true;
     } catch (err) {
       console.warn("[GRASP][waitlist] No valid draft loaded:", err);
       return false;
     }
+  }
+
+  function bindClearSavedDataButton() {
+    const btn = document.getElementById("grasp-btn-clear-drafts");
+    if (!btn) return;
+
+    btn.addEventListener("click", async () => {
+      const ok = window.confirm(
+        "This will clear ALL saved Enrollment/Wait List drafts on this device. Continue?",
+      );
+      if (!ok) return;
+
+      try {
+        await window.GRASP_PACKAGE_DRAFT?.clearAllDrafts?.();
+      } catch (e) {
+        console.warn("[GRASP] clearAllDrafts failed", e);
+      }
+      window.location.reload();
+    });
   }
 
   let draftSaveTimer = null;
@@ -279,9 +417,13 @@
     const stored = localStorage.getItem(ENROLLMENT_STORAGE_KEY_ENCRYPTED);
     if (stored) {
       try {
-        const decryptedStr = await decryptData(JSON.parse(stored), ENROLLMENT_SECRET_KEY_STRING);
+        const decryptedStr = await decryptData(
+          JSON.parse(stored),
+          ENROLLMENT_SECRET_KEY_STRING,
+        );
         const payload = JSON.parse(decryptedStr);
-        if (payload?.formId === ENROLLMENT_FORM_ID && payload?.data) return payload;
+        if (payload?.formId === ENROLLMENT_FORM_ID && payload?.data)
+          return payload;
       } catch (err) {
         // swallow and try IDB
       }
@@ -292,11 +434,19 @@
     if (!sid) return null;
 
     try {
-      const encrypted = await idbGet(ENROLLMENT_DB_NAME, ENROLLMENT_DB_STORE, sid);
+      const encrypted = await idbGet(
+        ENROLLMENT_DB_NAME,
+        ENROLLMENT_DB_STORE,
+        sid,
+      );
       if (!encrypted) return null;
-      const decryptedStr = await decryptData(encrypted, ENROLLMENT_SECRET_KEY_STRING);
+      const decryptedStr = await decryptData(
+        encrypted,
+        ENROLLMENT_SECRET_KEY_STRING,
+      );
       const payload = JSON.parse(decryptedStr);
-      if (payload?.formId === ENROLLMENT_FORM_ID && payload?.data) return payload;
+      if (payload?.formId === ENROLLMENT_FORM_ID && payload?.data)
+        return payload;
       return null;
     } catch (err) {
       return null;
@@ -305,17 +455,52 @@
 
   function joinNonEmpty(parts) {
     return parts
-      .map(p => String(p ?? "").trim())
-      .filter(p => p.length > 0)
+      .map((p) => String(p ?? "").trim())
+      .filter((p) => p.length > 0)
       .join(" ");
   }
 
-  function getEnrollmentDerivedOrFallback(enrollmentData, derivedKey, fallbackParts) {
+  function getEnrollmentDerivedOrFallback(
+    enrollmentData,
+    derivedKey,
+    fallbackParts,
+  ) {
     const v = enrollmentData?.[derivedKey];
     if (!isEmptyValue(v)) return v;
     if (!fallbackParts) return "";
-    return joinNonEmpty(fallbackParts.map(k => enrollmentData?.[k]));
+    return joinNonEmpty(fallbackParts.map((k) => enrollmentData?.[k]));
   }
+
+  /*
+Draft mapping (Enrollment -> Wait List), source:
+  "GRASP - enrollment and wait-list common fields.xlsx"
+
+Sections:
+- Child Information:
+  child_first_name + child_middle_name_or_initial + child_last_name => child_name (combined with spaces)
+  child_birth_date => child_birth_date
+  subsidy_file_number => subsidy_file_number
+
+- Parent/Guardian 1 Information:
+  parent1_home_street => parent1_home_street
+  parent1_home_unit => parent1_home_unit
+  parent1_home_city => parent1_home_city
+  parent1_postal_code (or parent1_home_postal1 + parent1_home_postal2) => parent1_postal_code (combined)
+  parent1_phones ("Cell and home #") => parent1_phones AND parent1_cell_phone (same source)
+  parent1_first_name + parent1_middle_name_or_initial + parent1_last_name => parent1_name (combined)
+  parent1_email => parent1_email
+  parent1_work_phone => parent1_work_phone
+
+- Parent/Guardian 2 Information:
+  parent2_first_name + parent2_middle_name_or_initial + parent2_last_name => parent2_name (combined)
+  parent2_email => parent2_email
+  parent2_work_phone => parent2_work_phone
+  parent2_phones ("Cell and home #") => parent2_cell_phone (same source)
+
+Notes:
+- Parent 1 vs Parent 2 email fields must remain distinct (do NOT overwrite each other).
+- Combined-name fields in wait list should not overwrite split-name fields in enrollment; sync is conservative.
+*/
 
   function mapEnrollmentToWaitlist(enrollmentData) {
     // Only set fields that exist in the wait list config (and are currently empty).
@@ -323,11 +508,11 @@
     const updates = {};
 
     // Combined names (use derived fields when available)
-    updates.child_name = getEnrollmentDerivedOrFallback(enrollmentData, "child_name", [
-      "child_first_name",
-      "child_middle_name_or_initial",
-      "child_last_name"
-    ]);
+    updates.child_name = getEnrollmentDerivedOrFallback(
+      enrollmentData,
+      "child_name",
+      ["child_first_name", "child_middle_name_or_initial", "child_last_name"],
+    );
 
     updates.child_birth_date = enrollmentData?.child_birth_date ?? "";
 
@@ -345,24 +530,34 @@
       const p1 = enrollmentData?.parent1_home_postal1 ?? "";
       const p2 = enrollmentData?.parent1_home_postal2 ?? "";
       const combined = joinNonEmpty([p1, p2]).toUpperCase();
-      updates.parent1_postal_code = combined ? normalizeCanadianPostalCode(combined) : "";
+      updates.parent1_postal_code = combined
+        ? normalizeCanadianPostalCode(combined)
+        : "";
     }
 
     // Home phone (and cell phone per mapping note)
     updates.parent1_phones = enrollmentData?.parent1_phones ?? "";
 
     // Parents
-    updates.parent1_name = getEnrollmentDerivedOrFallback(enrollmentData, "parent1_name", [
-      "parent1_first_name",
-      "parent1_middle_name_or_initial",
-      "parent1_last_name"
-    ]);
+    updates.parent1_name = getEnrollmentDerivedOrFallback(
+      enrollmentData,
+      "parent1_name",
+      [
+        "parent1_first_name",
+        "parent1_middle_name_or_initial",
+        "parent1_last_name",
+      ],
+    );
 
-    updates.parent2_name = getEnrollmentDerivedOrFallback(enrollmentData, "parent2_name", [
-      "parent2_first_name",
-      "parent2_middle_name_or_initial",
-      "parent2_last_name"
-    ]);
+    updates.parent2_name = getEnrollmentDerivedOrFallback(
+      enrollmentData,
+      "parent2_name",
+      [
+        "parent2_first_name",
+        "parent2_middle_name_or_initial",
+        "parent2_last_name",
+      ],
+    );
 
     // Emails (distinct)
     updates.parent1_email = enrollmentData?.parent1_email ?? "";
@@ -379,7 +574,10 @@
     // Apply only if the destination is empty
     let appliedAny = false;
     for (const [k, v] of Object.entries(updates)) {
-      if (typeof window.formState[k] === "undefined" || isEmptyValue(window.formState[k])) {
+      if (
+        typeof window.formState[k] === "undefined" ||
+        isEmptyValue(window.formState[k])
+      ) {
         if (!isEmptyValue(v)) {
           window.formState[k] = v;
           appliedAny = true;
@@ -389,8 +587,13 @@
 
     if (appliedAny) {
       // Normalize postal code if it looks valid
-      if (!isEmptyValue(window.formState.parent1_postal_code) && looksLikeCanadianPostalCode(window.formState.parent1_postal_code)) {
-        window.formState.parent1_postal_code = normalizeCanadianPostalCode(window.formState.parent1_postal_code);
+      if (
+        !isEmptyValue(window.formState.parent1_postal_code) &&
+        looksLikeCanadianPostalCode(window.formState.parent1_postal_code)
+      ) {
+        window.formState.parent1_postal_code = normalizeCanadianPostalCode(
+          window.formState.parent1_postal_code,
+        );
       }
     }
 
@@ -404,7 +607,10 @@
     // For wait list we primarily keep things as entered.
     // We *do* normalize Parent 1 postal code for display consistency.
     const k = "parent1_postal_code";
-    if (!isEmptyValue(window.formState[k]) && looksLikeCanadianPostalCode(window.formState[k])) {
+    if (
+      !isEmptyValue(window.formState[k]) &&
+      looksLikeCanadianPostalCode(window.formState[k])
+    ) {
       window.formState[k] = normalizeCanadianPostalCode(window.formState[k]);
     }
 
@@ -419,7 +625,10 @@
     for (const step of window.config.steps) {
       for (const group of step.groups) {
         for (const field of group.fields) {
-          if (typeof field.default !== "undefined" && isEmptyValue(window.formState[field.name])) {
+          if (
+            typeof field.default !== "undefined" &&
+            isEmptyValue(window.formState[field.name])
+          ) {
             window.formState[field.name] = field.default;
           }
         }
@@ -436,7 +645,8 @@
     const current = window.currentStepIndex + 1;
     const pct = Math.round((current / total) * 100);
     if (els.progressFill()) els.progressFill().style.width = `${pct}%`;
-    if (els.progressText()) els.progressText().textContent = `Step ${current} of ${total}`;
+    if (els.progressText())
+      els.progressText().textContent = `Step ${current} of ${total}`;
   }
 
   function buildStepNav() {
@@ -450,7 +660,10 @@
       btn.className = "grasp-step-btn";
       btn.textContent = step.title;
       btn.setAttribute("role", "tab");
-      btn.setAttribute("aria-selected", idx === window.currentStepIndex ? "true" : "false");
+      btn.setAttribute(
+        "aria-selected",
+        idx === window.currentStepIndex ? "true" : "false",
+      );
       btn.addEventListener("click", () => {
         // Allow navigating freely but keep validation on Preview/Submit.
         window.currentStepIndex = idx;
@@ -473,7 +686,10 @@
     if (nav) {
       [...nav.querySelectorAll(".grasp-step-btn")].forEach((btn, idx) => {
         btn.classList.toggle("active", idx === window.currentStepIndex);
-        btn.setAttribute("aria-selected", idx === window.currentStepIndex ? "true" : "false");
+        btn.setAttribute(
+          "aria-selected",
+          idx === window.currentStepIndex ? "true" : "false",
+        );
       });
     }
 
@@ -482,7 +698,9 @@
 
     // Buttons
     if (els.btnPrev()) els.btnPrev().disabled = window.currentStepIndex === 0;
-    if (els.btnNext()) els.btnNext().disabled = window.currentStepIndex === window.config.steps.length - 1;
+    if (els.btnNext())
+      els.btnNext().disabled =
+        window.currentStepIndex === window.config.steps.length - 1;
 
     setProgress();
   }
@@ -575,7 +793,9 @@
       el.name = field.name;
       el.type = "checkbox";
       el.checked = Boolean(val);
-      el.addEventListener("change", () => setFieldValue(field.name, el.checked));
+      el.addEventListener("change", () =>
+        setFieldValue(field.name, el.checked),
+      );
       return el;
     }
 
@@ -629,14 +849,18 @@
     }
 
     // Simple email validation (if present)
-    if ((field.inputType === "email" || field.type === "email") && !isEmptyValue(value)) {
+    if (
+      (field.inputType === "email" || field.type === "email") &&
+      !isEmptyValue(value)
+    ) {
       const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim());
       if (!ok) return "Please enter a valid email address.";
     }
 
     // Postal validation
     if (field.name === "parent1_postal_code" && !isEmptyValue(value)) {
-      if (!looksLikeCanadianPostalCode(value)) return "Please enter a valid Canadian postal code (e.g., A1A 1A1).";
+      if (!looksLikeCanadianPostalCode(value))
+        return "Please enter a valid Canadian postal code (e.g., A1A 1A1).";
     }
 
     return "";
@@ -686,11 +910,13 @@
 
           if (field.type === "checkbox") value = value ? "YES" : "NO";
           if (field.type === "radio") {
-            const opt = (field.options || []).find(o => String(o.value) === String(value));
+            const opt = (field.options || []).find(
+              (o) => String(o.value) === String(value),
+            );
             value = opt ? opt.label : (value ?? "");
           }
           parts.push(
-            `<tr><td class='grasp-preview-label'>${escapeHtml(label)}</td><td class='grasp-preview-value'>${escapeHtml(value ?? "")}</td></tr>`
+            `<tr><td class='grasp-preview-label'>${escapeHtml(label)}</td><td class='grasp-preview-value'>${escapeHtml(value ?? "")}</td></tr>`,
           );
         }
         parts.push("</table>");
@@ -734,23 +960,36 @@
         sessionId: window.sessionId || ensureSessionId(),
         submittedAt: new Date().toISOString(),
         data: window.formState,
-        emailHtml: buildPreviewHtml()
+        emailHtml: buildPreviewHtml(),
       };
 
       const res = await fetch("../api/submit_waitlist.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
 
       const json = await res.json().catch(() => ({}));
       if (!res.ok || json?.ok === false) {
-        const msg = json?.message || "Submission failed. Please try again later.";
+        const msg =
+          json?.message || "Submission failed. Please try again later.";
         alert(msg);
         return;
       }
 
       alert("Thank you! Your wait list application has been submitted.");
+      alert("Thank you! Your wait list application has been submitted.");
+
+      // ✅ Add this block on success
+      try {
+        if (window.GRASP_PACKAGE_DRAFT?.setStatus) {
+          await window.GRASP_PACKAGE_DRAFT.setStatus({
+            waitlistSubmittedAt: new Date().toISOString(),
+          });
+        }
+      } catch (e) {
+        console.warn("[GRASP][waitlist] package status update failed", e);
+      }
       closePreview();
     } catch (err) {
       console.error("[GRASP][waitlist] submit error:", err);
@@ -763,31 +1002,49 @@
   // -----------------------------
   async function loadConfig() {
     const res = await fetch("../config/waitlist-fields.json");
-    if (!res.ok) throw new Error("Could not load wait list form configuration.");
+    if (!res.ok)
+      throw new Error("Could not load wait list form configuration.");
     window.config = await res.json();
   }
 
   async function init() {
-    window.isDebugMode = (String(getQueryParam("debug") ?? getQueryParam("DEBUG") ?? "")).toLowerCase() === "true";
+    window.isDebugMode =
+      String(
+        getQueryParam("debug") ?? getQueryParam("DEBUG") ?? "",
+      ).toLowerCase() === "true";
 
-    await loadConfig();
+    // 30-day stale draft check (shared)
+    if (window.GRASP_PACKAGE_DRAFT?.checkAndHandleStaleDraft) {
+      const ok = await window.GRASP_PACKAGE_DRAFT.checkAndHandleStaleDraft();
+      if (!ok) return; // it will reload if cleared
+    }
 
-    // 1) Load wait list draft (highest precedence)
+    // 1) Load wait list draft
     const hadWaitlistDraft = await loadDraft();
 
-    // 2) If no wait list draft, attempt to prefill from enrollment draft (second precedence)
-    if (!hadWaitlistDraft) {
-      const enrollmentPayload = await loadEnrollmentDraftPayload();
-      if (enrollmentPayload?.data) {
-        const applied = mapEnrollmentToWaitlist(enrollmentPayload.data);
-        if (applied) {
-          console.info("[GRASP] Prefilled from enrollment draft");
-          await saveDraft(); // persists so this log only occurs once in normal usage
-        }
+    // 2) Prefill from PACKAGE draft (fills missing only, never overwrites)
+    try {
+      const pkg = await window.GRASP_PACKAGE_DRAFT?.load?.();
+      if (pkg?.registrant && typeof pkg.registrant === "object") {
+        mapEnrollmentToWaitlist(pkg.registrant); // safe: fills only missing
+      }
+    } catch (e) {
+      console.warn("[GRASP][waitlist] packageDraft load/prefill failed", e);
+    }
+
+    // 3) Prefill from enrollment draft mapping (fills missing only)
+    const enrollmentPayload = await loadEnrollmentDraftPayload();
+    if (enrollmentPayload?.data) {
+      const applied = mapEnrollmentToWaitlist(enrollmentPayload.data);
+      if (applied) {
+        // one-time confirmation log (persists via saveDraft so it won't repeat)
+        console.info("[GRASP] Prefilled from enrollment draft");
+        localStorage.setItem("graspWaitlistPrefilledFromEnrollment", "true");
+        await saveDraft();
       }
     }
 
-    // 3) Defaults (and derived normalization). Debug script runs after init event and fills ONLY missing fields.
+    // 4) Defaults (debug runs after init and fills missing only)
     applyFieldDefaults();
 
     // Render UI
@@ -828,9 +1085,14 @@
       });
     }
 
-    if (els.modalClose()) els.modalClose().addEventListener("click", closePreview);
-    if (els.modalCancel()) els.modalCancel().addEventListener("click", closePreview);
-    if (els.modalSubmit()) els.modalSubmit().addEventListener("click", submitWaitlist);
+    if (els.modalClose())
+      els.modalClose().addEventListener("click", closePreview);
+    if (els.modalCancel())
+      els.modalCancel().addEventListener("click", closePreview);
+    if (els.modalSubmit())
+      els.modalSubmit().addEventListener("click", submitWaitlist);
+
+    bindClearSavedDataButton();
 
     // Ensure modal is hidden on initial load (CSS defaults .grasp-modal to visible)
     const modal = els.modal();
@@ -849,12 +1111,14 @@
 
     // If debug mode is on, validate current step once to show missing required fields (after debug fill runs)
     setTimeout(() => {
-      try { validateCurrentStep(); } catch (_) {}
+      try {
+        validateCurrentStep();
+      } catch (_) {}
     }, 50);
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    init().catch(err => {
+    init().catch((err) => {
       console.error("[GRASP][waitlist] init error:", err);
       alert("Could not initialize wait list form. Please refresh the page.");
     });
