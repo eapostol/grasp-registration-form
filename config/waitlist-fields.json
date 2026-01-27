@@ -1,0 +1,316 @@
+{
+  "formId": "grasp_waitlist_2025",
+  "title": "Greenland Recreational After School Program – Wait List Application Form",
+  "version": "0.1.0",
+  "steps": [
+    {
+      "id": "child_family_info",
+      "title": "1. Child & Family Information",
+      "description": "Basic child details and primary contact information.",
+      "groups": [
+        {
+          "id": "child_basic",
+          "title": "Child Information",
+          "fields": [
+            {
+              "name": "child_name",
+              "label": "Child's Name",
+              "type": "text",
+              "inputType": "text",
+              "required": true
+            },
+            {
+              "name": "child_birth_date",
+              "label": "Date of Birth",
+              "type": "date",
+              "required": true
+            },
+            {
+              "name": "date_care_needed",
+              "label": "Date care needed",
+              "type": "date",
+              "required": false
+            },
+            {
+              "name": "date_applied",
+              "label": "Date Applied",
+              "type": "date",
+              "required": false
+            },
+            {
+              "name": "child_gender",
+              "label": "Circle: Male or Female",
+              "type": "radio",
+              "required": false,
+              "options": [
+                {
+                  "value": "Male",
+                  "label": "Male"
+                },
+                {
+                  "value": "Female",
+                  "label": "Female"
+                }
+              ]
+            },
+            {
+              "name": "subsidy_file_number",
+              "label": "Subsidy File #",
+              "type": "text",
+              "inputType": "text",
+              "required": false
+            }
+          ]
+        },
+        {
+          "id": "family_address",
+          "title": "Address",
+          "fields": [
+            {
+              "name": "parent1_home_street",
+              "label": "Address",
+              "type": "text",
+              "inputType": "text",
+              "required": true
+            },
+            {
+              "name": "parent1_home_unit",
+              "label": "Apt / unit #",
+              "type": "text",
+              "inputType": "text",
+              "required": false
+            },
+            {
+              "name": "parent1_home_city",
+              "label": "City",
+              "type": "text",
+              "inputType": "text",
+              "required": true
+            },
+            {
+              "name": "parent1_postal_code",
+              "label": "Postal Code",
+              "type": "text",
+              "inputType": "text",
+              "required": true,
+              "placeholder": "A1A 1A1"
+            },
+            {
+              "name": "parent1_phones",
+              "label": "Home Phone #",
+              "type": "text",
+              "inputType": "text",
+              "required": false
+            }
+          ]
+        },
+        {
+          "id": "parents",
+          "title": "Parents / Guardians",
+          "fields": [
+            {
+              "name": "parent1_name",
+              "label": "Parent 1 Name (Guardian 1)",
+              "type": "text",
+              "inputType": "text",
+              "required": true
+            },
+            {
+              "name": "parent2_name",
+              "label": "Parent 2 Name (Guardian 2)",
+              "type": "text",
+              "inputType": "text",
+              "required": false
+            },
+            {
+              "name": "parent1_email",
+              "label": "Email address (Parent 1)",
+              "type": "email",
+              "inputType": "email",
+              "required": true
+            },
+            {
+              "name": "parent2_email",
+              "label": "Email address (Parent 2)",
+              "type": "email",
+              "inputType": "email",
+              "required": false
+            },
+            {
+              "name": "parent1_work_phone",
+              "label": "Work Phone # (Parent 1)",
+              "type": "text",
+              "inputType": "text",
+              "required": false
+            },
+            {
+              "name": "parent2_work_phone",
+              "label": "Work Phone # (Parent 2)",
+              "type": "text",
+              "inputType": "text",
+              "required": false
+            },
+            {
+              "name": "parent1_cell_phone",
+              "label": "Cell phone # (Parent 1)",
+              "type": "text",
+              "inputType": "text",
+              "required": false
+            },
+            {
+              "name": "parent2_cell_phone",
+              "label": "Cell phone # (Parent 2)",
+              "type": "text",
+              "inputType": "text",
+              "required": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "program_details",
+      "title": "2. Program Details & Notes",
+      "description": "Additional information that helps GRASP triage the wait list.",
+      "groups": [
+        {
+          "id": "current_attendance",
+          "title": "Current Attendance",
+          "fields": [
+            {
+              "name": "currently_attends_daycare",
+              "label": "My child attends Day care at the current time",
+              "type": "checkbox",
+              "required": false
+            },
+            {
+              "name": "currently_attending_school",
+              "label": "My child is attending this school at the current time",
+              "type": "text",
+              "inputType": "text",
+              "required": false,
+              "placeholder": "School name"
+            },
+            {
+              "name": "will_attend_when_require_care",
+              "label": "My child will attend when we require care at GRASP",
+              "type": "checkbox",
+              "required": false
+            }
+          ]
+        },
+        {
+          "id": "subsidy_status",
+          "title": "Subsidy / Fee Status",
+          "fields": [
+            {
+              "name": "child_subsidy_status",
+              "label": "My child:",
+              "type": "radio",
+              "required": false,
+              "options": [
+                {
+                  "value": "has_subsidy",
+                  "label": "Has subsidy in place"
+                },
+                {
+                  "value": "on_subsidy_wait_list",
+                  "label": "Is on the Subsidy wait list"
+                },
+                {
+                  "value": "paying_full_fee",
+                  "label": "Will be paying full fee"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sibling",
+          "title": "Sibling at GRASP",
+          "fields": [
+            {
+              "name": "has_sibling_at_grasp",
+              "label": "My child has a sibling at GRASP",
+              "type": "radio",
+              "required": false,
+              "options": [
+                {
+                  "value": "YES",
+                  "label": "Yes"
+                },
+                {
+                  "value": "NO",
+                  "label": "No"
+                }
+              ]
+            },
+            {
+              "name": "sibling_name",
+              "label": "Sibling name (if yes)",
+              "type": "text",
+              "inputType": "text",
+              "required": false
+            }
+          ]
+        },
+        {
+          "id": "allergies",
+          "title": "Allergies / Special Needs",
+          "fields": [
+            {
+              "name": "allergies_special_needs",
+              "label": "Please list any allergies and/or special needs your child may have or need assistance with",
+              "type": "textarea",
+              "required": false
+            }
+          ]
+        },
+        {
+          "id": "interest",
+          "title": "Program Interest",
+          "fields": [
+            {
+              "name": "interested_summer_camp_only",
+              "label": "I am only interested in summer camp",
+              "type": "radio",
+              "required": false,
+              "options": [
+                {
+                  "value": "YES",
+                  "label": "Yes"
+                },
+                {
+                  "value": "NO",
+                  "label": "No"
+                }
+              ]
+            },
+            {
+              "name": "interested_school_year_only",
+              "label": "I am only interested in school year care only",
+              "type": "radio",
+              "required": false,
+              "options": [
+                {
+                  "value": "YES",
+                  "label": "Yes"
+                },
+                {
+                  "value": "NO",
+                  "label": "No"
+                }
+              ]
+            },
+            {
+              "name": "interested_both_summer_and_school_year",
+              "label": "I am interested in both summer camp and school year care",
+              "type": "checkbox",
+              "required": false
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

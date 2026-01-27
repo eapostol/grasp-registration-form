@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>GRASP Wait List Application Form : Greenland Recreational</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Online wait list application form for Greenland Recreational After School Program (GRASP)." />
+  <link href="../css/style.css" rel="stylesheet" type="text/css" />
+  <link href="../css/enrollment.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+  <div id="wrapper">
+    <div id="navigation">
+      <ul>
+        <li><a href="../index.html">Home</a></li>
+        <li><a href="../program_statement.html">Program Statement</a></li>
+        <li><a href="../programs_fees.html">Programs And Fees</a></li>
+        <li><a href="../grasp_summer_camp.html">Summer Camp and Trips</a></li>
+        <li><a href="../location.html">Location</a></li>
+        <li><a href="../contact.html">Contact</a></li>
+        <li><a href="../forms.html">Forms</a></li>
+      </ul>
+    </div>
+
+    <div id="banner">
+      <img src="../img/banner.jpg" height="254" width="990" alt="Greenland Recreational After School Program" />
+    </div>
+
+    <div id="cont-seclft">
+      <img src="../img/side-6.jpg" alt="Happy Children" />
+    </div>
+
+    <div id="cont-secrht">
+      <div id="enrollment-root">
+        <h2>Wait List Application Form (Required Form)</h2>
+
+        <p class="enrollment-intro">
+          <span class="form-header-address">
+            Greenland Recreational After School Program (GRASP)<br />
+            15 Greenland Road, Toronto, ON M3C 1N1<br />
+            Phone: (416) 444-7427 Email: info @ greenlandrecreational.com<br />
+          </span>
+
+          <hr />
+
+          This form is to be completed by the parent or guardian wishing to be added to the GRASP wait list.
+          If you have already completed the <strong>Enrollment Form</strong> using this same browser, common
+          fields will be prefilled automatically.
+
+          <br /><br />
+          <strong>Important:</strong> the wait list form is the <strong>second</strong> of three required documents:
+        <ol>
+          <li>Enrollment Form</li>
+          <li><strong>Wait List Application Form (this form)</strong></li>
+          <li>Parent Agreement Document (to be completed after these forms)</li>
+        </ol>
+
+        Required fields are marked with an asterisk (*).
+        </p>
+
+        <div class="grasp-progress-wrap" aria-label="progress">
+          <div class="grasp-progress-bar">
+            <div id="grasp-wizard-progress-fill" class="grasp-progress-fill"></div>
+          </div>
+          <div class="grasp-progress-legend">
+            <span id="grasp-wizard-progress-text">Step 1 of 2</span>
+          </div>
+        </div>
+
+        <div id="grasp-wizard-step-nav" class="grasp-step-nav" role="tablist" aria-label="Form steps"></div>
+
+        <div id="grasp-wizard-step-title" class="grasp-step-title"></div>
+        <div id="grasp-wizard-step-desc" class="grasp-step-desc"></div>
+
+        <form id="grasp-wizard-form" novalidate>
+          <div id="grasp-wizard-fields"></div>
+
+          <div class="grasp-actions">
+            <button type="button" id="grasp-btn-prev" class="grasp-btn grasp-btn-secondary">Previous</button>
+            <button type="button" id="grasp-btn-save" class="grasp-btn grasp-btn-secondary">Save</button>
+            <button type="button" id="grasp-btn-clear-drafts" class="grasp-btn grasp-btn-secondary">Clear Saved
+              Data</button>
+            <button type="button" id="grasp-btn-next" class="grasp-btn grasp-btn-primary">Next</button>
+            <button type="button" id="grasp-btn-preview" class="grasp-btn grasp-btn-primary">Preview</button>
+          </div>
+
+          <p class="grasp-save-hint">
+            You may save your progress on this device and return later using the same browser.
+          </p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview Modal -->
+  <div id="grasp-preview-modal" class="grasp-modal hidden" aria-hidden="true">
+    <div class="grasp-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="grasp-preview-title">
+      <button type="button" class="grasp-modal-close" id="grasp-preview-close" aria-label="Close">×</button>
+      <h3 id="grasp-preview-title" class="grasp-modal-title">Preview Wait List Application</h3>
+      <div id="grasp-preview-body" class="grasp-preview-content"></div>
+      <div class="grasp-modal-actions">
+        <button type="button" id="grasp-preview-cancel" class="grasp-btn grasp-btn-secondary">
+          Close and Continue Editing
+        </button>
+        <button type="button" id="grasp-preview-submit" class="grasp-btn grasp-btn-primary">
+          Submit
+        </button>
+      </div>
+      <p class="grasp-modal-hint">
+        Submitting will email this form to the GRASP office.
+      </p>
+    </div>
+  </div>
+  <script src="../js/grasp-package-draft.js"></script>
+  <script src="../js/waitlist-app.js"></script>
+  <script src="../js/enrollment-debug.js"></script>
+  <script src="../js/main.js"></script>
+</body>
+
+</html>
