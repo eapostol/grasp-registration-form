@@ -2,8 +2,16 @@
 (function () {
   const EMAIL_REGEX =
     /^[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*@(?:[A-Za-z0-9-]+\.){1,2}[A-Za-z]{2,}$/;
-  const STYLESHEET_HREF = "css/contact_admin_modal.css";
+  const STYLESHEET_HREF = normalizeHref("css/contact_admin_modal.css");
   const TRIGGER_TEXT = "site administrator";
+
+  function normalizeHref(href) {
+    if (!href) return href;
+    if (href.startsWith("http://") || href.startsWith("https://")) return href;
+    if (href.startsWith("/")) return href;
+    return "/" + href.replace(/^\.?\//, "");
+  }
+
 
   document.addEventListener("DOMContentLoaded", () => {
     ensureStylesheetLoaded();
@@ -13,7 +21,7 @@
 
   function ensureStylesheetLoaded() {
     const alreadyLoaded = Array.from(document.querySelectorAll("link")).some(
-      (link) => link.getAttribute("href") === STYLESHEET_HREF
+      (link) => normalizeHref(link.getAttribute("href")) === STYLESHEET_HREF
     );
 
     if (!alreadyLoaded) {

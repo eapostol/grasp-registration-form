@@ -6,6 +6,16 @@
 (function () {
   "use strict";
 
+  // [GRASP-DEBUG]
+  // Design goals (Enrollment + Wait List):
+  // 1) DEBUG is opt-in via ?debug=true (or ?DEBUG=true).
+  // 2) If stored values already exist (local draft / enrollment-prefill), DO NOT override them.
+  // 3) DEBUG fills only missing/empty fields.
+  // 4) Works for both pages by responding to both init events:
+  //      - graspEnrollmentInit
+  //      - graspWaitlistInit
+  //    and also supports a fallback timer in case this script loads after the event.
+
   function detectDebugMode() {
     try {
       var params = new URLSearchParams(window.location.search);
@@ -393,73 +403,255 @@
     return "Test value";
   }
 
-  async function applyDebugDefaults() {
-    if (typeof config === "undefined" || !config || !config.steps) {
-      console.warn("DEBUG: config not available; cannot apply debug defaults.");
+  function isEmptyValue(v) {
+    // NOTE: false/0 are valid values and should NOT be considered empty.
+    return (
+      typeof v === "undefined" ||
+      v === null ||
+      (typeof v === "string" && v.trim() === "")
+    );
+  }
+
+  function safeCssEscape(value) {
+    if (typeof value === "undefined" || value === null) return "";
+    var s = String(value);
+    if (window.CSS && typeof window.CSS.escape === "function") {
+      return window.CSS.escape(s);
+    }
+    // Minimal escape fallback for attribute selectors.
+    return s.replace(/[^a-zA-Z0-9_\-]/g, "\\$&");
+  }
+
+  function getConfigRef() {
+    try {
+      if (typeof config !== "undefined" && config) return config;
+    } catch (e) {}
+    return window && window.config ? window.config : null;
+  }
+
+  function getFormStateRef() {
+    // Enrollment form uses a global lexical binding (let formState).
+    // Wait list form uses window.formState.
+    try {
+      if (typeof formState !== "undefined") {
+        return {
+          get: function () {
+            return formState;
+          },
+          set: function (next) {
+            formState = next;
+          },
+        };
+      }
+    } catch (e) {}
+
+    if (window && typeof window.formState !== "undefined") {
+      return {
+        get: function () {
+          return window.formState;
+        },
+        set: function (next) {
+          window.formState = next;
+        },
+      };
+    }
+
+    return null;
+  }
+
+  function callIfExists(fnName) {
+    // Prefer window.fnName if present, otherwise fall back to a global binding.
+    if (window && typeof window[fnName] === "function") {
+      try {
+        window[fnName]();
+      } catch (e) {
+        console.warn("DEBUG: " + fnName + " failed", e);
+      }
+      return true;
+    }
+    try {
+      // eslint-disable-next-line no-undef
+      if (typeof eval(fnName) === "function") {
+        // eslint-disable-next-line no-undef
+        eval(fnName)();
+        return true;
+      }
+    } catch (e2) {}
+    return false;
+  }
+
+  function setDomValueForField(field, value) {
+    if (!field || !field.name) return;
+    var name = field.name;
+
+    // Enrollment uses:  field_<name>
+    // Wait list uses:   fld_<name>
+    var id1 = "field_" + name;
+    var id2 = "fld_" + name;
+    var el = document.getElementById(id1) || document.getElementById(id2);
+
+    if ((field.type || "").toLowerCase() === "radio") {
+      var sel = 'input[type="radio"][name="' + safeCssEscape(name) + '"]';
+      var radios = document.querySelectorAll(sel);
+      radios.forEach(function (r) {
+        r.checked = String(r.value) === String(value);
+      });
       return;
     }
-    if (typeof formState === "undefined") {
-      console.warn(
-        "DEBUG: formState not available; cannot apply debug defaults."
-      );
+
+    if ((field.type || "").toLowerCase() === "checkbox") {
+      if (el && (el.type || "").toLowerCase() === "checkbox") {
+        el.checked = Boolean(value);
+      }
       return;
+    }
+
+    if (!el) return;
+    if (typeof el.value !== "undefined") {
+      el.value = value == null ? "" : String(value);
+    }
+  }
+
+  function triggerChangeEventsForField(field) {
+    if (!field || !field.name) return;
+    var name = field.name;
+    var id1 = "field_" + name;
+    var id2 = "fld_" + name;
+    var el = document.getElementById(id1) || document.getElementById(id2);
+
+    var type = (field.type || "text").toLowerCase();
+
+    try {
+      if (type === "radio") {
+        var sel = 'input[type="radio"][name="' + safeCssEscape(name) + '"]';
+        var radios = document.querySelectorAll(sel);
+        radios.forEach(function (r) {
+          if (r.checked) {
+            r.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        });
+        return;
+      }
+
+      if (type === "checkbox") {
+        if (el) {
+          el.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+        return;
+      }
+
+      if (el) {
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+        el.dispatchEvent(new Event("blur", { bubbles: true }));
+      }
+    } catch (e) {
+      console.warn("DEBUG: failed to trigger events for field", name, e);
+    }
+  }
+
+  async function applyDebugDefaultsOnceReady() {
+    var cfg = getConfigRef();
+    var fsRef = getFormStateRef();
+
+    if (!cfg || !cfg.steps) {
+      console.warn("DEBUG: config not available; cannot apply debug defaults.");
+      return false;
+    }
+    if (!fsRef) {
+      console.warn("DEBUG: formState not available; cannot apply debug defaults.");
+      return false;
     }
 
     try {
+      var formStateObj = fsRef.get();
+      if (!formStateObj || typeof formStateObj !== "object") {
+        formStateObj = {};
+        fsRef.set(formStateObj);
+      }
+
       var overrides = await buildDebugFormStateOverrides();
-      var steps = config.steps || [];
+      var steps = cfg.steps || [];
+      var changedFields = [];
 
-      // Start from a clean state for test purposes.
-      formState = {};
-
+      // IMPORTANT: Do NOT wipe existing values. Only fill empty fields.
       steps.forEach(function (step) {
         (step.groups || []).forEach(function (group) {
           (group.fields || []).forEach(function (field) {
             if (!field || !field.name) return;
             var name = field.name;
 
-            var hasExplicit = Object.prototype.hasOwnProperty.call(
-              overrides,
-              name
-            );
+            // Precedence rule:
+            // If debug is enabled AND enrollment/waitlist draft exists:
+            //   - Keep stored values
+            //   - Fill only missing waitlist fields with debug values (do not override)
+            if (!isEmptyValue(formStateObj[name])) {
+              return;
+            }
+
+            var hasExplicit = Object.prototype.hasOwnProperty.call(overrides, name);
             var explicitValue = hasExplicit ? overrides[name] : undefined;
             var value =
               typeof explicitValue !== "undefined"
                 ? explicitValue
                 : generateDebugFieldValue(field);
 
-            if (typeof value !== "undefined" && value !== null) {
-              formState[name] = value;
+            if (typeof value !== "undefined" && value !== null && !isEmptyValue(value)) {
+              formStateObj[name] = value;
+              changedFields.push(name);
+              // Mirror into the UI where possible.
+              setDomValueForField(field, value);
             }
           });
         });
       });
 
-      // [GRASP-DEBUG] After populating base fields, compute all derived
-      // name/address fields so preview/email/DB see consistent values.
-      if (typeof syncDerivedFields === "function") {
+      // Derived field sync (both forms). Prefer window.syncDerivedFields.
+      callIfExists("syncDerivedFields");
+
+      // Persist: enrollment exposes saveDraft(); wait list keeps it private.
+      // If saveDraft is not accessible, we still nudge the app by emitting events
+      // for changed fields (the input listeners schedule draft saves internally).
+      var saved = false;
+      if (window && typeof window.saveDraft === "function") {
         try {
-          syncDerivedFields();
+          await window.saveDraft();
+          saved = true;
         } catch (e) {
-          console.warn("DEBUG: syncDerivedFields failed", e);
+          console.warn("DEBUG: window.saveDraft failed", e);
+        }
+      } else {
+        try {
+          // eslint-disable-next-line no-undef
+          if (typeof saveDraft === "function") {
+            // eslint-disable-next-line no-undef
+            await saveDraft();
+            saved = true;
+          }
+        } catch (e2) {
+          // ignore
         }
       }
 
-      // Persist to storage so refresh/resume keeps the DEBUG values.
-      // The main script uses saveDraft().
-      if (typeof saveDraft === "function") {
-        try {
-          await saveDraft();
-        } catch (e) {
-          console.warn("DEBUG: saveDraft failed", e);
-        }
+      if (!saved && changedFields.length) {
+        // Best-effort: trigger input/change events so the app's own listeners run.
+        steps.forEach(function (step) {
+          (step.groups || []).forEach(function (group) {
+            (group.fields || []).forEach(function (field) {
+              if (!field || !field.name) return;
+              if (changedFields.indexOf(field.name) === -1) return;
+              triggerChangeEventsForField(field);
+            });
+          });
+        });
       }
 
-      if (typeof renderCurrentStep === "function") {
-        renderCurrentStep();
-      }
+      // Re-render if the app exposes a renderer (Enrollment does).
+      callIfExists("renderCurrentStep");
+
+      return true;
     } catch (e) {
       console.warn("DEBUG: error while applying debug defaults", e);
+      return false;
     }
   }
 
@@ -475,16 +667,38 @@
     window.GRASP_DEBUG = true;
   }
 
-  // Once the core enrollment script finishes its initial bootstrapping,
-  // we apply our overrides and show the badge.
-  window.addEventListener("graspEnrollmentInit", function () {
+  var applied = false;
+  var applying = false;
+
+  function doApplyIfNeeded() {
+    if (applied || applying) return;
+    applying = true;
+
     try {
       addDebugBadge();
     } catch (e) {
       console.warn("DEBUG: failed to add debug badge", e);
     }
-    applyDebugDefaults().catch(function (err) {
-      console.warn("DEBUG: failed to apply debug defaults", err);
-    });
+
+    applyDebugDefaultsOnceReady()
+      .then(function (ok) {
+        if (ok) applied = true;
+      })
+      .catch(function (err) {
+        console.warn("DEBUG: failed to apply debug defaults", err);
+      })
+      .finally(function () {
+        applying = false;
+      });
+  }
+
+  // Once the core scripts finish their initial bootstrapping, apply defaults.
+  window.addEventListener("graspEnrollmentInit", doApplyIfNeeded);
+  window.addEventListener("graspWaitlistInit", doApplyIfNeeded);
+
+  // Fallback: if this script loads after the init event, attempt shortly after load.
+  // (We keep this best-effort and one-time to avoid masking real init issues.)
+  window.addEventListener("DOMContentLoaded", function () {
+    setTimeout(doApplyIfNeeded, 25);
   });
 })();
