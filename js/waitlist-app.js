@@ -978,7 +978,6 @@ Notes:
       }
 
       alert("Thank you! Your wait list application has been submitted.");
-      alert("Thank you! Your wait list application has been submitted.");
 
       // ✅ Add this block on success
       try {
@@ -1019,6 +1018,9 @@ Notes:
       if (!ok) return; // it will reload if cleared
     }
 
+    // Load wait list configuration BEFORE anything that needs config.steps
+    await loadConfig();
+
     // 1) Load wait list draft
     const hadWaitlistDraft = await loadDraft();
 
@@ -1037,9 +1039,13 @@ Notes:
     if (enrollmentPayload?.data) {
       const applied = mapEnrollmentToWaitlist(enrollmentPayload.data);
       if (applied) {
-        // one-time confirmation log (persists via saveDraft so it won't repeat)
-        console.info("[GRASP] Prefilled from enrollment draft");
-        localStorage.setItem("graspWaitlistPrefilledFromEnrollment", "true");
+        // One-time confirmation log to make testing easier
+        const alreadyLogged =
+          localStorage.getItem("graspWaitlistPrefilledFromEnrollment") === "true";
+        if (!alreadyLogged) {
+          console.info("[GRASP] Prefilled from enrollment draft");
+          localStorage.setItem("graspWaitlistPrefilledFromEnrollment", "true");
+        }
         await saveDraft();
       }
     }
