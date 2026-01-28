@@ -318,13 +318,18 @@ function updateProgressBar() {
  * Load config JSON
  */
 async function loadConfig() {
-  const res = await fetch("../config/enrollment-fields.json", {
+  // IMPORTANT: use a relative path so deployments under a subdirectory
+  // (e.g. https://greenlandrecreational.com/staging/) resolve correctly.
+  const res = await fetch("config/enrollment-fields.json", {
     cache: "no-store",
   });
   if (!res.ok) {
     throw new Error("Failed to load enrollment-fields.json");
   }
   config = await res.json();
+  // Expose for debug tools and cross-form helpers
+  window.config = config;
+
 }
 
 /**
@@ -522,6 +527,14 @@ async function loadDraft() {
     }
   } catch (e) {
     console.warn("[GRASP][enrollment] packageDraft sync failed", e);
+  }
+
+  // Expose for cross-form helpers / debug tooling.
+  try {
+    window.formState = formState;
+    window.sessionId = sessionId;
+  } catch (e2) {
+    /* ignore */
   }
 }
 
@@ -1451,6 +1464,67 @@ function bindClearSavedDataButton() {
  */
 let _previewModalWired = false;
 let _previewOnSubmit = null;
+let _previewLastHtml = "";
+
+function printPreviewViaIframe(previewHtml) {
+  const html = previewHtml || "";
+
+  // Avoid popup blockers by printing from a hidden iframe.
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  iframe.style.visibility = "hidden";
+  document.body.appendChild(iframe);
+
+  const printCss = `
+    @page { size: Letter; margin: 16mm 12mm; }
+    body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; }
+    .grasp-print-wrapper { padding: 0; }
+    .grasp-print-footer { position: fixed; bottom: 10mm; right: 12mm; font-size: 10px; }
+    @media print {
+      .grasp-print-footer { position: fixed; }
+    }
+  `;
+
+  const doc = iframe.contentWindow && iframe.contentWindow.document;
+  if (!doc) {
+    iframe.remove();
+    alert("Could not open print preview. Please try again.");
+    return;
+  }
+
+  doc.open();
+  doc.write(`<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Print Preview</title>
+  <style>${printCss}</style>
+  <link rel="stylesheet" href="css/print.css" media="print" />
+</head>
+<body>
+  <div class="grasp-print-wrapper">${html}</div>
+</body>
+</html>`);
+  doc.close();
+
+  // Print after iframe loads
+  setTimeout(() => {
+    try {
+      iframe.contentWindow && iframe.contentWindow.focus();
+      iframe.contentWindow && iframe.contentWindow.print();
+    } finally {
+      // cleanup after a short delay to allow print dialog
+      setTimeout(() => iframe.remove(), 1000);
+    }
+  }, 50);
+}
+
 
 function hidePreviewModal() {
   const modal = byId("grasp-preview-modal");
@@ -1466,6 +1540,7 @@ function showPreviewModal(html, { canSubmit = false, onSubmit = null } = {}) {
   const content = byId("grasp-preview-content");
   const btnCloseX = byId("grasp-preview-close");
   const btnClose = byId("grasp-preview-close-btn");
+  const btnPrint = byId("grasp-preview-print");
   const btnSubmit = byId("grasp-preview-confirm");
 
   if (!modal || !content) {
@@ -1473,7 +1548,8 @@ function showPreviewModal(html, { canSubmit = false, onSubmit = null } = {}) {
     return;
   }
 
-  content.innerHTML = html || "";
+  _previewLastHtml = html || "";
+  content.innerHTML = _previewLastHtml;
   _previewOnSubmit = onSubmit;
 
   const dialog = modal.querySelector(".grasp-modal-dialog");
@@ -1506,6 +1582,14 @@ function showPreviewModal(html, { canSubmit = false, onSubmit = null } = {}) {
 
     if (btnCloseX) btnCloseX.addEventListener("click", close);
     if (btnClose) btnClose.addEventListener("click", close);
+
+    if (btnPrint) {
+      btnPrint.addEventListener("click", () => {
+        printPreviewViaIframe(_previewLastHtml);
+      });
+    }
+    if (btnPrint)
+      btnPrint.addEventListener("click", () => printPreviewViaIframe(_previewLastHtml));
 
     // Click outside dialog closes modal
     modal.addEventListener("click", (e) => {
@@ -1836,6 +1920,12 @@ async function initWizard() {
 
     await loadConfig();
     await loadDraft();
+
+    // Expose live state for enrollment-debug.js and cross-form sync
+    window.formState = formState;
+    window.sessionId = sessionId;
+    window.currentStepIndex = currentStepIndex;
+
 
     // ✅ ADD THIS BLOCK HERE (before loadConfig/loadDraft)
     if (window.GRASP_PACKAGE_DRAFT?.checkAndHandleStaleDraft) {
