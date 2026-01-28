@@ -29,24 +29,34 @@
     }
   }
 
-  function propagateDebugToLinks() {
-    if (!isDebugEnabled()) return;
+function propagateDebugToLinks() {
+  if (!isDebugEnabled()) return;
 
-    const links = document.querySelectorAll('a[data-propagate-debug="true"]');
-    links.forEach((a) => {
-      const href = a.getAttribute("href");
-      if (!href) return;
+  const links = document.querySelectorAll('a[data-propagate-debug="true"]');
+  links.forEach((a) => {
+    const href = a.getAttribute("href");
+    if (!href) return;
 
-      try {
-        const url = new URL(href, window.location.href);
-        // Normalize to debug=true for downstream pages
-        url.searchParams.set("debug", "true");
-        a.setAttribute("href", url.pathname + url.search + url.hash);
-      } catch (_e) {
-        // no-op
-      }
-    });
-  }
+    // Skip anchors and non-http(s) schemes
+    if (href.startsWith("#")) return;
+    if (/^(mailto:|tel:|sms:|javascript:)/i.test(href)) return;
+
+    try {
+      const url = new URL(href, window.location.href);
+
+      // Only rewrite same-origin links (prevents breaking external URLs)
+      if (url.origin !== window.location.origin) return;
+
+      url.searchParams.set("debug", "true");
+
+      // Keep it site-relative (works on dev/prod domains)
+      a.setAttribute("href", url.pathname + url.search + url.hash);
+    } catch (_e) {
+      // no-op
+    }
+  });
+}
+
 
 
 
