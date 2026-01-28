@@ -12,8 +12,46 @@
     return "/" + href.replace(/^\.?\//, "");
   }
 
+  // Preserve ?debug=true when navigating between Enrollment/Waitlist/Parent Manual pages.
+  // Any <a> with data-propagate-debug="true" will receive debug=true if the current URL has debug enabled.
+  function isDebugEnabled() {
+    try {
+      const params = new URLSearchParams(window.location.search || "");
+      const raw =
+        params.get("debug") ??
+        params.get("DEBUG") ??
+        params.get("Debug");
+      if (!raw) return false;
+      const val = String(raw).toLowerCase();
+      return val === "true" || val === "1" || val === "yes";
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function propagateDebugToLinks() {
+    if (!isDebugEnabled()) return;
+
+    const links = document.querySelectorAll('a[data-propagate-debug="true"]');
+    links.forEach((a) => {
+      const href = a.getAttribute("href");
+      if (!href) return;
+
+      try {
+        const url = new URL(href, window.location.href);
+        // Normalize to debug=true for downstream pages
+        url.searchParams.set("debug", "true");
+        a.setAttribute("href", url.pathname + url.search + url.hash);
+      } catch (_e) {
+        // no-op
+      }
+    });
+  }
+
+
 
   document.addEventListener("DOMContentLoaded", () => {
+    propagateDebugToLinks();
     ensureStylesheetLoaded();
     const modal = buildModal();
     attachFooterTrigger(modal.open);
