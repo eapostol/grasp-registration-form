@@ -86,8 +86,75 @@
     modalBody: () => document.getElementById("grasp-preview-body"),
     modalClose: () => document.getElementById("grasp-preview-close"),
     modalCancel: () => document.getElementById("grasp-preview-cancel"),
+    modalPrint: () => document.getElementById("grasp-preview-print"),
     modalSubmit: () => document.getElementById("grasp-preview-submit"),
   };
+
+  let _previewLastHtml = "";
+
+  function openPrintWindow(previewHtml) {
+    const html = previewHtml || "";
+
+    // Avoid popup blockers (especially in Incognito/Private) by printing from a hidden iframe.
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.style.visibility = "hidden";
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow && iframe.contentWindow.document;
+    if (!doc) {
+      iframe.remove();
+      alert("Could not open print preview. Please try again.");
+      return;
+    }
+
+    // Prefer shared print stylesheet; keep minimal fallback print CSS inline.
+    const printCss = `
+      @page { size: Letter; margin: 16mm 12mm; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: Arial, Helvetica, sans-serif; font-size: 11pt; color: #111; }
+      h4 { font-size: 14pt; margin: 0 0 8px; }
+      h5 { font-size: 12pt; margin: 16px 0 6px; }
+      table { width: 100%; border-collapse: collapse; margin: 0 0 10px; }
+      td { border: 1px solid #bbb; padding: 6px 8px; vertical-align: top; }
+      .grasp-preview-label { width: 34%; background: #f3f3f3; font-weight: 700; }
+      .grasp-page-break { break-before: page; page-break-before: always; }
+      .grasp-print-footer { position: fixed; bottom: 0; left: 0; right: 0; font-size: 9pt; padding: 6mm 12mm; color: #444; }
+      .grasp-print-footer .pageNumber:before { content: counter(page); }
+    `;
+
+    doc.open();
+    doc.write(`<!doctype html>
+      <html lang="en">
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>Print Preview</title>
+          <link rel="stylesheet" href="../css/print.css" media="print" />
+          <style>${printCss}</style>
+        </head>
+        <body>
+          <div class="grasp-print-container">${html}</div>
+          <div class="grasp-print-footer">Page <span class="pageNumber"></span></div>
+          <script>window.addEventListener('load', () => setTimeout(() => window.print(), 50));</script>
+        </body>
+      </html>`);
+    doc.close();
+
+    setTimeout(() => {
+      try {
+        iframe.contentWindow && iframe.contentWindow.focus();
+        iframe.contentWindow && iframe.contentWindow.print();
+      } finally {
+        setTimeout(() => iframe.remove(), 1000);
+      }
+    }, 100);
+  }
 
   // -----------------------------
   // Utilities
@@ -959,7 +1026,8 @@ Notes:
       return;
     }
 
-    if (els.modalBody()) els.modalBody().innerHTML = buildPreviewHtml();
+    _previewLastHtml = buildPreviewHtml();
+    if (els.modalBody()) els.modalBody().innerHTML = _previewLastHtml;
     const modal = els.modal();
     if (!modal) return;
     modal.setAttribute("aria-hidden", "false");
@@ -1023,7 +1091,9 @@ Notes:
   // Init
   // -----------------------------
   async function loadConfig() {
-    const res = await fetch("../config/waitlist-fields.json");
+    // IMPORTANT: use a relative path so deployments under a subdirectory
+    // (e.g. https://greenlandrecreational.com/staging/) resolve correctly.
+    const res = await fetch("config/waitlist-fields.json");
     if (!res.ok)
       throw new Error("Could not load wait list form configuration.");
     window.config = await res.json();
@@ -1118,6 +1188,10 @@ Notes:
       els.modalClose().addEventListener("click", closePreview);
     if (els.modalCancel())
       els.modalCancel().addEventListener("click", closePreview);
+    if (els.modalPrint())
+      els.modalPrint().addEventListener("click", () => {
+        openPrintWindow(_previewLastHtml);
+      });
     if (els.modalSubmit())
       els.modalSubmit().addEventListener("click", submitWaitlist);
 

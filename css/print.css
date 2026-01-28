@@ -1,0 +1,95 @@
+/*
+  Print styles for GRASP Enrollment + Waitlist preview output.
+
+  Page numbers:
+  - Most browsers control page numbers via their own print header/footer.
+  - We include a best-effort CSS counter footer; support varies.
+*/
+
+@page {
+  size: Letter;
+  margin: 16mm 12mm;
+}
+
+@media print {
+  /* Don't print site chrome */
+  #navigation, #banner, #cont-seclft, #footer {
+    display: none !important;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11pt;
+    color: #111;
+    background: #fff !important;
+  }
+
+  a[href]:after { content: ""; }
+
+  .grasp-preview-content,
+  .grasp-print-container {
+    width: 100%;
+  }
+
+  .grasp-preview-content h2,
+  .grasp-print-container h2 {
+    font-size: 14pt;
+    margin: 0 0 8px;
+  }
+
+  .grasp-preview-content h3,
+  .grasp-print-container h3 {
+    font-size: 12pt;
+    margin: 16px 0 6px;
+  }
+
+  .grasp-preview-content table,
+  .grasp-print-container table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 10px;
+  }
+
+  .grasp-preview-content th,
+  .grasp-preview-content td,
+  .grasp-print-container th,
+  .grasp-print-container td {
+    border: 1px solid #bbb;
+    padding: 6px 8px;
+    vertical-align: top;
+  }
+
+  .grasp-preview-content th,
+  .grasp-print-container th {
+    width: 34%;
+    background: #f3f3f3;
+    font-weight: 700;
+  }
+
+  .grasp-print-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .grasp-page-break {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  /* Best-effort page number footer */
+  .grasp-print-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    font-size: 9pt;
+    padding: 6mm 12mm;
+    color: #444;
+  }
+
+  .grasp-print-footer .pageNumber:before {
+    content: counter(page);
+  }
+}

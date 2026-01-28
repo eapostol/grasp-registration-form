@@ -79,3 +79,6 @@ Thumbs.db
 
 # Ignore "originals" folder
 originals/
+
+# ignore ".Identifiers" file
+*.Identifiers
