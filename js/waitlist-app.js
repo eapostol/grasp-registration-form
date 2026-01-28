@@ -72,7 +72,7 @@
   // DOM refs
   // -----------------------------
   const els = {
-    stepNav: () => document.getElementById("grasp-wizard-step-nav"),
+    stepNav: () => document.getElementById("grasp-wizard-step-list"),
     stepTitle: () => document.getElementById("grasp-wizard-step-title"),
     stepDesc: () => document.getElementById("grasp-wizard-step-desc"),
     fields: () => document.getElementById("grasp-wizard-fields"),
@@ -655,21 +655,43 @@ Notes:
 
     nav.innerHTML = "";
     window.config.steps.forEach((step, idx) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "grasp-step-btn";
-      btn.textContent = step.title;
-      btn.setAttribute("role", "tab");
-      btn.setAttribute(
+      const li = document.createElement("li");
+
+      const t = String(step.title || "").trim();
+      const hasLeadingNumber = /^\d+\./.test(t);
+      li.textContent = hasLeadingNumber ? t : `${idx + 1}. ${t}`;
+
+      if (idx === window.currentStepIndex) {
+        li.classList.add("active-step");
+      } else if (idx < window.currentStepIndex) {
+        li.classList.add("completed-step");
+      }
+
+      // Make each step behave like a button
+      li.dataset.stepIndex = String(idx);
+      li.tabIndex = 0;
+      li.role = "button";
+      li.setAttribute(
         "aria-selected",
         idx === window.currentStepIndex ? "true" : "false",
       );
-      btn.addEventListener("click", () => {
+
+      // Clicking a tab always navigates to that step.
+      li.addEventListener("click", () => {
         // Allow navigating freely but keep validation on Preview/Submit.
         window.currentStepIndex = idx;
         renderCurrentStep();
       });
-      nav.appendChild(btn);
+
+      // Keyboard access (space / enter)
+      li.addEventListener("keypress", (ev) => {
+        if (ev.key === " " || ev.key === "Enter") {
+          ev.preventDefault();
+          li.click();
+        }
+      });
+
+      nav.appendChild(li);
     });
   }
 
@@ -684,9 +706,10 @@ Notes:
     // Update tab selection
     const nav = els.stepNav();
     if (nav) {
-      [...nav.querySelectorAll(".grasp-step-btn")].forEach((btn, idx) => {
-        btn.classList.toggle("active", idx === window.currentStepIndex);
-        btn.setAttribute(
+      [...nav.querySelectorAll("li")].forEach((li, idx) => {
+        li.classList.toggle("active-step", idx === window.currentStepIndex);
+        li.classList.toggle("completed-step", idx < window.currentStepIndex);
+        li.setAttribute(
           "aria-selected",
           idx === window.currentStepIndex ? "true" : "false",
         );
