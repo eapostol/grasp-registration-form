@@ -1,19 +1,24 @@
 /*
-  Print styles for GRASP Enrollment + Waitlist preview output.
+  Print styles for GRASP Enrollment + Waitlist.
 
-  Page numbers:
-  - Most browsers control page numbers via their own print header/footer.
-  - We include a best-effort CSS counter footer; support varies.
+  Notes:
+  - Uses Letter paper.
+  - Provides a PDF-like "form page" layout with section blocks, line fields,
+    and best-effort page numbering.
 */
 
 @page {
   size: Letter;
-  margin: 16mm 12mm;
+  /* leave room for browser headers/footers + our footer */
+  margin: 14mm 12mm 18mm;
 }
 
 @media print {
   /* Don't print site chrome */
-  #navigation, #banner, #cont-seclft, #footer {
+  #navigation,
+  #banner,
+  #cont-seclft,
+  #footer {
     display: none !important;
   }
 
@@ -22,29 +27,278 @@
     print-color-adjust: exact;
     font-family: Arial, Helvetica, sans-serif;
     font-size: 11pt;
+    line-height: 1.25;
     color: #111;
     background: #fff !important;
   }
 
-  a[href]:after { content: ""; }
+  a[href]:after {
+    content: "";
+  }
 
-  .grasp-preview-content,
+  /* page container */
+  .grasp-print-wrapper,
   .grasp-print-container {
     width: 100%;
   }
 
-  .grasp-preview-content h2,
-  .grasp-print-container h2 {
+  .grasp-page {
+    page-break-after: always;
+    break-after: page;
+  }
+  .grasp-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  /* header */
+  .grasp-header {
+    margin: 0 0 10px;
+  }
+
+  .grasp-header-title {
     font-size: 14pt;
+    font-weight: 700;
+    text-align: center;
+    margin: 0;
+  }
+
+  .grasp-header-contact {
+    font-size: 9pt;
+    text-align: center;
+    margin: 2px 0 6px;
+  }
+
+  .grasp-brand-bar {
+    height: 8px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #2e7d32 0%, #66bb6a 55%, #2e7d32 100%);
+    margin: 4px 0 10px;
+  }
+
+  .grasp-form-title {
+    font-size: 13pt;
+    font-weight: 700;
+    text-align: center;
     margin: 0 0 8px;
+    letter-spacing: 0.2px;
   }
 
-  .grasp-preview-content h3,
-  .grasp-print-container h3 {
+  /* sections */
+  .grasp-section {
+    margin: 10px 0 12px;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .grasp-section-title {
     font-size: 12pt;
-    margin: 16px 0 6px;
+    font-weight: 700;
+    margin: 0 0 6px;
+    padding: 4px 6px;
+    border-left: 5px solid #2e7d32;
+    background: #f3f7f3;
   }
 
+  /* field grids */
+  .grasp-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .grasp-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .grasp-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* line fields */
+  .grasp-field {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .grasp-field-label {
+    font-size: 9pt;
+    margin: 0 0 2px;
+  }
+
+  .grasp-field-value {
+    font-size: 11pt;
+    border-bottom: 1px solid #333;
+    padding: 2px 0 2px;
+    min-height: 14pt;
+    word-break: break-word;
+  }
+
+  .grasp-field-value.grasp-multiline {
+    border: 1px solid #333;
+    padding: 6px 8px;
+    min-height: 44pt;
+    white-space: pre-wrap;
+  }
+
+  .grasp-muted {
+    color: #444;
+    font-size: 10pt;
+  }
+
+  /* policy blocks */
+  .grasp-policy-title {
+    font-weight: 700;
+    margin: 8px 0 4px;
+  }
+
+  .grasp-policy-text {
+    font-size: 10pt;
+    margin: 0 0 8px;
+    white-space: pre-wrap;
+  }
+
+  /* Waitlist: clean paragraph (avoid hard-wrapped line breaks) */
+  .grasp-paragraph {
+    font-size: 10.5pt;
+    margin: 0 0 10px;
+    white-space: normal;
+    text-align: justify;
+  }
+
+  /* Waitlist: label/value two-column table */
+  .grasp-kv-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 10px;
+  }
+
+  .grasp-kv-table td {
+    border: 1px solid #bbb;
+    padding: 6px 8px;
+    vertical-align: top;
+  }
+
+  .grasp-kv-label {
+    width: 38%;
+    font-weight: 700;
+    background: #f3f3f3;
+  }
+
+  .grasp-kv-value {
+    width: 62%;
+  }
+
+  /* Waitlist: centered signature + date with underlines */
+  .grasp-signature-center {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-top: 14px;
+  }
+
+  .grasp-signature-line {
+    width: 260px;
+    text-align: center;
+  }
+
+  .grasp-signature-value {
+    border-bottom: 1px solid #333;
+    padding: 2px 0;
+    min-height: 16pt;
+    word-break: break-word;
+  }
+
+  .grasp-signature-caption {
+    font-size: 9pt;
+    margin-top: 3px;
+  }
+
+  /* Waitlist: stable static footer (avoid counter(page) showing 0) */
+  .grasp-static-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    font-size: 9pt;
+    padding: 5mm 12mm;
+    color: #444;
+    text-align: right;
+  }
+
+  /* checkbox/radio */
+  .grasp-choice-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    align-items: baseline;
+    margin: 4px 0 8px;
+  }
+
+  .grasp-choice {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10.5pt;
+  }
+
+  .grasp-box {
+    width: 12px;
+    height: 12px;
+    border: 1px solid #111;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    font-size: 10pt;
+  }
+
+  .grasp-box.checked::after {
+    content: "✓";
+    font-weight: 700;
+    font-size: 10pt;
+  }
+
+  .grasp-circle {
+    width: 12px;
+    height: 12px;
+    border: 1px solid #111;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .grasp-circle.checked::after {
+    content: "●";
+    font-size: 10pt;
+    line-height: 1;
+  }
+
+  /* signature lines */
+  .grasp-sign-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .grasp-sign-row .grasp-field-value {
+    min-height: 16pt;
+  }
+
+  /* page break helper */
+  .grasp-page-break {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  /* legacy table fallback (email preview or older markup) */
   .grasp-preview-content table,
   .grasp-print-container table {
     width: 100%;
@@ -52,30 +306,20 @@
     margin: 0 0 10px;
   }
 
-  .grasp-preview-content th,
   .grasp-preview-content td,
-  .grasp-print-container th,
-  .grasp-print-container td {
+  .grasp-print-container td,
+  .grasp-preview-content th,
+  .grasp-print-container th {
     border: 1px solid #bbb;
     padding: 6px 8px;
     vertical-align: top;
   }
 
   .grasp-preview-content th,
-  .grasp-print-container th {
-    width: 34%;
-    background: #f3f3f3;
+  .grasp-print-container th,
+  .grasp-preview-label {
+    background: #fff;
     font-weight: 700;
-  }
-
-  .grasp-print-section {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-
-  .grasp-page-break {
-    break-before: page;
-    page-break-before: always;
   }
 
   /* Best-effort page number footer */
@@ -85,8 +329,9 @@
     left: 0;
     right: 0;
     font-size: 9pt;
-    padding: 6mm 12mm;
+    padding: 5mm 12mm;
     color: #444;
+    text-align: right;
   }
 
   .grasp-print-footer .pageNumber:before {
