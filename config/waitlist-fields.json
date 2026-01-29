@@ -309,6 +309,26 @@
               "required": false
             }
           ]
+        },
+        {
+          "id": "signature",
+          "title": "Signature",
+          "fields": [
+            {
+              "name": "parent_signature",
+              "label": "Parent signature (type in your full name)",
+              "type": "text",
+              "required": true,
+              "placeholder": "Type your full name",
+              "hint": "Type in your full name"
+            },
+            {
+              "name": "signature_date",
+              "label": "Date",
+              "type": "date",
+              "required": true
+            }
+          ]
         }
       ]
     }

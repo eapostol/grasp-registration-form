@@ -163,6 +163,74 @@
     white-space: pre-wrap;
   }
 
+  /* Waitlist: clean paragraph (avoid hard-wrapped line breaks) */
+  .grasp-paragraph {
+    font-size: 10.5pt;
+    margin: 0 0 10px;
+    white-space: normal;
+    text-align: justify;
+  }
+
+  /* Waitlist: label/value two-column table */
+  .grasp-kv-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 10px;
+  }
+
+  .grasp-kv-table td {
+    border: 1px solid #bbb;
+    padding: 6px 8px;
+    vertical-align: top;
+  }
+
+  .grasp-kv-label {
+    width: 38%;
+    font-weight: 700;
+    background: #f3f3f3;
+  }
+
+  .grasp-kv-value {
+    width: 62%;
+  }
+
+  /* Waitlist: centered signature + date with underlines */
+  .grasp-signature-center {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-top: 14px;
+  }
+
+  .grasp-signature-line {
+    width: 260px;
+    text-align: center;
+  }
+
+  .grasp-signature-value {
+    border-bottom: 1px solid #333;
+    padding: 2px 0;
+    min-height: 16pt;
+    word-break: break-word;
+  }
+
+  .grasp-signature-caption {
+    font-size: 9pt;
+    margin-top: 3px;
+  }
+
+  /* Waitlist: stable static footer (avoid counter(page) showing 0) */
+  .grasp-static-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    font-size: 9pt;
+    padding: 5mm 12mm;
+    color: #444;
+    text-align: right;
+  }
+
   /* checkbox/radio */
   .grasp-choice-row {
     display: flex;
