@@ -554,11 +554,9 @@
     var fsRef = getFormStateRef();
 
     if (!cfg || !cfg.steps) {
-      console.warn("DEBUG: config not available; cannot apply debug defaults.");
       return false;
     }
     if (!fsRef) {
-      console.warn("DEBUG: formState not available; cannot apply debug defaults.");
       return false;
     }
 
@@ -669,28 +667,46 @@
 
   var applied = false;
   var applying = false;
+  var _retryCount = 0;
+  var _maxRetries = 40; // ~2s at 50ms
+  var _retryDelayMs = 50;
+  var _warnedMissing = false;
 
-  function doApplyIfNeeded() {
-    if (applied || applying) return;
-    applying = true;
+function doApplyIfNeeded() {
+  if (applied || applying) return;
+  applying = true;
 
-    try {
-      addDebugBadge();
-    } catch (e) {
-      console.warn("DEBUG: failed to add debug badge", e);
-    }
-
-    applyDebugDefaultsOnceReady()
-      .then(function (ok) {
-        if (ok) applied = true;
-      })
-      .catch(function (err) {
-        console.warn("DEBUG: failed to apply debug defaults", err);
-      })
-      .finally(function () {
-        applying = false;
-      });
+  try {
+    addDebugBadge();
+  } catch (e) {
+    console.warn("DEBUG: failed to add debug badge", e);
   }
+
+  applyDebugDefaultsOnceReady()
+    .then(function (ok) {
+      if (ok) {
+        applied = true;
+        _retryCount = 0;
+        return;
+      }
+
+      // Not ready yet (usually config/formState). Retry briefly before warning.
+      _retryCount += 1;
+      if (_retryCount <= _maxRetries) {
+        setTimeout(doApplyIfNeeded, _retryDelayMs);
+      } else if (!_warnedMissing) {
+        _warnedMissing = true;
+        console.warn("DEBUG: config not available; cannot apply debug defaults.");
+      }
+    })
+    .catch(function (err) {
+      console.warn("DEBUG: failed to apply debug defaults", err);
+    })
+    .finally(function () {
+      applying = false;
+    });
+}
+
 
   // Once the core scripts finish their initial bootstrapping, apply defaults.
   window.addEventListener("graspEnrollmentInit", doApplyIfNeeded);
