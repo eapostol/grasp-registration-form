@@ -66,6 +66,7 @@
   border: 1px solid #ddd;
   border-radius: 6px;
   overflow-y: auto;
+  overflow-x: auto;
   height: 70vh; /* scrollable region for the manual */
   background: #f6f6f6;
   padding: 12px;
@@ -236,4 +237,37 @@
 .pm-field-flash {
   box-shadow: 0 0 0 4px rgba(255, 200, 0, 0.35);
   border-color: rgba(255, 165, 0, 0.85) !important;
+}
+
+
+/* Zoom controls */
+.pm-zoom {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.pm-zoom-btn {
+  border: 1px solid #cfcfcf;
+  background: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.pm-zoom-btn:hover {
+  background: #f1f1f1;
+}
+
+.pm-zoom-value {
+  min-width: 54px;
+  text-align: center;
+  font-size: 13px;
+  color: #333;
+}
+
+.pm-zoom-reset {
+  padding: 6px 12px;
 }

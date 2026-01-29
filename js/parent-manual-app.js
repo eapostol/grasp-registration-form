@@ -192,7 +192,69 @@
     return `${yyyy}-${mm}-${dd}`;
   }
 
-  function flattenFields(cfg) {
+  
+  // -----------------------------
+  // Zoom (for page images)
+  // -----------------------------
+  const ZOOM_STORAGE_KEY = "graspParentManualZoom";
+  const ZOOM_MIN = 0.75;
+  const ZOOM_MAX = 1.75;
+  const ZOOM_STEP = 0.1;
+
+  function readZoom() {
+    const raw = localStorage.getItem(ZOOM_STORAGE_KEY);
+    const n = raw ? Number(raw) : NaN;
+    if (!Number.isFinite(n)) return 1;
+    return clampZoom(n);
+  }
+
+  function saveZoom(z) {
+    try { localStorage.setItem(ZOOM_STORAGE_KEY, String(z)); } catch (_) {}
+  }
+
+  function clampZoom(z) {
+    const clamped = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
+    return Math.round(clamped * 100) / 100;
+  }
+
+  function applyZoom(z) {
+    const pages = els.pages();
+    if (!pages) return;
+    const valueEl = els.zoomValue();
+    const final = clampZoom(z);
+
+    // Prefer CSS zoom (Chrome/Edge). This keeps layout + overlays aligned.
+    pages.style.zoom = String(final);
+
+    if (valueEl) valueEl.textContent = `${Math.round(final * 100)}%`;
+    window.__pmZoom = final;
+    saveZoom(final);
+  }
+
+  function bindZoomControls() {
+    const out = els.zoomOut();
+    const inn = els.zoomIn();
+    const reset = els.zoomReset();
+
+    const inc = () => applyZoom((window.__pmZoom || 1) + ZOOM_STEP);
+    const dec = () => applyZoom((window.__pmZoom || 1) - ZOOM_STEP);
+    const res = () => applyZoom(1);
+
+    if (out) out.addEventListener("click", dec);
+    if (inn) inn.addEventListener("click", inc);
+    if (reset) reset.addEventListener("click", res);
+
+    // Keyboard shortcuts: Ctrl/Cmd + +/- and Ctrl/Cmd + 0
+    window.addEventListener("keydown", (e) => {
+      const isMod = e.ctrlKey || e.metaKey;
+      if (!isMod) return;
+      if (e.key === "+" || e.key === "=") { e.preventDefault(); inc(); }
+      if (e.key === "-" || e.key === "_") { e.preventDefault(); dec(); }
+      if (e.key === "0") { e.preventDefault(); res(); }
+    });
+  }
+
+function flattenFields(cfg) {
     const out = [];
     (cfg.steps || []).forEach((s) => {
       (s.groups || []).forEach((g) => {
@@ -237,6 +299,10 @@
     status: () => qs("pm-status"),
     btnSave: () => qs("pm-btn-save"),
     btnPreview: () => qs("pm-btn-preview"),
+    zoomOut: () => qs("pm-zoom-out"),
+    zoomIn: () => qs("pm-zoom-in"),
+    zoomReset: () => qs("pm-zoom-reset"),
+    zoomValue: () => qs("pm-zoom-value"),
     modal: () => qs("grasp-preview-modal"),
     modalBody: () => qs("grasp-preview-body"),
     modalClose: () => qs("grasp-preview-close"),
@@ -810,6 +876,8 @@
       });
 
       renderPages();
+    applyZoom(readZoom());
+    bindZoomControls();
       bindScrollTracking();
       restoreScrollPosition();
 
