@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>GRASP Parent Manual Agreement : Greenland Recreational</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Online Parent Manual / Handbook agreement for Greenland Recreational After School Program (GRASP)." />
+  <link href="../css/style.css" rel="stylesheet" type="text/css" />
+  <link href="../css/enrollment.css" rel="stylesheet" type="text/css" />
+  <link href="../css/parent-manual.css" rel="stylesheet" type="text/css" />
+  <link href="../css/print.css" rel="stylesheet" type="text/css" media="print" />
+</head>
+
+<body>
+  <div id="wrapper">
+    <div id="navigation">
+      <ul>
+        <li><a href="../index.html">Home</a></li>
+        <li><a href="../program_statement.html">Program Statement</a></li>
+        <li><a href="../programs_fees.html">Programs And Fees</a></li>
+        <li><a href="../grasp_summer_camp.html">Summer Camp and Trips</a></li>
+        <li><a href="../location.html">Location</a></li>
+        <li><a href="../contact.html">Contact</a></li>
+        <li><a href="../forms.html">Forms</a></li>
+      </ul>
+    </div>
+
+    <div id="banner">
+      <img src="../img/banner.jpg" height="254" width="990" alt="Greenland Recreational After School Program" />
+    </div>
+
+    <div id="cont-seclft">
+      <img src="../img/side-6.jpg" alt="Happy Children" />
+    </div>
+
+    <div id="cont-secrht">
+      <div id="parent-manual-root">
+        <h2>Parent Manual / Handbook Agreement (Required Document)</h2>
+
+        <p class="enrollment-intro">
+          <span class="form-header-address">
+            Greenland Recreational After School Program (GRASP)<br />
+            15 Greenland Road, Toronto, ON M3C 1N1<br />
+            Phone: (416) 444-7427 Email: info @ greenlandrecreational.com<br />
+          </span>
+
+          <hr />
+
+          This agreement is to be reviewed by the parent or legal guardian. You must scroll to the end of the manual,
+          initial the required sections, and complete the signature fields at the bottom before submitting.
+
+          <br /><br />
+          <strong>Important:</strong> the Parent Manual is the <strong>third</strong> of three required documents:
+        <ol>
+          <li><a href="../index.html" data-propagate-debug="true">Enrollment Form</a></li>
+          <li><a href="../waitlist-form/index.html" data-propagate-debug="true">Wait List Application Form</a></li>
+          <li><strong>Parent Manual / Handbook Agreement (this document)</strong></li>
+        </ol>
+        </p>
+
+        <div class="pm-toolbar">
+          <div class="pm-toolbar-left">
+            <button type="button" id="pm-btn-save" class="grasp-btn grasp-btn-secondary">Save Progress</button>
+            <button type="button" id="pm-btn-preview" class="grasp-btn grasp-btn-primary">Preview / Print / Submit</button>
+          </div>
+          <div class="pm-toolbar-right">
+            <div id="pm-status" class="pm-status" aria-live="polite"></div>
+          </div>
+        </div>
+
+        <div id="pm-scroll" class="pm-scroll" aria-label="Parent manual document">
+          <div id="pm-pages"></div>
+        </div>
+
+        <p class="pm-small-hint">
+          Tip: You can close this page and return later using the same browser on this device. Your progress is saved automatically.
+          You can also download the original PDF:
+          <a href="./assets/GRASP-parent-manual-2026.pdf" target="_blank" rel="noopener">Open PDF</a>
+        </p>
+
+      </div>
+    </div>
+
+    <div class="clear"></div>
+
+    <div id="footer">
+      <div id="footerwrap">
+        <div class="footerlinks">
+          <a href="../index.html">Home</a> | <a href="../program_statement.html">Program Statement</a> | <a
+            href="../programs_fees.html">Programs and Fees</a> | <a href="../grasp_summer_camp.html">Summer Camp and
+            Trips</a> | <a href="../location.html">Location</a> | <a href="../contact.html">Contact</a> | <a
+            href="../forms.html">Forms</a>
+        </div>
+      </div>
+      <div class="copyright">Copyright © Greenland Recreational. All rights reserved.</div>
+    </div>
+  </div>
+
+  <!-- Preview modal (reuses GRASP styles) -->
+  <div id="grasp-preview-modal" class="grasp-modal hidden" aria-hidden="true">
+    <div class="grasp-modal-backdrop" data-modal-close></div>
+
+    <div class="grasp-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="grasp-preview-title">
+      <div class="grasp-modal-header">
+        <h3 id="grasp-preview-title">Parent Manual Preview</h3>
+        <button type="button" id="grasp-preview-close" class="grasp-modal-close" aria-label="Close">×</button>
+      </div>
+
+      <div class="grasp-modal-body" id="grasp-preview-body">
+        <!-- JS will inject preview HTML -->
+      </div>
+
+      <div class="grasp-modal-footer">
+        <button type="button" id="grasp-preview-cancel" class="grasp-btn grasp-btn-secondary">
+          Close and Continue Editing
+        </button>
+        <button type="button" id="grasp-preview-print" class="grasp-btn grasp-btn-secondary">
+          Print
+        </button>
+        <button type="button" id="grasp-preview-submit" class="grasp-btn grasp-btn-primary">
+          Submit
+        </button>
+      </div>
+      <p class="grasp-modal-hint">
+        Submitting will email this agreement to the GRASP office.
+      </p>
+    </div>
+  </div>
+
+  <script src="../js/grasp-package-draft.js"></script>
+  <script src="../js/parent-manual-app.js"></script>
+  <script src="../js/enrollment-debug.js"></script>
+  <script src="../js/main.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,176 @@
+/* Parent Manual form styles (PDF-like continuous scroll viewer)
+   Keeps existing site layout (css/style.css + css/enrollment.css) intact.
+*/
+
+#parent-manual-root {
+  background: #fff;
+  padding: 20px;
+  margin: 0 0 30px 0;
+  border-radius: 4px;
+}
+
+#parent-manual-root h2 {
+  margin-top: 0;
+}
+
+.pm-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #ddd;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #fafafa;
+  margin: 14px 0;
+}
+
+.pm-toolbar .pm-toolbar-left {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pm-toolbar .pm-toolbar-right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.pm-status {
+  font-size: 13px;
+  color: #333;
+}
+
+.pm-status .pm-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #ddd;
+  background: #fff;
+  margin-right: 6px;
+}
+
+.pm-status .pm-pill.ok {
+  border-color: #7bbf7b;
+  background: #f0fff0;
+}
+
+.pm-status .pm-pill.warn {
+  border-color: #e4c86a;
+  background: #fff9e6;
+}
+
+.pm-scroll {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow-y: auto;
+  height: 70vh; /* scrollable region for the manual */
+  background: #f6f6f6;
+  padding: 12px;
+}
+
+.pm-page {
+  position: relative;
+  margin: 0 auto 14px auto;
+  max-width: 900px;
+  background: #fff;
+  border: 1px solid #e2e2e2;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+}
+
+.pm-page img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.pm-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.pm-field {
+  position: absolute;
+  box-sizing: border-box;
+  font-size: 14px;
+  padding: 4px 6px;
+  border: 2px solid rgba(0,0,0,0.35);
+  border-radius: 3px;
+  background: rgba(255,255,255,0.92);
+}
+
+.pm-field:focus {
+  outline: none;
+  border-color: rgba(0, 125, 255, 0.75);
+  box-shadow: 0 0 0 2px rgba(0,125,255,0.15);
+}
+
+.pm-field.pm-field-initials {
+  text-transform: uppercase;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.pm-field.pm-field-disabled {
+  background: rgba(245,245,245,0.95);
+  color: #666;
+  border-style: dashed;
+}
+
+.pm-small-hint {
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+}
+
+/* Preview modal: make the manual area scroll nicely */
+.pm-preview-scroll {
+  max-height: 60vh;
+  overflow: auto;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #f6f6f6;
+  padding: 10px;
+}
+
+.pm-preview-page {
+  position: relative;
+  margin: 0 auto 12px auto;
+  max-width: 820px;
+  background: #fff;
+  border: 1px solid #e2e2e2;
+}
+
+.pm-preview-page img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.pm-preview-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.pm-print-value {
+  position: absolute;
+  box-sizing: border-box;
+  font-size: 14px;
+  padding: 2px 4px;
+  background: transparent;
+  color: #111;
+  border: 0;
+  white-space: pre;
+}
+
+.pm-missing {
+  background: #fff3f3;
+  border: 1px solid #f1b1b1;
+  color: #7a1111;
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin: 0 0 12px 0;
+}
