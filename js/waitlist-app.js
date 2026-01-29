@@ -117,8 +117,6 @@
     td { border: 1px solid #bbb; padding: 6px 8px; vertical-align: top; }
     .grasp-preview-label { width: 34%; background: #f3f3f3; font-weight: 700; }
     .grasp-page-break { break-before: page; page-break-before: always; }
-    .grasp-print-footer { position: fixed; bottom: 0; left: 0; right: 0; font-size: 9pt; padding: 6mm 12mm; color: #444; }
-    .grasp-print-footer .pageNumber:before { content: counter(page); }
   `;
 
   const printCssHref = new URL("../css/print.css", window.location.href).toString();
@@ -143,7 +141,6 @@
       </head>
       <body>
         <div class="grasp-print-container">${html}</div>
-        <div class="grasp-print-footer">Page <span class="pageNumber"></span></div>
       </body>
     </html>`;
 }
@@ -678,6 +675,11 @@ Notes:
     if (isEmptyValue(window.formState.date_applied)) {
       window.formState.date_applied = todayISODate();
     }
+
+    // Default signature_date if present (Waitlist signature section)
+    if (isEmptyValue(window.formState.signature_date)) {
+      window.formState.signature_date = todayISODate();
+    }
   };
 
   function applyFieldDefaults() {
@@ -989,6 +991,7 @@ Notes:
         parts.push("<table class='grasp-preview-table'>");
         for (const field of group.fields) {
           const label = field.label + (field.required ? " *" : "");
+          const hintHtml = field.hint ? `<div style="font-size:9pt;color:#444;margin-top:2px;">${escapeHtml(field.hint)}</div>` : "";
           let value = window.formState[field.name];
 
           if (field.type === "checkbox") value = value ? "YES" : "NO";
@@ -998,9 +1001,7 @@ Notes:
             );
             value = opt ? opt.label : (value ?? "");
           }
-          parts.push(
-            `<tr><td class='grasp-preview-label'>${escapeHtml(label)}</td><td class='grasp-preview-value'>${escapeHtml(value ?? "")}</td></tr>`,
-          );
+          parts.push(`<tr><td class='grasp-preview-label'>${escapeHtml(label)}${hintHtml}</td><td class='grasp-preview-value'>${escapeHtml(value ?? "")}</td></tr>`);
         }
         parts.push("</table>");
       }
@@ -1010,6 +1011,87 @@ Notes:
     return parts.join("");
   }
 
+
+
+  // ---------------------------------
+  // PDF-style print template (Waitlist)
+  // ---------------------------------
+  function buildWaitlistPrintHtml() {
+    const cfg = window.config;
+    const state = window.formState || {};
+    const parts = [];
+
+    const intro = "GRASP maintains an ongoing waiting list for families that have children that attend Greenland Public School, as well as other schools within the Don Mills Community. Once a registration form has been filled out, your child(ren)'s names will be added to the waiting list in sequence according to the date of application and using the published criteria.";
+
+    function fieldDisplayValue(field) {
+      let v = state[field.name];
+      if (field.type === "checkbox") return v ? "YES" : "NO";
+      if (field.type === "radio") {
+        const opt = (field.options || []).find(
+          (o) => String(o.value) === String(v),
+        );
+        return opt ? opt.label : (v ?? "");
+      }
+      return v ?? "";
+    }
+
+    parts.push('<div class="grasp-page">');
+    parts.push(`
+      <div class="grasp-header">
+        <h1 class="grasp-header-title">Greenland Recreational After School Program</h1>
+        <div class="grasp-form-title">GRASP Wait List Application Form</div>
+      </div>
+      <div class="grasp-brand-bar"></div>
+      <p class="grasp-paragraph">${escapeHtml(intro)}</p>
+    `);
+
+    // Render all groups as compact 2-col table sections.
+    // If signature fields exist in config, skip them here and render at bottom.
+    const skip = new Set(["parent_signature", "signature_date"]);
+    for (const step of (cfg?.steps || [])) {
+      for (const group of (step.groups || [])) {
+        const fields = (group.fields || []).filter((f) => !skip.has(f.name));
+        if (fields.length === 0) continue;
+
+        parts.push('<div class="grasp-section">');
+        if (group.title) {
+          parts.push(`<div class="grasp-section-title">${escapeHtml(group.title)}</div>`);
+        }
+        parts.push('<table class="grasp-kv-table"><tbody>');
+        for (const field of fields) {
+          const label = `${field.label}${field.required ? " *" : ""}`;
+          const value = fieldDisplayValue(field);
+          parts.push(
+            `<tr><td class="grasp-kv-label">${escapeHtml(label)}</td><td class="grasp-kv-value">${escapeHtml(value)}</td></tr>`,
+          );
+        }
+        parts.push('</tbody></table>');
+        parts.push('</div>');
+      }
+    }
+
+    // Signature + Date (centered with underlines)
+    const sig = String(state.parent_signature ?? "").trim();
+    const sdate = String(state.signature_date ?? "").trim();
+    parts.push(`
+      <div class="grasp-section">
+        <div class="grasp-signature-center">
+          <div class="grasp-signature-line">
+            <div class="grasp-signature-value">${escapeHtml(sig)}</div>
+            <div class="grasp-signature-caption">Parent signature (type in your full name)</div>
+          </div>
+          <div class="grasp-signature-line">
+            <div class="grasp-signature-value">${escapeHtml(sdate)}</div>
+            <div class="grasp-signature-caption">Date</div>
+          </div>
+        </div>
+      </div>
+      <div class="grasp-static-footer">Page 1</div>
+    `);
+
+    parts.push('</div>');
+    return parts.join('');
+  }
   function openPreview() {
     // Validate all steps before preview
     if (!validateAllSteps()) {
@@ -1183,7 +1265,17 @@ Notes:
       els.modalCancel().addEventListener("click", closePreview);
     if (els.modalPrint())
       els.modalPrint().addEventListener("click", () => {
-        openPrintWindow(_previewLastHtml);
+        // Print uses a dedicated print template (PDF-like), separate from the on-screen email preview.
+        try {
+          const printHtml = buildWaitlistPrintHtml();
+          openPrintWindow(printHtml);
+        } catch (e) {
+          console.warn(
+            "[GRASP][waitlist] print template failed; falling back to preview HTML",
+            e,
+          );
+          openPrintWindow(_previewLastHtml);
+        }
       });
     if (els.modalSubmit())
       els.modalSubmit().addEventListener("click", submitWaitlist);

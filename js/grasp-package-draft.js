@@ -42,7 +42,11 @@
   // Helpers
   // -----------------------------
   function isEmptyValue(v) {
-    return v === null || v === undefined || (typeof v === "string" && v.trim() === "");
+    return (
+      v === null ||
+      v === undefined ||
+      (typeof v === "string" && v.trim() === "")
+    );
   }
 
   function safeParseJSON(s) {
@@ -78,11 +82,16 @@
   async function getCryptoKey() {
     if (cryptoKeyCache) return cryptoKeyCache;
     const enc = new TextEncoder();
-    const rawKey = enc.encode(PACKAGE_SECRET_KEY_STRING.padEnd(32, "0").slice(0, 32));
-    cryptoKeyCache = await crypto.subtle.importKey("raw", rawKey, { name: "AES-GCM" }, false, [
-      "encrypt",
-      "decrypt",
-    ]);
+    const rawKey = enc.encode(
+      PACKAGE_SECRET_KEY_STRING.padEnd(32, "0").slice(0, 32),
+    );
+    cryptoKeyCache = await crypto.subtle.importKey(
+      "raw",
+      rawKey,
+      { name: "AES-GCM" },
+      false,
+      ["encrypt", "decrypt"],
+    );
     return cryptoKeyCache;
   }
 
@@ -90,7 +99,11 @@
     const key = await getCryptoKey();
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const encoded = new TextEncoder().encode(plainText);
-    const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoded);
+    const ciphertext = await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv },
+      key,
+      encoded,
+    );
     return {
       iv: btoa(String.fromCharCode(...iv)),
       data: btoa(String.fromCharCode(...new Uint8Array(ciphertext))),
@@ -103,9 +116,15 @@
 
       const key = await getCryptoKey();
       const iv = Uint8Array.from(atob(encrypted.iv), (c) => c.charCodeAt(0));
-      const data = Uint8Array.from(atob(encrypted.data), (c) => c.charCodeAt(0));
+      const data = Uint8Array.from(atob(encrypted.data), (c) =>
+        c.charCodeAt(0),
+      );
 
-      const plainBuffer = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
+      const plainBuffer = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv },
+        key,
+        data,
+      );
       return new TextDecoder().decode(plainBuffer);
     } catch (err) {
       console.warn("[GRASP][package] decrypt failed", err);
@@ -213,7 +232,10 @@
   async function syncStores(sessionId, encryptedObj) {
     try {
       localStorage.setItem(PACKAGE_STORAGE_KEY_SESSION_ID, sessionId);
-      localStorage.setItem(PACKAGE_STORAGE_KEY_ENCRYPTED, JSON.stringify(encryptedObj));
+      localStorage.setItem(
+        PACKAGE_STORAGE_KEY_ENCRYPTED,
+        JSON.stringify(encryptedObj),
+      );
     } catch (e) {
       console.warn("[GRASP][package] localStorage sync failed", e);
     }
@@ -252,25 +274,44 @@
     }
 
     const candidates = [];
-    if (localPayload && localEncrypted) candidates.push({ payload: localPayload, encrypted: localEncrypted, src: "ls" });
-    if (idbPayload && idbEncrypted) candidates.push({ payload: idbPayload, encrypted: idbEncrypted, src: "idb" });
+    if (localPayload && localEncrypted)
+      candidates.push({
+        payload: localPayload,
+        encrypted: localEncrypted,
+        src: "ls",
+      });
+    if (idbPayload && idbEncrypted)
+      candidates.push({
+        payload: idbPayload,
+        encrypted: idbEncrypted,
+        src: "idb",
+      });
 
     if (candidates.length === 0) return null;
 
-    const chosen = candidates.length === 1 ? candidates[0] : chooseNewest(candidates[0], candidates[1]);
+    const chosen =
+      candidates.length === 1
+        ? candidates[0]
+        : chooseNewest(candidates[0], candidates[1]);
 
     // keep stores in sync with chosen
-    const chosenSessionId = chosen.payload.sessionId || sessionId || generateSessionId();
+    const chosenSessionId =
+      chosen.payload.sessionId || sessionId || generateSessionId();
     await syncStores(chosenSessionId, chosen.encrypted);
 
     return chosen.payload;
   }
 
   async function save(nextPayload) {
-    const sessionId = nextPayload.sessionId || localStorage.getItem(PACKAGE_STORAGE_KEY_SESSION_ID) || generateSessionId();
+    const sessionId =
+      nextPayload.sessionId ||
+      localStorage.getItem(PACKAGE_STORAGE_KEY_SESSION_ID) ||
+      generateSessionId();
 
     const prev = await load();
-    const prevVersion = Number.isFinite(Number(prev?.version)) ? Number(prev.version) : 0;
+    const prevVersion = Number.isFinite(Number(prev?.version))
+      ? Number(prev.version)
+      : 0;
 
     const payload = {
       ...buildEmptyPackage(sessionId),
@@ -289,7 +330,12 @@
 
   async function upsertRegistrant(partialRegistrant, opts = {}) {
     const onlyFillMissing = !!opts.onlyFillMissing;
-    const pkg = (await load()) || buildEmptyPackage(localStorage.getItem(PACKAGE_STORAGE_KEY_SESSION_ID) || generateSessionId());
+    const pkg =
+      (await load()) ||
+      buildEmptyPackage(
+        localStorage.getItem(PACKAGE_STORAGE_KEY_SESSION_ID) ||
+          generateSessionId(),
+      );
 
     const nextRegistrant = { ...(pkg.registrant || {}) };
     const incoming = partialRegistrant || {};
@@ -304,7 +350,12 @@
   }
 
   async function setStatus(partialStatus) {
-    const pkg = (await load()) || buildEmptyPackage(localStorage.getItem(PACKAGE_STORAGE_KEY_SESSION_ID) || generateSessionId());
+    const pkg =
+      (await load()) ||
+      buildEmptyPackage(
+        localStorage.getItem(PACKAGE_STORAGE_KEY_SESSION_ID) ||
+          generateSessionId(),
+      );
     const nextStatus = { ...(pkg.status || {}) };
 
     for (const [k, v] of Object.entries(partialStatus || {})) {
@@ -365,6 +416,10 @@
 
   // Expose
   window.GRASP_PACKAGE_DRAFT = {
+    // compatibility aliases (some older code/tests expect these names)
+    getDraft: load,
+    setDraft: save,
+
     load,
     save,
     upsertRegistrant,
