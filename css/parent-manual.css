@@ -174,3 +174,66 @@
   border-radius: 6px;
   margin: 0 0 12px 0;
 }
+
+.pm-missing.pm-missing-ok {
+  background: #f0fff0;
+  border-color: #7bbf7b;
+  color: #125112;
+}
+
+.pm-missing-list {
+  margin: 8px 0 0 0;
+  padding-left: 22px;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.pm-missing-more {
+  margin-top: 8px;
+}
+
+.pm-missing-more summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.pm-missing-more ul {
+  margin: 8px 0 0 0;
+  padding-left: 22px;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.pm-missing-link {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.pm-missing-link:hover,
+.pm-missing-link:focus {
+  text-decoration-thickness: 2px;
+}
+
+/* Ensure the modal itself remains usable even when content is tall */
+.grasp-modal-dialog {
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.grasp-modal-body {
+  overflow: auto;
+}
+
+/* Flash highlight when jumping to a missing field */
+.pm-field-flash {
+  box-shadow: 0 0 0 4px rgba(255, 200, 0, 0.35);
+  border-color: rgba(255, 165, 0, 0.85) !important;
+}

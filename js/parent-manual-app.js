@@ -365,7 +365,12 @@
       if (required || (forSubmit && requiredForSubmit)) {
         const v = window.formState[f.name];
         if (isEmpty(v)) {
-          missing.push({ name: f.name, label: f.label || f.name });
+          let label = f.label || f.name;
+          // Avoid duplicate "Initials" labels in the modal by adding page context.
+          if (String(label).trim().toLowerCase() === "initials" && f?.placement?.page) {
+            label = `Initials (page ${f.placement.page})`;
+          }
+          missing.push({ name: f.name, label });
         }
       }
     });
@@ -482,21 +487,75 @@
     document.body.style.overflow = "";
   }
 
+  function flashField(el) {
+    try {
+      el.classList.add("pm-field-flash");
+      window.setTimeout(() => el.classList.remove("pm-field-flash"), 1400);
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  function jumpToMissingItem(name) {
+    if (!name) return;
+
+    // Special case: scroll requirement
+    if (name === "__scroll__") {
+      const sc = els.scroll();
+      if (sc) sc.scrollTo({ top: sc.scrollHeight, behavior: "smooth" });
+      return;
+    }
+
+    const fieldEl = document.getElementById(name);
+    if (!fieldEl) return;
+
+    // Scroll the manual viewer to the field
+    fieldEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    flashField(fieldEl);
+
+    // Focus after a tiny delay (prevents interrupting scroll in some browsers)
+    window.setTimeout(() => {
+      try { fieldEl.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+    }, 250);
+  }
+
   function buildPreviewHtml() {
     const missingForSubmit = buildMissingList({ forSubmit: true });
     const missingForPrint = buildMissingList({ forSubmit: false }); // required only
     const showMissing = missingForSubmit.length > 0;
 
-    const missingHtml = showMissing
-      ? `<div class="pm-missing">
-          <strong>Missing items before you can submit:</strong>
-          <ul>
-            ${missingForSubmit.map((m) => `<li>${escapeHtml(m.label)}</li>`).join("")}
-          </ul>
-        </div>`
-      : `<div class="pm-missing" style="background:#f0fff0;border-color:#7bbf7b;color:#125112;">
+    const missingHtml = (() => {
+      if (!showMissing) {
+        return `<div class="pm-missing pm-missing-ok">
           <strong>All required items are complete.</strong>
         </div>`;
+      }
+
+      const MAX_VISIBLE = 5;
+      const first = missingForSubmit.slice(0, MAX_VISIBLE);
+      const rest = missingForSubmit.slice(MAX_VISIBLE);
+
+      const li = (m) => {
+        const label = escapeHtml(m.label);
+        const name = escapeHtml(m.name);
+        return `<li><button type="button" class="pm-missing-link" data-jump="${name}">${label}</button></li>`;
+      };
+
+      const firstHtml = first.map(li).join("");
+      const restHtml = rest.map(li).join("");
+      const more = rest.length
+        ? `<details class="pm-missing-more">
+            <summary>Show ${rest.length} more…</summary>
+            <ul>${restHtml}</ul>
+          </details>`
+        : "";
+
+      return `<div class="pm-missing" role="alert">
+          <strong>Missing items before you can submit:</strong>
+          <ul class="pm-missing-list">${firstHtml}</ul>
+          ${more}
+        </div>`;
+    })();
 
     const count = config?.manual?.pageCount || 0;
     const pathTemplate = config?.manual?.pageImagePath || "./assets/pages/page-{page:02d}.jpg";
@@ -763,6 +822,19 @@
       if (els.modalCancel()) els.modalCancel().addEventListener("click", closeModal);
       if (els.modalPrint()) els.modalPrint().addEventListener("click", doPrint);
       if (els.modalSubmit()) els.modalSubmit().addEventListener("click", submit);
+
+      // Clickable "missing items" (event delegation inside modal body)
+      if (els.modalBody()) {
+        els.modalBody().addEventListener("click", (e) => {
+          const btn = e.target && e.target.closest ? e.target.closest(".pm-missing-link") : null;
+          if (!btn) return;
+          e.preventDefault();
+          const name = btn.getAttribute("data-jump");
+          closeModal();
+          // Allow the modal to close before scrolling the underlying viewer
+          window.setTimeout(() => jumpToMissingItem(name), 150);
+        });
+      }
 
       // click backdrop to close
       const modal = els.modal();
