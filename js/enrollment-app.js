@@ -1491,30 +1491,9 @@ function printPreviewViaIframe(previewHtml) {
     }
   `;
 
-  const doc = iframe.contentWindow && iframe.contentWindow.document;
-  if (!doc) {
-    iframe.remove();
-    alert("Could not open print preview. Please try again.");
-    return;
-  }
+  const printCssHref = new URL("css/print.css", window.location.href).toString();
 
-  doc.open();
-  doc.write(`<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Print Preview</title>
-  <style>${printCss}</style>
-  <link rel="stylesheet" href="css/print.css" media="print" />
-</head>
-<body>
-  <div class="grasp-print-wrapper">${html}</div>
-</body>
-</html>`);
-  doc.close();
-
-  // Print after iframe loads
-  setTimeout(() => {
+  iframe.onload = () => {
     try {
       iframe.contentWindow && iframe.contentWindow.focus();
       iframe.contentWindow && iframe.contentWindow.print();
@@ -1522,8 +1501,22 @@ function printPreviewViaIframe(previewHtml) {
       // cleanup after a short delay to allow print dialog
       setTimeout(() => iframe.remove(), 1000);
     }
-  }, 50);
+  };
+
+  iframe.srcdoc = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Print Preview</title>
+  <style>${printCss}</style>
+  <link rel="stylesheet" href="${printCssHref}" media="print" />
+</head>
+<body>
+  <div class="grasp-print-wrapper">${html}</div>
+</body>
+</html>`;
 }
+
 
 
 function hidePreviewModal() {
@@ -1588,8 +1581,6 @@ function showPreviewModal(html, { canSubmit = false, onSubmit = null } = {}) {
         printPreviewViaIframe(_previewLastHtml);
       });
     }
-    if (btnPrint)
-      btnPrint.addEventListener("click", () => printPreviewViaIframe(_previewLastHtml));
 
     // Click outside dialog closes modal
     modal.addEventListener("click", (e) => {
