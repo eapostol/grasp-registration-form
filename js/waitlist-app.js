@@ -1183,7 +1183,23 @@ Notes:
       els.modalCancel().addEventListener("click", closePreview);
     if (els.modalPrint())
       els.modalPrint().addEventListener("click", () => {
-        openPrintWindow(_previewLastHtml);
+        // Print uses a dedicated print template (PDF-like), separate from the on-screen email preview.
+        try {
+          const build =
+            window.GRASP_PRINT_TEMPLATES &&
+            window.GRASP_PRINT_TEMPLATES.buildWaitlistPrintHtml;
+          const printHtml =
+            typeof build === "function"
+              ? build(window.formState, window.config)
+              : _previewLastHtml;
+          openPrintWindow(printHtml);
+        } catch (e) {
+          console.warn(
+            "[GRASP][waitlist] print template failed; falling back to preview HTML",
+            e,
+          );
+          openPrintWindow(_previewLastHtml);
+        }
       });
     if (els.modalSubmit())
       els.modalSubmit().addEventListener("click", submitWaitlist);

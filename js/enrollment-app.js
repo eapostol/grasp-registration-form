@@ -1482,13 +1482,7 @@ function printPreviewViaIframe(previewHtml) {
   document.body.appendChild(iframe);
 
   const printCss = `
-    @page { size: Letter; margin: 16mm 12mm; }
-    body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; }
-    .grasp-print-wrapper { padding: 0; }
-    .grasp-print-footer { position: fixed; bottom: 10mm; right: 12mm; font-size: 10px; }
-    @media print {
-      .grasp-print-footer { position: fixed; }
-    }
+    body { margin: 0; padding: 0; }
   `;
 
   const printCssHref = new URL("css/print.css", window.location.href).toString();
@@ -1512,7 +1506,8 @@ function printPreviewViaIframe(previewHtml) {
   <link rel="stylesheet" href="${printCssHref}" media="print" />
 </head>
 <body>
-  <div class="grasp-print-wrapper">${html}</div>
+  <div class="grasp-print-container">${html}</div>
+  <div class="grasp-print-footer">Page <span class="pageNumber"></span></div>
 </body>
 </html>`;
 }
@@ -1578,7 +1573,15 @@ function showPreviewModal(html, { canSubmit = false, onSubmit = null } = {}) {
 
     if (btnPrint) {
       btnPrint.addEventListener("click", () => {
-        printPreviewViaIframe(_previewLastHtml);
+        // Print uses a dedicated print template (PDF-like), separate from the on-screen email preview.
+        try {
+          const build = window.GRASP_PRINT_TEMPLATES && window.GRASP_PRINT_TEMPLATES.buildEnrollmentPrintHtml;
+          const printHtml = typeof build === "function" ? build(formState, window.config) : _previewLastHtml;
+          printPreviewViaIframe(printHtml);
+        } catch (e) {
+          console.warn('[GRASP][enrollment] print template failed; falling back to preview HTML', e);
+          printPreviewViaIframe(_previewLastHtml);
+        }
       });
     }
 
