@@ -689,22 +689,386 @@
     return body;
   }
 
-  function buildEnrollmentPrintHtml(state, _config) {
-    const header = renderHeader({ formTitle: "Enrollment Form", includeFax: true });
+  function buildEnrollmentPrintHtml(state, config) {
+    const cfg = config || {};
+    const childName = normalizeValueForPrint(getValue(state, "child_name"));
+    const birthDate = normalizeValueForPrint(getValue(state, "child_birth_date"), { type: "date" });
+    const subsidy = normalizeValueForPrint(getValue(state, "subsidy_file_number"));
+    const parentSig = normalizeValueForPrint(getValue(state, "parent_full_name_signature"));
+    const sigDate = normalizeValueForPrint(getValue(state, "signature_date"), { type: "date" });
 
-    // Render as 5 pages to mirror the PDF.
-    const page1 = renderPage({ headerHtml: header, bodyHtml: enrollmentPage1(state), pageBreakAfter: true });
-    const page2 = renderPage({ headerHtml: header, bodyHtml: enrollmentPage2(state), pageBreakAfter: true });
-    const page3 = renderPage({ headerHtml: header, bodyHtml: enrollmentPage3(state), pageBreakAfter: true });
-    const page4 = renderPage({ headerHtml: header, bodyHtml: enrollmentPage4(state), pageBreakAfter: true });
-    const page5 = renderPage({ headerHtml: header, bodyHtml: enrollmentPage5(state), pageBreakAfter: false });
+    // Convert a stored value into a printable display value using config options where possible.
+    function displayFieldValue(fieldName, opts = {}) {
+      const raw = getValue(state, fieldName);
+      const field = cfg ? findField(cfg, fieldName) : null;
+
+      // Respect explicit print formatting hints first
+      if (opts.type === "date") {
+        return normalizeValueForPrint(raw, { type: "date" });
+      }
+
+      if (field?.type === "date") {
+        return normalizeValueForPrint(raw, { type: "date" });
+      }
+
+      if (field?.type === "checkbox") {
+        return raw ? "YES" : "NO";
+      }
+
+      if (field?.type === "radio") {
+        const val = raw ?? "";
+        const opt = (field.options || []).find((o) => String(o.value) === String(val));
+        return opt ? opt.label : normalizeValueForPrint(val);
+      }
+
+      return normalizeValueForPrint(raw);
+    }
+
+    function htmlValue(value, { multiline = false } = {}) {
+      const v = value ?? "";
+      if (!multiline) return escapeHtml(String(v));
+      // Preserve user-entered line breaks (addresses, notes) without forcing hard wraps.
+      return escapeHtml(String(v)).replace(/\n/g, "<br />");
+    }
+
+    function kvRow(label, value, { multiline = false } = {}) {
+      const valueHtml = multiline
+        ? `<div class="grasp-kv-multiline">${htmlValue(value, { multiline: true })}</div>`
+        : htmlValue(value);
+      return `<tr><td class="grasp-kv-label">${escapeHtml(label)}</td><td class="grasp-kv-value">${valueHtml}</td></tr>`;
+    }
+
+    function kvTable(rowsHtml) {
+      return `<table class="grasp-kv-table"><tbody>${rowsHtml}</tbody></table>`;
+    }
+
+    function section(title, innerHtml) {
+      return `<div class="grasp-section"><div class="grasp-section-title">${escapeHtml(title)}</div>${innerHtml}</div>`;
+    }
+
+    function fieldBlock(label, value, { multiline = false } = {}) {
+      const valueHtml = multiline
+        ? `<div class="grasp-field-value grasp-multiline">${htmlValue(value, { multiline: true })}</div>`
+        : `<div class="grasp-field-value">${htmlValue(value)}</div>`;
+      return `<div class="grasp-field"><div class="grasp-field-label">${escapeHtml(label)}</div>${valueHtml}</div>`;
+    }
+
+    function signatureRow({ includeWitness = true, includeDate = true, label = "Parent/Guardian signature (typed)" } = {}) {
+      const blocks = [];
+      blocks.push(fieldBlock(label, parentSig));
+      if (includeDate) blocks.push(fieldBlock("Date", sigDate));
+      if (includeWitness) blocks.push(fieldBlock("Witness", ""));
+      return `<div class="grasp-sign-row">${blocks.join("")}</div>`;
+    }
+
+    function headerHtml() {
+      return `
+        <div class="grasp-header">
+          <h1 class="grasp-header-title">Greenland Recreational After School Program</h1>
+          <div class="grasp-header-contact">15 Greenland Rd, Toronto ON M3C 1N1 · Phone: 416-444-7290 · Fax: 416-444-4381</div>
+          <div class="grasp-form-title">GRASP Enrollment Form</div>
+        </div>
+        <div class="grasp-brand-bar"></div>
+      `;
+    }
+
+    function page(bodyHtml) {
+      return `<div class="grasp-page">${headerHtml()}${bodyHtml}</div>`;
+    }
+
+    // -----------------
+    // Page 1 (Info)
+    // -----------------
+    const page1ChildRows = [
+      kvRow("Child’s name", childName),
+      kvRow("Birth date (D/M/Y)", birthDate),
+      kvRow("Subsidy file #", subsidy),
+    ].join("");
+
+    const parent1Rows = [
+      kvRow("Parent / Guardian 1 name", displayFieldValue("parent1_name")),
+      kvRow("Email address", displayFieldValue("parent1_email")),
+      kvRow("Home address", displayFieldValue("parent1_home_address"), { multiline: true }),
+      kvRow("Postal code", displayFieldValue("parent1_postal_code")),
+      kvRow("Phone # (home/cell)", displayFieldValue("parent1_phones")),
+      kvRow("Work/School address", displayFieldValue("parent1_work_address"), { multiline: true }),
+      kvRow("Work/School phone #", displayFieldValue("parent1_work_phone")),
+    ].join("");
+
+    const parent2Rows = [
+      kvRow("Parent / Guardian 2 name", displayFieldValue("parent2_name")),
+      kvRow("Email address", displayFieldValue("parent2_email")),
+      kvRow("Home address", displayFieldValue("parent2_home_address"), { multiline: true }),
+      kvRow("Postal code", displayFieldValue("parent2_postal_code")),
+      kvRow("Phone # (home/cell)", displayFieldValue("parent2_phones")),
+      kvRow("Work/School address", displayFieldValue("parent2_work_address"), { multiline: true }),
+      kvRow("Work/School phone #", displayFieldValue("parent2_work_phone")),
+    ].join("");
+
+    const doctorRows = [
+      kvRow("Doctor’s name", displayFieldValue("doctor_name")),
+      kvRow("Phone #", displayFieldValue("doctor_phone")),
+      kvRow("Address", displayFieldValue("doctor_address"), { multiline: true }),
+      kvRow("Postal code", displayFieldValue("doctor_postal_code")),
+    ].join("");
+
+    const allergyRows = [
+      kvRow("Allergies / conditions", displayFieldValue("child_allergies"), { multiline: true }),
+      kvRow("Symptoms", displayFieldValue("allergy_symptoms"), { multiline: true }),
+      kvRow("Treatment", displayFieldValue("allergy_treatment"), { multiline: true }),
+      kvRow("Epipen required?", displayFieldValue("epipen_required")),
+    ].join("");
+
+    const emergencyRows = [
+      kvRow("Name", displayFieldValue("emergency_contact_name")),
+      kvRow("Relationship", displayFieldValue("emergency_contact_relationship")),
+      kvRow("Day time phone #", displayFieldValue("emergency_contact_day_phone")),
+      kvRow("Address", displayFieldValue("emergency_contact_address"), { multiline: true }),
+    ].join("");
+
+    const pickupsRows = [kvRow("Names", displayFieldValue("authorized_pickups"), { multiline: true })].join("");
+
+    const page1Body = [
+      section("Child & Parent/Guardian Information", kvTable(page1ChildRows)),
+      `<div class="grasp-grid-2">
+        <div class="grasp-section">
+          <div class="grasp-section-title">Parent / Guardian 1</div>
+          ${kvTable(parent1Rows)}
+        </div>
+        <div class="grasp-section">
+          <div class="grasp-section-title">Parent / Guardian 2 (optional)</div>
+          ${kvTable(parent2Rows)}
+        </div>
+      </div>`,
+      `<div class="grasp-grid-2">
+        <div class="grasp-section">
+          <div class="grasp-section-title">Doctor Information</div>
+          ${kvTable(doctorRows)}
+        </div>
+        <div class="grasp-section">
+          <div class="grasp-section-title">Allergies</div>
+          ${kvTable(allergyRows)}
+        </div>
+      </div>`,
+      section("Emergency Contact", kvTable(emergencyRows)),
+      section("People authorized to pick up (other than parents)", kvTable(pickupsRows)),
+      `<div class="grasp-section">
+        <div class="grasp-section-title">Signature</div>
+        ${signatureRow({ includeWitness: true, includeDate: true })}
+      </div>`,
+    ].join("");
+
+    // -----------------
+    // Page 2 (Health)
+    // -----------------
+    const medicationText =
+      "The Centre will administer only prescription medication as required. All medication must come in the original container with the prescription label. The Centre will document all medication on the appropriate consent form and parents/guardians must sign this medication form before the medication is administered to their child.";
+
+    const medicalConsent = displayFieldValue("medical_release_consent");
+    const waterConsent = displayFieldValue("water_play_consent");
+    const sanitizerConsent = displayFieldValue("hand_sanitizer_consent");
+
+    const page2Body = [
+      `<div class="grasp-section">
+        <div class="grasp-section-title">Medical & Health Information</div>
+        <div class="grasp-subtitle">MEDICATION</div>
+        <p class="grasp-paragraph">${escapeHtml(medicationText)}</p>
+        ${kvTable(kvRow("Medication (prescription only) – details", displayFieldValue("medication_notes"), { multiline: true }))}
+      </div>`,
+      `<div class="grasp-section">
+        <div class="grasp-section-title">Medical Release – Parents Consent for Medical Treatment</div>
+        <p class="grasp-paragraph">
+          In the event that a parent/guardian cannot be reached, I,
+          <span class="grasp-inline-fill">${escapeHtml(parentSig || "")}</span>
+          give permission for a Greenland Recreational After School Program qualified staff member to secure any emergency medical treatment deemed necessary for my child,
+          <span class="grasp-inline-fill">${escapeHtml(childName || "")}</span>,
+          by the attending physician. Treatment may include anesthetic and/or blood transfusion. I also consent to emergency transportation of whatever type seen fit by the staff of the child care centre at the time of the incident.
+        </p>
+        ${kvTable(kvRow("Consent", medicalConsent))}
+        ${signatureRow({ includeWitness: true, includeDate: true })}
+      </div>`,
+      `<div class="grasp-section">
+        <div class="grasp-section-title">General Health</div>
+        ${kvTable(
+          [
+            kvRow("General health notes / things to be aware of", displayFieldValue("general_health_notes"), { multiline: true }),
+            kvRow("Is your child asthmatic?", displayFieldValue("child_asthmatic")),
+            kvRow("Is your child using a puffer?", displayFieldValue("child_uses_puffer")),
+            kvRow("Date of last medical examination (y/m/d)", displayFieldValue("last_medical_exam_date", { type: "date" })),
+            kvRow("Current weight", displayFieldValue("current_weight")),
+            kvRow("At present time is the child free of communicable diseases?", displayFieldValue("free_of_disease")),
+            kvRow("Previous history of communicable diseases", displayFieldValue("disease_history"), { multiline: true }),
+            kvRow("Special requirements for diet, rest or exercise", displayFieldValue("special_requirements"), { multiline: true }),
+          ].join(""),
+        )}
+      </div>`,
+      `<div class="grasp-section">
+        <div class="grasp-section-title">Authorization for Recreational Water Play</div>
+        <p class="grasp-paragraph">
+          I, the parent/guardian of <span class="grasp-inline-fill">${escapeHtml(childName || "")}</span>, hereby give my consent for my child to participate in water play such as splash pads and kids town and swimming pools under the supervision and guidance of the Centre staff.
+        </p>
+        ${kvTable(kvRow("Selection", waterConsent))}
+        ${signatureRow({ includeWitness: true, includeDate: true })}
+      </div>`,
+      `<div class="grasp-section">
+        <div class="grasp-section-title">Authorization for the Use of Hand Sanitizer</div>
+        <p class="grasp-paragraph">
+          I, the parent/guardian of <span class="grasp-inline-fill">${escapeHtml(childName || "")}</span>, hereby give my consent for my child to use hand sanitizer with 70% to 90% alcohol content under the supervision and guidance of the Centre staff.
+        </p>
+        ${kvTable(kvRow("Selection", sanitizerConsent))}
+        ${signatureRow({ includeWitness: true, includeDate: true })}
+      </div>`,
+    ].join("");
+
+    // -----------------
+    // Page 3 (Interview)
+    // -----------------
+    const arrivalAck = displayFieldValue("arrival_departure_ack");
+    const arrivalNotes = displayFieldValue("arrival_departure_notes");
+
+    const page3Body = [
+      `<div class="grasp-section">
+        <div class="grasp-section-title">Initial Parent/Guardian Interview</div>
+        ${kvTable(
+          [
+            kvRow("Child name", childName),
+            kvRow("Date of birth", birthDate),
+            kvRow("Birthmarks", ""),
+            kvRow("Child’s disposition", displayFieldValue("child_disposition")),
+            kvRow("General information about eating habits or food restrictions", displayFieldValue("eating_habits"), { multiline: true }),
+            kvRow("Language(s) spoken at home", displayFieldValue("languages_spoken")),
+            kvRow("Is your child talking, comprehending?", displayFieldValue("child_talking_comprehending")),
+            kvRow("What method of discipline do you use in your home?", displayFieldValue("discipline_method"), { multiline: true }),
+            kvRow("Does your child have any specific fears?", displayFieldValue("child_fears")),
+            kvRow("Reaction to fear", displayFieldValue("fear_reaction")),
+            kvRow("What frustrates your child?", displayFieldValue("child_frustrations")),
+            kvRow("How do you handle frustrations?", displayFieldValue("frustrations_handling")),
+            kvRow("Child’s special needs or cultural interests", displayFieldValue("child_special_needs"), { multiline: true }),
+            kvRow("Child’s interests (activities, sports, hobbies, etc.)", displayFieldValue("child_interests"), { multiline: true }),
+          ].join(""),
+        )}
+      </div>`,
+      `<div class="grasp-section">
+        <div class="grasp-section-title">Arrival & Departure Procedure</div>
+        <p class="grasp-paragraph">
+          I, <span class="grasp-inline-fill">${escapeHtml(parentSig || "")}</span>, agree to accompany my child to and from the GRASP classroom and notify staff verbally upon arrival and departure. I understand that it is my responsibility to inform all pick up and drop off persons of this policy and ensure they make verbal contact with the staff.
+        </p>
+        ${kvTable([kvRow("Acknowledgement", arrivalAck), kvRow("Notes", arrivalNotes, { multiline: true })].join(""))}
+        ${signatureRow({ includeWitness: true, includeDate: true })}
+      </div>`,
+    ].join("");
+
+    // -----------------
+    // Page 4 (Consents)
+    // -----------------
+    const infoSharing = displayFieldValue("info_sharing_consent");
+    const travelConsent2 = displayFieldValue("travel_consent");
+    const photoConsent = displayFieldValue("photo_media_consent");
+
+    const page4Body = [
+      `<div class="grasp-section">
+        <div class="grasp-section-title">Policies & Consents</div>
+      </div>`,
+      `<div class="grasp-section">
+        <div class="grasp-section-title">Disclosure of Information Policy</div>
+        <p class="grasp-paragraph">
+          Consent for sharing information among professionals involved in a child’s day enhances educational and family support. I,
+          <span class="grasp-inline-fill">${escapeHtml(parentSig || "")}</span>, consent to reciprocal exchange of information about my child,
+          <span class="grasp-inline-fill">${escapeHtml(childName || "")}</span>, between GRASP, the school and Toronto Children’s Services.
+        </p>
+        ${kvTable(kvRow("Selection", infoSharing))}
+        ${signatureRow({ includeWitness: true, includeDate: true })}
+      </div>`,
+      `<div class="grasp-section">
+        <div class="grasp-section-title">Travel Consent</div>
+        <p class="grasp-paragraph">
+          I, <span class="grasp-inline-fill">${escapeHtml(parentSig || "")}</span>, the parent/guardian of
+          <span class="grasp-inline-fill">${escapeHtml(childName || "")}</span>, give consent for my child to leave GRASP premises under staff supervision to participate in local outings that can be reached without motorized transportation.
+        </p>
+        ${kvTable(kvRow("Selection", travelConsent2))}
+        ${signatureRow({ includeWitness: true, includeDate: true })}
+      </div>`,
+      `<div class="grasp-section">
+        <div class="grasp-section-title">Photograph / Media Release</div>
+        <p class="grasp-paragraph">
+          I, <span class="grasp-inline-fill">${escapeHtml(parentSig || "")}</span>, grant GRASP the right to use photographed or electronic images and/or audio-video recordings of my child for GRASP activities and/or promoting GRASP.
+        </p>
+        ${kvTable(kvRow("Selection", photoConsent))}
+        ${signatureRow({ includeWitness: true, includeDate: true })}
+      </div>`,
+    ].join("");
+
+    // -----------------
+    // Page 5 (Safe arrival + sun safety + final signature)
+    // -----------------
+    const safeArrival = displayFieldValue("safe_arrival_ack");
+    const beforeSchool = displayFieldValue("before_school_program_ack");
+    const sunscreenProvidedBy = displayFieldValue("sunscreen_provided_by");
+    const sunscreenAssist = displayFieldValue("sunscreen_assistance_consent");
+    const sunSafety = displayFieldValue("sun_safety_ack");
+    const finalSig = displayFieldValue("parent_full_name_signature");
+    const finalDate = displayFieldValue("signature_date", { type: "date" });
+    const additionalComments = displayFieldValue("additional_comments");
+
+    const page5Body = [
+      `<div class="grasp-section">
+        <div class="grasp-section-title">Safe Arrival & Sun Safety</div>
+        <div class="grasp-subtitle">SAFE ARRIVAL AND DISMISSAL Acknowledgement</div>
+        <p class="grasp-paragraph">
+          This policy helps support the safe arrival and dismissal of children receiving care. Parents must call and inform the childcare by 10am if their child will be absent from childcare and/or school.
+        </p>
+        ${kvTable(
+          [
+            kvRow("Acknowledgement", safeArrival),
+            kvRow("Acknowledgement for children who attend school", beforeSchool, { multiline: true }),
+          ].join(""),
+        )}
+        ${signatureRow({ includeWitness: true, includeDate: true, label: "Parent signature (typed)" })}
+      </div>`,
+      `<div class="grasp-section">
+        <div class="grasp-section-title">Sun & Safety Policy – Sunscreen</div>
+        <p class="grasp-paragraph">
+          GRASP will provide sunscreen for the summer months (NO-AD SPF 30–45). Parents who wish to provide their own sunscreen must supply a labelled cream-only bottle with their child’s name.
+        </p>
+        ${kvTable(
+          [
+            kvRow("Sunscreen arrangement", sunscreenProvidedBy),
+            kvRow("Assistance consent", sunscreenAssist),
+            kvRow("Acknowledgement", sunSafety, { multiline: true }),
+          ].join(""),
+        )}
+        ${signatureRow({ includeWitness: true, includeDate: true, label: "Parent signature (typed)" })}
+      </div>`,
+      `<div class="grasp-section">
+        <div class="grasp-section-title">Final Acknowledgement & Signature</div>
+        <div class="grasp-signature-center">
+          <div class="grasp-signature-line">
+            <div class="grasp-signature-value">${escapeHtml(finalSig || "")}</div>
+            <div class="grasp-signature-caption">Parent/Guardian full name (serves as digital signature)</div>
+          </div>
+          <div class="grasp-signature-line">
+            <div class="grasp-signature-value">${escapeHtml(finalDate || "")}</div>
+            <div class="grasp-signature-caption">Date Signed</div>
+          </div>
+        </div>
+      </div>`,
+      `<div class="grasp-section">
+        <div class="grasp-section-title">Additional Comments</div>
+        ${kvTable(kvRow("Comments", additionalComments, { multiline: true }))}
+      </div>`,
+    ].join("");
 
     return `
       <div class="grasp-print-root">
-        ${page1}${page2}${page3}${page4}${page5}
+        ${page(page1Body)}
+        ${page(page2Body)}
+        ${page(page3Body)}
+        ${page(page4Body)}
+        ${page(page5Body)}
       </div>
     `;
   }
+
 
   function buildWaitlistPrintHtml(state, config) {
     const header = renderHeader({ formTitle: "Wait List Application Form", includeFax: false });

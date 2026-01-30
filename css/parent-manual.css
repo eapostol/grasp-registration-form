@@ -1,0 +1,361 @@
+/* Parent Manual form styles (PDF-like continuous scroll viewer)
+   Keeps existing site layout (css/style.css + css/enrollment.css) intact.
+*/
+
+#parent-manual-root {
+  background: #fff;
+  padding: 20px;
+  margin: 0 0 30px 0;
+  border-radius: 4px;
+}
+
+#parent-manual-root h2 {
+  margin-top: 0;
+}
+
+.pm-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid #ddd;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #fafafa;
+  margin: 14px 0;
+}
+
+.pm-toolbar .pm-toolbar-left {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pm-toolbar .pm-toolbar-right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+
+.pm-toolbar-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.pm-toolbar-row1 {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.pm-toolbar-row2 {
+  justify-content: flex-start;
+}
+
+.pm-toolbar-row2 .pm-status {
+  width: 100%;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+
+
+/* Toolbar layout: two rows (controls + status) */
+.pm-toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pm-toolbar-row1 {
+  justify-content: space-between;
+  flex-wrap: nowrap;
+}
+
+.pm-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.pm-toolbar .grasp-btn {
+  font-size: 14px;
+  padding: 10px 14px;
+  white-space: nowrap;
+}
+
+.pm-zoom {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* tighter spacing */
+  flex-wrap: nowrap;
+}
+
+.pm-zoom-btn {
+  padding: 6px 10px;
+  min-width: 34px;
+  font-size: 14px;
+}
+
+.pm-zoom-value {
+  min-width: 54px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.pm-toolbar-row2 .pm-status {
+  width: 100%;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.pm-status {
+  font-size: 13px;
+  color: #333;
+}
+
+.pm-status .pm-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #ddd;
+  background: #fff;
+  margin-right: 6px;
+}
+
+.pm-status .pm-pill.ok {
+  border-color: #7bbf7b;
+  background: #f0fff0;
+}
+
+.pm-status .pm-pill.warn {
+  border-color: #e4c86a;
+  background: #fff9e6;
+}
+
+
+.pm-status .pm-pill.pm-pill-flash {
+  animation: pmPillFlash 900ms ease-in-out 1;
+}
+
+@keyframes pmPillFlash {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+.pm-scroll {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow-y: auto;
+  overflow-x: auto;
+  height: 70vh; /* scrollable region for the manual */
+  background: #f6f6f6;
+  padding: 12px;
+}
+
+.pm-page {
+  position: relative;
+  margin: 0 auto 14px auto;
+  max-width: 900px;
+  background: #fff;
+  border: 1px solid #e2e2e2;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+}
+
+.pm-page img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.pm-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.pm-field {
+  position: absolute;
+  box-sizing: border-box;
+  font-size: 14px;
+  padding: 4px 6px;
+  border: 2px solid rgba(0,0,0,0.35);
+  border-radius: 3px;
+  background: rgba(255,255,255,0.92);
+}
+
+.pm-field:focus {
+  outline: none;
+  border-color: rgba(0, 125, 255, 0.75);
+  box-shadow: 0 0 0 2px rgba(0,125,255,0.15);
+}
+
+.pm-field.pm-field-initials {
+  text-transform: uppercase;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.pm-field.pm-field-disabled {
+  background: rgba(245,245,245,0.95);
+  color: #666;
+  border-style: dashed;
+}
+
+.pm-small-hint {
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+}
+
+/* Preview modal: make the manual area scroll nicely */
+.pm-preview-scroll {
+  max-height: 60vh;
+  overflow: auto;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #f6f6f6;
+  padding: 10px;
+}
+
+.pm-preview-page {
+  position: relative;
+  margin: 0 auto 12px auto;
+  max-width: 820px;
+  background: #fff;
+  border: 1px solid #e2e2e2;
+}
+
+.pm-preview-page img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.pm-preview-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.pm-print-value {
+  position: absolute;
+  box-sizing: border-box;
+  font-size: 14px;
+  padding: 2px 4px;
+  background: transparent;
+  color: #111;
+  border: 0;
+  white-space: pre;
+}
+
+.pm-missing {
+  background: #fff3f3;
+  border: 1px solid #f1b1b1;
+  color: #7a1111;
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin: 0 0 12px 0;
+}
+
+.pm-missing.pm-missing-ok {
+  background: #f0fff0;
+  border-color: #7bbf7b;
+  color: #125112;
+}
+
+.pm-missing-list {
+  margin: 8px 0 0 0;
+  padding-left: 22px;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.pm-missing-more {
+  margin-top: 8px;
+}
+
+.pm-missing-more summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.pm-missing-more ul {
+  margin: 8px 0 0 0;
+  padding-left: 22px;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.pm-missing-link {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.pm-missing-link:hover,
+.pm-missing-link:focus {
+  text-decoration-thickness: 2px;
+}
+
+/* Ensure the modal itself remains usable even when content is tall */
+.grasp-modal-dialog {
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.grasp-modal-body {
+  overflow: auto;
+}
+
+/* Flash highlight when jumping to a missing field */
+.pm-field-flash {
+  box-shadow: 0 0 0 4px rgba(255, 200, 0, 0.35);
+  border-color: rgba(255, 165, 0, 0.85) !important;
+}
+
+
+/* Zoom controls */
+.pm-zoom {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.pm-zoom-btn {
+  border: 1px solid #cfcfcf;
+  background: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.pm-zoom-btn:hover {
+  background: #f1f1f1;
+}
+
+.pm-zoom-value {
+  min-width: 54px;
+  text-align: center;
+  font-size: 13px;
+  color: #333;
+}
+
+.pm-zoom-reset {
+  padding: 6px 12px;
+}

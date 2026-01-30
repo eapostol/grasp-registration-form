@@ -82,3 +82,9 @@ originals/
 
 # ignore ".Identifier" file
 *.Identifier
+
+# ignore macOS quarantine attributes
+*.quarantine
+*.provenance
+*:com.apple.*
+:Zone.Identifier
