@@ -76,6 +76,9 @@ $headers[] = 'Content-type: text/html; charset=UTF-8';
 $headers[] = 'From: ' . $from;
 $headers[] = 'Reply-To: ' . $from;
 $headers[] = 'X-Mailer: PHP/' . phpversion();
+if (!empty($config['email_bcc'])) {
+  $headers[] = 'Bcc: ' . $config['email_bcc'];
+}
 
 $sent = @mail($to, $subject, $body, implode("\r\n", $headers));
 
