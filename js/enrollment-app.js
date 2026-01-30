@@ -1507,7 +1507,6 @@ function printPreviewViaIframe(previewHtml) {
 </head>
 <body>
   <div class="grasp-print-container">${html}</div>
-  <div class="grasp-print-footer">Page <span class="pageNumber"></span></div>
 </body>
 </html>`;
 }
