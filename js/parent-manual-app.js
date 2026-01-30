@@ -280,6 +280,71 @@ function flattenFields(cfg) {
     return val === null || typeof val === "undefined" || String(val).trim() === "";
   }
 
+function detectDebugMode() {
+  try {
+    const params = new URLSearchParams(window.location.search || "");
+    const raw = params.get("debug") ?? params.get("DEBUG") ?? params.get("Debug");
+    if (!raw) return false;
+    const v = String(raw).toLowerCase();
+    return v === "true" || v === "1" || v === "yes";
+  } catch (e) {
+    return false;
+  }
+}
+
+function pickFirstNonEmpty(obj, keys) {
+  const o = obj || {};
+  for (const k of keys || []) {
+    const v = o[k];
+    if (!isEmpty(v)) return v;
+  }
+  return "";
+}
+
+async function prefillFromPackageDraftIfDebug() {
+  if (!debugEnabled) return;
+  try {
+    const api = window.GRASP_PACKAGE_DRAFT;
+    const loadFn = api?.load || api?.getDraft;
+    if (!loadFn) return;
+
+    const pkg = await loadFn.call(api);
+    const registrant = (pkg && pkg.registrant) ? pkg.registrant : {};
+
+    // Try common keys used by Enrollment/Waitlist
+    let name = pickFirstNonEmpty(registrant, [
+      "parent_full_name_signature",   // Enrollment
+      "parent_signature",             // Waitlist
+      "parent1_name",
+      "parent2_name",
+    ]);
+
+    // Fallback: construct from parent1 first/last
+    if (isEmpty(name)) {
+      const fn = pickFirstNonEmpty(registrant, ["parent1_first_name"]);
+      const ln = pickFirstNonEmpty(registrant, ["parent1_last_name"]);
+      const combined = `${String(fn || "").trim()} ${String(ln || "").trim()}`.trim();
+      if (!isEmpty(combined)) name = combined;
+    }
+
+    const sigDate = pickFirstNonEmpty(registrant, ["signature_date"]);
+
+    // Only fill missing Parent Manual fields (do not overwrite existing draft values)
+    if (!isEmpty(name)) {
+      if (isEmpty(window.formState.pm_parent_printed_name)) window.formState.pm_parent_printed_name = name;
+      if (isEmpty(window.formState.pm_parent_signature)) window.formState.pm_parent_signature = name;
+      if (isEmpty(window.formState.pm_ack_printed_name)) window.formState.pm_ack_printed_name = name;
+    }
+
+    if (!isEmpty(sigDate) && isEmpty(window.formState.pm_parent_date)) {
+      window.formState.pm_parent_date = sigDate;
+    }
+  } catch (e) {
+    console.warn("[GRASP][parent-manual] debug prefill failed", e);
+  }
+}
+
+
   // -----------------------------
   // App State
   // -----------------------------
@@ -288,6 +353,8 @@ function flattenFields(cfg) {
 
   // exposed like other forms
   window.formState = {}; // fieldName -> value
+
+  let debugEnabled = false;
 
   let hasReachedBottom = false;
   let isModalOpen = false;
@@ -475,6 +542,10 @@ function flattenFields(cfg) {
 
     const pills = [];
     pills.push(`<span class="pm-pill ${scrollOk ? "ok" : "warn"}">${scrollOk ? "Scrolled to bottom ✓" : "Scroll to bottom"}</span>`);
+
+    if (debugEnabled) {
+      pills.push(`<span class="pm-pill warn">Debug mode</span>`);
+    }
 
     if (missingRequiredFields.length === 0) {
       pills.push(`<span class="pm-pill ok">Fields complete ✓</span>`);
@@ -905,6 +976,9 @@ function flattenFields(cfg) {
       if (draft && typeof draft === "object") {
         window.formState = draft;
       }
+
+      debugEnabled = detectDebugMode();
+      await prefillFromPackageDraftIfDebug();
 
       // reach bottom state
       hasReachedBottom = !!window.formState.__pm_scrolledToBottom;
