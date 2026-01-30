@@ -80,5 +80,11 @@ Thumbs.db
 # Ignore "originals" folder
 originals/
 
-# ignore ".Identifiers" file
-*.Identifiers
+# ignore ".Identifier" file
+*.Identifier
+
+# ignore macOS quarantine attributes
+*.quarantine
+*.provenance
+*:com.apple.*
+:Zone.Identifier

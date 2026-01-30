@@ -1482,39 +1482,12 @@ function printPreviewViaIframe(previewHtml) {
   document.body.appendChild(iframe);
 
   const printCss = `
-    @page { size: Letter; margin: 16mm 12mm; }
-    body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; }
-    .grasp-print-wrapper { padding: 0; }
-    .grasp-print-footer { position: fixed; bottom: 10mm; right: 12mm; font-size: 10px; }
-    @media print {
-      .grasp-print-footer { position: fixed; }
-    }
+    body { margin: 0; padding: 0; }
   `;
 
-  const doc = iframe.contentWindow && iframe.contentWindow.document;
-  if (!doc) {
-    iframe.remove();
-    alert("Could not open print preview. Please try again.");
-    return;
-  }
+  const printCssHref = new URL("css/print.css", window.location.href).toString();
 
-  doc.open();
-  doc.write(`<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Print Preview</title>
-  <style>${printCss}</style>
-  <link rel="stylesheet" href="css/print.css" media="print" />
-</head>
-<body>
-  <div class="grasp-print-wrapper">${html}</div>
-</body>
-</html>`);
-  doc.close();
-
-  // Print after iframe loads
-  setTimeout(() => {
+  iframe.onload = () => {
     try {
       iframe.contentWindow && iframe.contentWindow.focus();
       iframe.contentWindow && iframe.contentWindow.print();
@@ -1522,8 +1495,22 @@ function printPreviewViaIframe(previewHtml) {
       // cleanup after a short delay to allow print dialog
       setTimeout(() => iframe.remove(), 1000);
     }
-  }, 50);
+  };
+
+  iframe.srcdoc = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Print Preview</title>
+  <style>${printCss}</style>
+  <link rel="stylesheet" href="${printCssHref}" media="print" />
+</head>
+<body>
+  <div class="grasp-print-container">${html}</div>
+</body>
+</html>`;
 }
+
 
 
 function hidePreviewModal() {
@@ -1585,11 +1572,17 @@ function showPreviewModal(html, { canSubmit = false, onSubmit = null } = {}) {
 
     if (btnPrint) {
       btnPrint.addEventListener("click", () => {
-        printPreviewViaIframe(_previewLastHtml);
+        // Print uses a dedicated print template (PDF-like), separate from the on-screen email preview.
+        try {
+          const build = window.GRASP_PRINT_TEMPLATES && window.GRASP_PRINT_TEMPLATES.buildEnrollmentPrintHtml;
+          const printHtml = typeof build === "function" ? build(formState, window.config) : _previewLastHtml;
+          printPreviewViaIframe(printHtml);
+        } catch (e) {
+          console.warn('[GRASP][enrollment] print template failed; falling back to preview HTML', e);
+          printPreviewViaIframe(_previewLastHtml);
+        }
       });
     }
-    if (btnPrint)
-      btnPrint.addEventListener("click", () => printPreviewViaIframe(_previewLastHtml));
 
     // Click outside dialog closes modal
     modal.addEventListener("click", (e) => {

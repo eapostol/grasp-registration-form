@@ -1,0 +1,399 @@
+{
+  "formId": "grasp_parent_manual",
+  "title": "GRASP Parent Manual / Handbook Agreement",
+  "version": 1,
+  "manual": {
+    "pageCount": 32,
+    "pageImagePath": "./assets/pages/page-{page:02d}.jpg",
+    "pdfPath": "./assets/GRASP-parent-manual-2026.pdf"
+  },
+  "steps": [
+    {
+      "id": "parent_manual",
+      "title": "Parent Handbook Agreement",
+      "description": "Review the manual below, initial required sections, then sign the acknowledgement at the end.",
+      "groups": [
+        {
+          "id": "initials",
+          "title": "Required Initials",
+          "fields": [
+            {
+              "name": "pm_initials_p09_01",
+              "label": "Initials",
+              "type": "text",
+              "inputType": "text",
+              "required": true,
+              "kind": "initials",
+              "placement": {
+                "page": 9,
+                "rect": {
+                  "x": 0.852941,
+                  "y": 0.444848,
+                  "w": 0.147059,
+                  "h": 0.065657
+                }
+              }
+            },
+            {
+              "name": "pm_initials_p10_01",
+              "label": "Initials",
+              "type": "text",
+              "inputType": "text",
+              "required": true,
+              "kind": "initials",
+              "placement": {
+                "page": 10,
+                "rect": {
+                  "x": 0.852941,
+                  "y": 0.310758,
+                  "w": 0.147059,
+                  "h": 0.065657
+                }
+              }
+            },
+            {
+              "name": "pm_initials_p11_01",
+              "label": "Initials",
+              "type": "text",
+              "inputType": "text",
+              "required": true,
+              "kind": "initials",
+              "placement": {
+                "page": 11,
+                "rect": {
+                  "x": 0.848431,
+                  "y": 0.908636,
+                  "w": 0.147059,
+                  "h": 0.065657
+                }
+              }
+            },
+            {
+              "name": "pm_initials_p11_02",
+              "label": "Initials",
+              "type": "text",
+              "inputType": "text",
+              "required": true,
+              "kind": "initials",
+              "placement": {
+                "page": 11,
+                "rect": {
+                  "x": 0.852941,
+                  "y": 0.218182,
+                  "w": 0.147059,
+                  "h": 0.065657
+                }
+              }
+            },
+            {
+              "name": "pm_initials_p13_01",
+              "label": "Initials",
+              "type": "text",
+              "inputType": "text",
+              "required": true,
+              "kind": "initials",
+              "placement": {
+                "page": 13,
+                "rect": {
+                  "x": 0.852941,
+                  "y": 0.068333,
+                  "w": 0.147059,
+                  "h": 0.065657
+                }
+              }
+            },
+            {
+              "name": "pm_initials_p13_02",
+              "label": "Initials",
+              "type": "text",
+              "inputType": "text",
+              "required": true,
+              "kind": "initials",
+              "placement": {
+                "page": 13,
+                "rect": {
+                  "x": 0.852941,
+                  "y": 0.934343,
+                  "w": 0.147059,
+                  "h": 0.065657
+                }
+              }
+            },
+            {
+              "name": "pm_initials_p15_01",
+              "label": "Initials",
+              "type": "text",
+              "inputType": "text",
+              "required": true,
+              "kind": "initials",
+              "placement": {
+                "page": 15,
+                "rect": {
+                  "x": 0.852941,
+                  "y": 0.261061,
+                  "w": 0.147059,
+                  "h": 0.065657
+                }
+              }
+            },
+            {
+              "name": "pm_initials_p15_02",
+              "label": "Initials",
+              "type": "text",
+              "inputType": "text",
+              "required": true,
+              "kind": "initials",
+              "placement": {
+                "page": 15,
+                "rect": {
+                  "x": 0.841765,
+                  "y": 0.636061,
+                  "w": 0.147059,
+                  "h": 0.065657
+                }
+              }
+            },
+            {
+              "name": "pm_initials_p20_01",
+              "label": "Initials",
+              "type": "text",
+              "inputType": "text",
+              "required": true,
+              "kind": "initials",
+              "placement": {
+                "page": 20,
+                "rect": {
+                  "x": 0.852941,
+                  "y": 0.691061,
+                  "w": 0.147059,
+                  "h": 0.065657
+                }
+              }
+            },
+            {
+              "name": "pm_initials_p21_01",
+              "label": "Initials",
+              "type": "text",
+              "inputType": "text",
+              "required": true,
+              "kind": "initials",
+              "placement": {
+                "page": 21,
+                "rect": {
+                  "x": 0.852941,
+                  "y": 0.631212,
+                  "w": 0.147059,
+                  "h": 0.065657
+                }
+              }
+            },
+            {
+              "name": "pm_initials_p22_01",
+              "label": "Initials",
+              "type": "text",
+              "inputType": "text",
+              "required": true,
+              "kind": "initials",
+              "placement": {
+                "page": 22,
+                "rect": {
+                  "x": 0.852941,
+                  "y": 0.578485,
+                  "w": 0.147059,
+                  "h": 0.065657
+                }
+              }
+            },
+            {
+              "name": "pm_initials_p23_01",
+              "label": "Initials",
+              "type": "text",
+              "inputType": "text",
+              "required": true,
+              "kind": "initials",
+              "placement": {
+                "page": 23,
+                "rect": {
+                  "x": 0.852941,
+                  "y": 0.774242,
+                  "w": 0.147059,
+                  "h": 0.065657
+                }
+              }
+            },
+            {
+              "name": "pm_initials_p24_01",
+              "label": "Initials",
+              "type": "text",
+              "inputType": "text",
+              "required": true,
+              "kind": "initials",
+              "placement": {
+                "page": 24,
+                "rect": {
+                  "x": 0.852941,
+                  "y": 0.033939,
+                  "w": 0.147059,
+                  "h": 0.065657
+                }
+              }
+            },
+            {
+              "name": "pm_initials_p26_01",
+              "label": "Initials",
+              "type": "text",
+              "inputType": "text",
+              "required": true,
+              "kind": "initials",
+              "placement": {
+                "page": 26,
+                "rect": {
+                  "x": 0.840196,
+                  "y": 0.78,
+                  "w": 0.147059,
+                  "h": 0.065657
+                }
+              }
+            },
+            {
+              "name": "pm_initials_p28_01",
+              "label": "Initials",
+              "type": "text",
+              "inputType": "text",
+              "required": true,
+              "kind": "initials",
+              "placement": {
+                "page": 28,
+                "rect": {
+                  "x": 0.852941,
+                  "y": 0.266515,
+                  "w": 0.147059,
+                  "h": 0.065657
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "acknowledgement",
+          "title": "Acknowledgement & Signatures",
+          "fields": [
+            {
+              "name": "pm_ack_printed_name",
+              "label": "Printed Name (Acknowledgement line)",
+              "type": "text",
+              "inputType": "text",
+              "required": true,
+              "kind": "printed_name",
+              "placement": {
+                "page": 32,
+                "rect": {
+                  "x": 0.083784,
+                  "y": 0.18798,
+                  "w": 0.245039,
+                  "h": 0.027778
+                }
+              }
+            },
+            {
+              "name": "pm_parent_signature",
+              "label": "Signature of Parent/Legal Guardian",
+              "type": "text",
+              "inputType": "text",
+              "required": false,
+              "requiredForSubmit": true,
+              "kind": "signature",
+              "placement": {
+                "page": 32,
+                "rect": {
+                  "x": 0.062549,
+                  "y": 0.327121,
+                  "w": 0.359477,
+                  "h": 0.027778
+                }
+              }
+            },
+            {
+              "name": "pm_parent_printed_name",
+              "label": "Printed Name (Signature block)",
+              "type": "text",
+              "inputType": "text",
+              "required": true,
+              "kind": "printed_name",
+              "prefillFrom": "pm_ack_printed_name",
+              "placement": {
+                "page": 32,
+                "rect": {
+                  "x": 0.405294,
+                  "y": 0.327121,
+                  "w": 0.245098,
+                  "h": 0.027778
+                }
+              }
+            },
+            {
+              "name": "pm_parent_date",
+              "label": "Date",
+              "type": "date",
+              "inputType": "date",
+              "required": true,
+              "defaultToday": true,
+              "kind": "date",
+              "placement": {
+                "page": 32,
+                "rect": {
+                  "x": 0.665882,
+                  "y": 0.327121,
+                  "w": 0.179739,
+                  "h": 0.027778
+                }
+              }
+            },
+            {
+              "name": "pm_exec_signature",
+              "label": "Signature of Executive Director (office use only)",
+              "type": "text",
+              "inputType": "text",
+              "required": false,
+              "disabled": true,
+              "officeOnly": true,
+              "kind": "office_signature",
+              "placement": {
+                "page": 32,
+                "rect": {
+                  "x": 0.062549,
+                  "y": 0.44909,
+                  "w": 0.408497,
+                  "h": 0.027778
+                }
+              }
+            },
+            {
+              "name": "pm_exec_date",
+              "label": "Date signed by Executive Director (office use only)",
+              "type": "date",
+              "inputType": "date",
+              "required": false,
+              "disabled": true,
+              "officeOnly": true,
+              "kind": "office_date",
+              "placement": {
+                "page": 32,
+                "rect": {
+                  "x": 0.474314,
+                  "y": 0.44909,
+                  "w": 0.212418,
+                  "h": 0.027778
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "validationMessages": {
+    "scrollToBottomRequired": "Please scroll to the bottom of the manual before submitting.",
+    "requiredField": "This field is required."
+  }
+}
