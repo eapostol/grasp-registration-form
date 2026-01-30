@@ -178,6 +178,9 @@ $headers[] = 'X-Mailer: PHP/' . phpversion();
 $headers[] = 'MIME-Version: 1.0';
 // $headers[] = 'Content-type: text/html; charset=UTF-8';
 $headers[] = 'Content-type: text/html; charset=UTF-8';
+if (!empty($config['email_bcc'])) {
+    $headers[] = 'Bcc: ' . $config['email_bcc'];
+}
 
 
 

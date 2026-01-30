@@ -11,7 +11,8 @@ $isStagingPath  = (strpos($uri, '/staging/') === 0);
 
 // Base config (will be overridden per environment below)
 $config = [
-    'email_to'      => 'ed@edapostol.com',
+    'email_to'      => 'edward.apostol@gmail.com',
+    'email_bcc'     => 'work@edapostol.com',
     'email_from'    => 'no-reply@greenlandrecreational.com',
     'email_subject' => 'New GRASP Enrollment Submission',
     'db' => [
@@ -29,6 +30,7 @@ if ($isDdev) {
         'password' => 'db',
     ];
     $config['email_to'] = 'ed@edapostol.com';
+    $config['email_bcc'] = 'work@edapostol.com';
 
 } else {
     // Remote WHC hosting
@@ -41,10 +43,12 @@ if ($isDdev) {
 
     if ($isStagingPath) {
         // e.g. /staging/reg-form/...
-        $config['email_to'] = 'ed@edapostol.com';
+        $config['email_to'] = 'edward.apostol@gmail.com';
+        $config['email_bcc'] = 'ed@edapostol.com';
     } else {
         // e.g. /reg-form/ on site1762545518.mywhc.ca or greenlandrecreational.com
-        $config['email_to'] = 'info@greenlandrecreational.com';
+        $config['email_to'] = 'edward.apostol@gmail.com';
+        $config['email_bcc'] = 'ed@edapostol.com';
     }
 }
 
