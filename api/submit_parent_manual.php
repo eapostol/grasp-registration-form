@@ -69,7 +69,62 @@ $meta = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color
 
 $body = $meta . ($emailHtml ? $emailHtml : '<p>No emailHtml provided.</p>');
 
-$ok = @mail($to, $subject, $body, implode("\r\n", $headers));
+// --- PDF attachment (completed manual) ---
+// We generate a PDF from the handbook page images + the submitted field values, then attach it.
+$pdfTmpPath = null;
+try {
+  $autoload = __DIR__ . '/vendor/autoload.php';
+  if (!file_exists($autoload)) {
+    throw new RuntimeException('Missing Composer dependencies. Run: cd api && composer install');
+  }
+  require_once $autoload;
+  require_once __DIR__ . '/lib/ParentManualPdfGenerator.php';
+
+  $pdfInfo = ParentManualPdfGenerator::generate(['fields' => $data], $sessionId ?: uniqid('pm_', true));
+  $pdfTmpPath = $pdfInfo['path'] ?? null;
+  $pdfFilename = $pdfInfo['filename'] ?? 'GRASP-Parent-Manual.pdf';
+
+  if (!$pdfTmpPath || !file_exists($pdfTmpPath)) {
+    throw new RuntimeException('Failed to generate Parent Manual PDF.');
+  }
+
+  $boundary = '=_GRASP_PM_' . bin2hex(random_bytes(12));
+  $headers = [];
+  $headers[] = 'MIME-Version: 1.0';
+  $headers[] = 'From: ' . $from;
+  $headers[] = 'Content-Type: multipart/mixed; boundary="' . $boundary . '"';
+
+  $attachmentData = chunk_split(base64_encode(file_get_contents($pdfTmpPath)));
+
+  $message = '';
+  $message .= '--' . $boundary . "\r\n";
+  $message .= "Content-Type: text/html; charset=utf-8\r\n";
+  $message .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
+  $message .= $body . "\r\n\r\n";
+
+  $message .= '--' . $boundary . "\r\n";
+  $message .= 'Content-Type: application/pdf; name="' . addcslashes($pdfFilename, '"') . '"' . "\r\n";
+  $message .= "Content-Transfer-Encoding: base64\r\n";
+  $message .= 'Content-Disposition: attachment; filename="' . addcslashes($pdfFilename, '"') . '"' . "\r\n\r\n";
+  $message .= $attachmentData . "\r\n";
+  $message .= '--' . $boundary . "--\r\n";
+
+  $ok = @mail($to, $subject, $message, implode("\r\n", $headers));
+} catch (Throwable $e) {
+  // Fallback: if we cannot generate/attach the PDF, fail so the sender can fix server setup.
+  http_response_code(500);
+  echo json_encode([
+    'ok' => false,
+    'message' => 'Unable to send Parent Manual email with PDF attachment.',
+    'detail' => $e->getMessage(),
+  ]);
+  exit;
+} finally {
+  if ($pdfTmpPath && file_exists($pdfTmpPath)) {
+    @unlink($pdfTmpPath);
+  }
+}
+
 if (!$ok) {
   http_response_code(500);
   echo json_encode(['ok' => false, 'message' => 'Unable to send email (mail() failed).']);

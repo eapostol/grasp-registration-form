@@ -15,9 +15,8 @@
 
 .pm-toolbar {
   display: flex;
-  gap: 10px;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 6px;
   border: 1px solid #ddd;
   padding: 10px 12px;
   border-radius: 6px;
@@ -36,8 +35,87 @@
   display: flex;
   gap: 10px;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
+
+.pm-toolbar-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.pm-toolbar-row1 {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.pm-toolbar-row2 {
+  justify-content: flex-start;
+}
+
+.pm-toolbar-row2 .pm-status {
+  width: 100%;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+
+
+/* Toolbar layout: two rows (controls + status) */
+.pm-toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pm-toolbar-row1 {
+  justify-content: space-between;
+  flex-wrap: nowrap;
+}
+
+.pm-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.pm-toolbar .grasp-btn {
+  font-size: 14px;
+  padding: 10px 14px;
+  white-space: nowrap;
+}
+
+.pm-zoom {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* tighter spacing */
+  flex-wrap: nowrap;
+}
+
+.pm-zoom-btn {
+  padding: 6px 10px;
+  min-width: 34px;
+  font-size: 14px;
+}
+
+.pm-zoom-value {
+  min-width: 54px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.pm-toolbar-row2 .pm-status {
+  width: 100%;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
 .pm-status {
   font-size: 13px;
   color: #333;
@@ -62,6 +140,16 @@
   background: #fff9e6;
 }
 
+
+.pm-status .pm-pill.pm-pill-flash {
+  animation: pmPillFlash 900ms ease-in-out 1;
+}
+
+@keyframes pmPillFlash {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
 .pm-scroll {
   border: 1px solid #ddd;
   border-radius: 6px;

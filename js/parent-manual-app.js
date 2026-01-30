@@ -14,6 +14,7 @@
   // -----------------------------
   const SECRET_KEY_STRING = "grasp-parent-manual-demo-secret-32-chars!!";
   const STORAGE_KEY_ENCRYPTED = "graspParentManualEncryptedData";
+  const STORAGE_KEY_LAST_SAVED_AT = "grasp_parent_manual_last_saved_at";
   const STORAGE_KEY_SESSION_ID = "graspParentManualSessionId";
   const STORAGE_DB_NAME = "graspParentManualDB";
   const STORAGE_DB_STORE = "sessions";
@@ -292,6 +293,8 @@ function flattenFields(cfg) {
   let isModalOpen = false;
   let isDirty = false;
   let autoSaveTimer = null;
+  let lastSavedAt = null;
+  let flashSavedPill = false;
 
   const els = {
     pages: () => qs("pm-pages"),
@@ -448,6 +451,23 @@ function flattenFields(cfg) {
     return missing;
   }
 
+  function flashSaved() {
+    flashSavedPill = true;
+    updateStatus();
+    window.setTimeout(() => {
+      flashSavedPill = false;
+      updateStatus();
+    }, 1200);
+  }
+
+  function formatTime(d) {
+    try {
+      return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    } catch (e) {
+      return "";
+    }
+  }
+
   function renderStatusPills() {
     const missingForSubmit = buildMissingList({ forSubmit: true });
     const missingRequiredFields = missingForSubmit.filter((m) => m.name !== "__scroll__");
@@ -465,7 +485,10 @@ function flattenFields(cfg) {
     if (isDirty) {
       pills.push(`<span class="pm-pill warn">Unsaved changes</span>`);
     } else {
-      pills.push(`<span class="pm-pill ok">Saved</span>`);
+      const t = lastSavedAt ? formatTime(lastSavedAt) : "";
+      const label = t ? `Saved ${t}` : "Saved";
+      const flash = flashSavedPill ? " pm-pill-flash" : "";
+      pills.push(`<span class="pm-pill ok${flash}">${label}</span>`);
     }
 
     return pills.join(" ");
@@ -822,15 +845,30 @@ function flattenFields(cfg) {
   function scheduleAutoSave() {
     if (autoSaveTimer) window.clearTimeout(autoSaveTimer);
     autoSaveTimer = window.setTimeout(async () => {
-      await doSave();
+      await doSave({ manual: false });
     }, 700);
   }
 
-  async function doSave() {
+  async function doSave(opts) {
+    const options = opts || {};
+    const manual = options.manual === true;
+
     try {
       sessionId = sessionId || ensureSessionId();
       await saveDraftToStorage(sessionId, window.formState);
       isDirty = false;
+
+      lastSavedAt = new Date();
+      try {
+        window.localStorage.setItem(STORAGE_KEY_LAST_SAVED_AT, lastSavedAt.toISOString());
+      } catch (e) {
+        // ignore
+      }
+
+      if (manual) {
+        flashSaved();
+      }
+
       updateStatus();
     } catch (e) {
       console.warn("[GRASP][parent-manual] save failed", e);
@@ -850,6 +888,14 @@ function flattenFields(cfg) {
   async function init() {
     try {
       sessionId = ensureSessionId();
+
+      // Restore last saved timestamp (for UI pill)
+      try {
+        const iso = window.localStorage.getItem(STORAGE_KEY_LAST_SAVED_AT);
+        if (iso) lastSavedAt = new Date(iso);
+      } catch (e) {
+        // ignore
+      }
 
       config = await loadConfig();
       window.config = config;
@@ -882,7 +928,7 @@ function flattenFields(cfg) {
       restoreScrollPosition();
 
       // buttons
-      if (els.btnSave()) els.btnSave().addEventListener("click", doSave);
+      if (els.btnSave()) els.btnSave().addEventListener("click", () => doSave({ manual: true }));
       if (els.btnPreview()) els.btnPreview().addEventListener("click", openPreview);
 
       // modal controls
