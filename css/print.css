@@ -87,9 +87,24 @@
   /* sections */
   .grasp-section {
     margin: 10px 0 12px;
+    /* Allow sections/tables to flow across pages (prevents "header-only" first page) */
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  /* Use this when a small block should not be split */
+  .grasp-avoid-break {
     break-inside: avoid;
     page-break-inside: avoid;
   }
+
+  /* Subsection heading (used in Enrollment print template) */
+  .grasp-subtitle {
+    font-weight: 700;
+    margin: 8px 0 6px;
+    font-size: 10.5pt;
+  }
+
 
   .grasp-section-title {
     font-size: 12pt;
@@ -192,6 +207,10 @@
 
   .grasp-kv-value {
     width: 62%;
+  }
+
+  .grasp-kv-multiline {
+    white-space: pre-wrap;
   }
 
   /* Waitlist: centered signature + date with underlines */
@@ -320,21 +339,5 @@
   .grasp-preview-label {
     background: #fff;
     font-weight: 700;
-  }
-
-  /* Best-effort page number footer */
-  .grasp-print-footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    font-size: 9pt;
-    padding: 5mm 12mm;
-    color: #444;
-    text-align: right;
-  }
-
-  .grasp-print-footer .pageNumber:before {
-    content: counter(page);
   }
 }
