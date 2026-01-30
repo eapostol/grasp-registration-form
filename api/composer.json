@@ -1,0 +1,9 @@
+{
+  "name": "grasp/reg-form-project-api",
+  "description": "GRASP Reg Form Project - PHP API utilities (email + PDF generation)",
+  "type": "project",
+  "license": "proprietary",
+  "require": {
+    "tecnickcom/tcpdf": "^6.2"
+  }
+}

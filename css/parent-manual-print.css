@@ -1,0 +1,64 @@
+/* Parent Manual print rules.
+   Used inside the print iframe (srcdoc) for consistent pagination + page numbers.
+*/
+
+@media print {
+  @page { size: letter portrait; margin: 12mm; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #fff !important;
+  }
+
+  /* Page counter: start at 1 (no page 0) */
+  body {
+    counter-reset: pmPage 0;
+  }
+
+  .pm-print-doc {
+    width: 100%;
+  }
+
+  .pm-print-page {
+    position: relative;
+    page-break-after: always;
+    break-after: page;
+    counter-increment: pmPage;
+  }
+
+  .pm-print-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  .pm-print-page img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* Values on top of page images */
+  .pm-print-overlay {
+    position: absolute;
+    inset: 0;
+  }
+
+  .pm-print-value {
+    position: absolute;
+    font-size: 12pt;
+    color: #000;
+    background: transparent;
+    border: 0;
+  }
+
+  /* Bottom-right page number */
+  .pm-print-page::after {
+    content: counter(pmPage);
+    position: absolute;
+    right: 10mm;
+    bottom: 6mm;
+    font-size: 10pt;
+    color: #444;
+  }
+}
