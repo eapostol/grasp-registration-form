@@ -61,6 +61,9 @@ $headers = [];
 $headers[] = 'MIME-Version: 1.0';
 $headers[] = 'Content-type: text/html; charset=utf-8';
 $headers[] = 'From: ' . $from;
+if (!empty($config['email_bcc'])) {
+  $headers[] = 'Bcc: ' . $config['email_bcc'];
+}
 
 $meta = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333;margin:0 0 10px;">'
   . '<p style="margin:0;">Session ID: ' . htmlspecialchars($sessionId) . '</p>'
