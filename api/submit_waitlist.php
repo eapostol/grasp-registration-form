@@ -46,6 +46,9 @@ if (!$to || !$from) {
 $childName = '';
 if (isset($payload['data']) && is_array($payload['data']) && isset($payload['data']['child_name'])) {
   $childName = trim((string)$payload['data']['child_name']);
+  // Prevent header/subject injection
+  $childName = preg_replace("/[\r\n]+/", " ", $childName);
+  $childName = trim(preg_replace('/\s+/', ' ', $childName));
 }
 
 $subject = 'New GRASP Wait List Application';
@@ -69,7 +72,7 @@ $body = '<!doctype html><html><head><meta charset="utf-8"></head><body>' . $emai
 
 
 // Avoid very long lines that can cause SMTP issues on some servers
-$body = wordwrap($body, 950, "\r\n");
+$body = wordwrap($body, 950, "\r\n", true);
 $headers = [];
 $headers[] = 'MIME-Version: 1.0';
 $headers[] = 'Content-type: text/html; charset=UTF-8';
@@ -80,10 +83,65 @@ if (!empty($config['email_bcc'])) {
   $headers[] = 'Bcc: ' . $config['email_bcc'];
 }
 
-$sent = @mail($to, $subject, $body, implode("\r\n", $headers));
+$headersStr = implode("\r\n", $headers);
+
+// Try to set an envelope-from for better deliverability (safe fallback if disabled)
+// Extract a plain email address from $from (supports "Name <email@domain>")
+$envFrom = '';
+if (preg_match('/<([^>]+)>/', $from, $m)) {
+  $envFrom = trim($m[1]);
+} else {
+  $envFrom = trim($from);
+}
+$envFrom = preg_replace("/[\r\n]+/", "", $envFrom);
+if (!filter_var($envFrom, FILTER_VALIDATE_EMAIL)) {
+  $envFrom = '';
+}
+
+$sent = false;
+$envFromUsed = 0;
+$mailError = '';
+
+if ($envFrom !== '') {
+  $envFromUsed = 1;
+  $sent = @mail($to, $subject, $body, $headersStr, "-f $envFrom");
+  if (!$sent) {
+    $last = error_get_last();
+    if (is_array($last) && isset($last['message'])) {
+      $mailError = (string)$last['message'];
+    }
+    // Fallback: retry without additional parameters
+    $envFromUsed = 0;
+    $sent = @mail($to, $subject, $body, $headersStr);
+  }
+}
+
+if (!$sent && $envFrom === '') {
+  $sent = @mail($to, $subject, $body, $headersStr);
+}
+
+if (!$sent && $mailError === '') {
+  $last = error_get_last();
+  if (is_array($last) && isset($last['message'])) {
+    $mailError = (string)$last['message'];
+  }
+}
 
 // Minimal diagnostics (no payload) to help confirm send attempts in production
-@file_put_contents(__DIR__ . '/submit_waitlist.log', date('c') . " sent=" . ($sent ? '1' : '0') . "\n", FILE_APPEND);
+$host = $_SERVER['HTTP_HOST'] ?? '';
+$uri = $_SERVER['REQUEST_URI'] ?? '';
+$bytes = strlen($body);
+$logLine = date('c')
+  . " sent=" . ($sent ? '1' : '0')
+  . " envFromUsed=" . ($envFromUsed ? '1' : '0')
+  . " bytes=" . $bytes
+  . " host=" . $host
+  . " uri=" . $uri;
+if (!$sent && $mailError !== '') {
+  $logLine .= " err=" . str_replace(["\r", "\n"], ' ', $mailError);
+}
+$logLine .= "\n";
+@file_put_contents(__DIR__ . '/submit_waitlist.log', $logLine, FILE_APPEND);
 
 if (!$sent) {
   http_response_code(500);
