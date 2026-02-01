@@ -850,12 +850,33 @@ async function prefillFromPackageDraftIfDebug() {
         </tr>`;
       }).join("");
 
+    const rowsInitials = () =>
+      initials
+        .map((f) => {
+          const v = window.formState[f.name] || "";
+          const section =
+            f.sectionTitle || f.section || f.label || `Initials (page ${f.placement?.page || "?"})`;
+          return `<tr>
+            <td style="border:1px solid #ccc;padding:6px 8px;width:65%;font-weight:700;background:#f3f3f3;">${escapeHtml(section)}</td>
+            <td style="border:1px solid #ccc;padding:6px 8px;">${escapeHtml(v)}</td>
+          </tr>`;
+        })
+        .join("");
+
     return `
       <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111;">
         <h3 style="margin:0 0 10px;">GRASP Parent Manual Agreement</h3>
         <p style="margin:0 0 12px;">Submitted: ${escapeHtml(new Date().toISOString())}</p>
-        <h4 style="margin:16px 0 6px;">Initials</h4>
-        <table style="border-collapse:collapse;width:100%;">${rows(initials)}</table>
+        <h4 style="margin:16px 0 6px;">Signed off sections</h4>
+        <table style="border-collapse:collapse;width:100%;">
+          <thead>
+            <tr>
+              <th style="text-align:left;border:1px solid #ccc;padding:6px 8px;background:#e8e8e8;">Signed off section</th>
+              <th style="text-align:left;border:1px solid #ccc;padding:6px 8px;background:#e8e8e8;">Initials</th>
+            </tr>
+          </thead>
+          <tbody>${rowsInitials()}</tbody>
+        </table>
         <h4 style="margin:16px 0 6px;">Acknowledgement</h4>
         <table style="border-collapse:collapse;width:100%;">${rows(ack)}</table>
       </div>

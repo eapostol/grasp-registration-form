@@ -32,7 +32,8 @@
                   "w": 0.147059,
                   "h": 0.065657
                 }
-              }
+              },
+              "sectionTitle": "The Board of Directors (“BOD”)"
             },
             {
               "name": "pm_initials_p10_01",
@@ -49,7 +50,8 @@
                   "w": 0.147059,
                   "h": 0.065657
                 }
-              }
+              },
+              "sectionTitle": "Hours of Operation"
             },
             {
               "name": "pm_initials_p11_01",
@@ -66,7 +68,8 @@
                   "w": 0.147059,
                   "h": 0.065657
                 }
-              }
+              },
+              "sectionTitle": "Refund of Fees"
             },
             {
               "name": "pm_initials_p11_02",
@@ -83,7 +86,8 @@
                   "w": 0.147059,
                   "h": 0.065657
                 }
-              }
+              },
+              "sectionTitle": "Registration, Fees & Deposits"
             },
             {
               "name": "pm_initials_p13_01",
@@ -100,7 +104,8 @@
                   "w": 0.147059,
                   "h": 0.065657
                 }
-              }
+              },
+              "sectionTitle": "Admissions & Withdrawal (enrollment package review)"
             },
             {
               "name": "pm_initials_p13_02",
@@ -117,7 +122,8 @@
                   "w": 0.147059,
                   "h": 0.065657
                 }
-              }
+              },
+              "sectionTitle": "Admissions & Withdrawal (withdrawal and discharge)"
             },
             {
               "name": "pm_initials_p15_01",
@@ -134,7 +140,8 @@
                   "w": 0.147059,
                   "h": 0.065657
                 }
-              }
+              },
+              "sectionTitle": "Requirements regarding communications with parents"
             },
             {
               "name": "pm_initials_p15_02",
@@ -151,7 +158,8 @@
                   "w": 0.147059,
                   "h": 0.065657
                 }
-              }
+              },
+              "sectionTitle": "Wait List Policy"
             },
             {
               "name": "pm_initials_p20_01",
@@ -168,7 +176,8 @@
                   "w": 0.147059,
                   "h": 0.065657
                 }
-              }
+              },
+              "sectionTitle": "Departure & Late Fees"
             },
             {
               "name": "pm_initials_p21_01",
@@ -185,7 +194,8 @@
                   "w": 0.147059,
                   "h": 0.065657
                 }
-              }
+              },
+              "sectionTitle": "Health Policy"
             },
             {
               "name": "pm_initials_p22_01",
@@ -202,7 +212,8 @@
                   "w": 0.147059,
                   "h": 0.065657
                 }
-              }
+              },
+              "sectionTitle": "Accidents"
             },
             {
               "name": "pm_initials_p23_01",
@@ -219,7 +230,8 @@
                   "w": 0.147059,
                   "h": 0.065657
                 }
-              }
+              },
+              "sectionTitle": "Behaviour Guidance"
             },
             {
               "name": "pm_initials_p24_01",
@@ -236,7 +248,8 @@
                   "w": 0.147059,
                   "h": 0.065657
                 }
-              }
+              },
+              "sectionTitle": "Legal Requirements Regarding Suspected Child Abuse (CFSA s.72)"
             },
             {
               "name": "pm_initials_p26_01",
@@ -253,7 +266,8 @@
                   "w": 0.147059,
                   "h": 0.065657
                 }
-              }
+              },
+              "sectionTitle": "Complaint and Conflict Resolution"
             },
             {
               "name": "pm_initials_p28_01",
@@ -270,7 +284,8 @@
                   "w": 0.147059,
                   "h": 0.065657
                 }
-              }
+              },
+              "sectionTitle": "Bussing"
             }
           ]
         },
