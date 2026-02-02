@@ -52,6 +52,15 @@
     border: 0;
   }
 
+  .pm-print-value.pm-print-initials {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
   /* Bottom-right page number */
   .pm-print-page::after {
     content: counter(pmPage);

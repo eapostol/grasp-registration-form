@@ -387,10 +387,26 @@ async function prefillFromPackageDraftIfDebug() {
   function fieldStyleFromPlacement(field) {
     const rect = field?.placement?.rect;
     if (!rect) return "";
-    const left = (rect.x * 100).toFixed(4) + "%";
-    const top = (rect.y * 100).toFixed(4) + "%";
-    const width = (rect.w * 100).toFixed(4) + "%";
-    const height = (rect.h * 100).toFixed(4) + "%";
+
+    // Optional per-field nudges in pixels (scales with CSS zoom).
+    // Example in config:
+    // placement: { page: 9, rect: {...}, nudgePx: { dx: 2, dy: 4, dw: -4, dh: -8 } }
+    const n = field?.placement?.nudgePx || {};
+    const dx = Number.isFinite(Number(n.dx ?? n.x)) ? Number(n.dx ?? n.x) : 0;
+    const dy = Number.isFinite(Number(n.dy ?? n.y)) ? Number(n.dy ?? n.y) : 0;
+    const dw = Number.isFinite(Number(n.dw ?? n.w)) ? Number(n.dw ?? n.w) : 0;
+    const dh = Number.isFinite(Number(n.dh ?? n.h)) ? Number(n.dh ?? n.h) : 0;
+
+    const xPct = (rect.x * 100).toFixed(4) + "%";
+    const yPct = (rect.y * 100).toFixed(4) + "%";
+    const wPct = (rect.w * 100).toFixed(4) + "%";
+    const hPct = (rect.h * 100).toFixed(4) + "%";
+
+    const left = `calc(${xPct} + ${dx}px)`;
+    const top = `calc(${yPct} + ${dy}px)`;
+    const width = `calc(${wPct} + ${dw}px)`;
+    const height = `calc(${hPct} + ${dh}px)`;
+
     return `left:${left};top:${top};width:${width};height:${height};`;
   }
 
@@ -731,9 +747,10 @@ async function prefillFromPackageDraftIfDebug() {
         const rect = f?.placement?.rect;
         if (!rect) return "";
         const v = window.formState[f.name] || "";
-        const style = `left:${(rect.x*100).toFixed(4)}%;top:${(rect.y*100).toFixed(4)}%;width:${(rect.w*100).toFixed(4)}%;height:${(rect.h*100).toFixed(4)}%;`;
+        const style = fieldStyleFromPlacement(f);
         const display = escapeHtml(v);
-        return `<div class="pm-print-value" style="${style}">${display}</div>`;
+        const cls = `pm-print-value${f.kind === "initials" ? " pm-print-initials" : ""}`;
+        return `<div class="${cls}" style="${style}">${display}</div>`;
       }).join("");
 
       pagesHtml.push(`
@@ -778,8 +795,9 @@ async function prefillFromPackageDraftIfDebug() {
         const rect = f?.placement?.rect;
         if (!rect) return "";
         const v = window.formState[f.name] || "";
-        const style = `left:${(rect.x*100).toFixed(4)}%;top:${(rect.y*100).toFixed(4)}%;width:${(rect.w*100).toFixed(4)}%;height:${(rect.h*100).toFixed(4)}%;`;
-        return `<div class="pm-print-value" style="${style}">${escapeHtml(v)}</div>`;
+        const style = fieldStyleFromPlacement(f);
+        const cls = `pm-print-value${f.kind === "initials" ? " pm-print-initials" : ""}`;
+        return `<div class="${cls}" style="${style}">${escapeHtml(v)}</div>`;
       }).join("");
 
       pages.push(`
