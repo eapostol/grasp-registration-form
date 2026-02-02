@@ -388,26 +388,26 @@ async function prefillFromPackageDraftIfDebug() {
     const rect = field?.placement?.rect;
     if (!rect) return "";
 
-    // Optional per-field nudges in pixels (scales with CSS zoom).
-    // Example in config:
-    // placement: { page: 9, rect: {...}, nudgePx: { dx: 2, dy: 4, dw: -4, dh: -8 } }
+    // Optional fine-tuning in pixels (useful if the PDF is reflowed or boxes shift slightly).
+    // Example: placement.nudgePx = { dx: 2, dy: 8, dw: -4, dh: 0 }
     const n = field?.placement?.nudgePx || {};
-    const dx = Number.isFinite(Number(n.dx ?? n.x)) ? Number(n.dx ?? n.x) : 0;
-    const dy = Number.isFinite(Number(n.dy ?? n.y)) ? Number(n.dy ?? n.y) : 0;
-    const dw = Number.isFinite(Number(n.dw ?? n.w)) ? Number(n.dw ?? n.w) : 0;
-    const dh = Number.isFinite(Number(n.dh ?? n.h)) ? Number(n.dh ?? n.h) : 0;
+    const dx = Number(n.dx || 0);
+    const dy = Number(n.dy || 0);
+    const dw = Number(n.dw || 0);
+    const dh = Number(n.dh || 0);
 
-    const xPct = (rect.x * 100).toFixed(4) + "%";
-    const yPct = (rect.y * 100).toFixed(4) + "%";
-    const wPct = (rect.w * 100).toFixed(4) + "%";
-    const hPct = (rect.h * 100).toFixed(4) + "%";
+    const left = (rect.x * 100).toFixed(4) + "%";
+    const top = (rect.y * 100).toFixed(4) + "%";
+    const width = (rect.w * 100).toFixed(4) + "%";
+    const height = (rect.h * 100).toFixed(4) + "%";
 
-    const left = `calc(${xPct} + ${dx}px)`;
-    const top = `calc(${yPct} + ${dy}px)`;
-    const width = `calc(${wPct} + ${dw}px)`;
-    const height = `calc(${hPct} + ${dh}px)`;
+    // calc(% + px) is valid CSS and keeps the original placement as the base.
+    const leftExpr = `calc(${left} + ${dx}px)`;
+    const topExpr = `calc(${top} + ${dy}px)`;
+    const widthExpr = `calc(${width} + ${dw}px)`;
+    const heightExpr = `calc(${height} + ${dh}px)`;
 
-    return `left:${left};top:${top};width:${width};height:${height};`;
+    return `left:${leftExpr};top:${topExpr};width:${widthExpr};height:${heightExpr};`;
   }
 
   function createInputForField(field) {
@@ -471,6 +471,98 @@ async function prefillFromPackageDraftIfDebug() {
     return input;
   }
 
+  function normalizeInitialsValue(raw) {
+    return String(raw || "").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4);
+  }
+
+  function updateInitialsDisplay(displayEl, value) {
+    const v = normalizeInitialsValue(value);
+    if (v) {
+      displayEl.textContent = v;
+      displayEl.classList.remove("pm-initials-empty");
+    } else {
+      displayEl.textContent = "IN";
+      displayEl.classList.add("pm-initials-empty");
+    }
+  }
+
+  function createInitialsClickToEdit(field) {
+    // Creates two layered elements:
+    // 1) A read-only bold overlay showing the initials inside the PDF box
+    // 2) A hidden input that appears only when the box is clicked
+    const frag = document.createDocumentFragment();
+
+    const input = createInputForField(field);
+    input.classList.add("pm-initials-input", "pm-initials-hidden");
+    input.tabIndex = -1;
+
+    const display = document.createElement("div");
+    display.className = "pm-initials-display";
+    display.setAttribute("style", fieldStyleFromPlacement(field));
+    display.setAttribute("data-initials-for", field.name);
+    display.setAttribute("role", "button");
+    display.setAttribute("tabindex", "0");
+    display.setAttribute("aria-label", `${field.label || "Initials"} (click to edit)`);
+
+    updateInitialsDisplay(display, window.formState[field.name]);
+
+    const startEdit = () => {
+      if (input.disabled) return;
+      display.classList.add("hidden");
+      input.classList.remove("pm-initials-hidden");
+      input.tabIndex = 0;
+      try { input.focus({ preventScroll: true }); } catch (e) { try { input.focus(); } catch (e2) {} }
+      try { input.select(); } catch (e) { /* ignore */ }
+    };
+
+    const finishEdit = () => {
+      const v = normalizeInitialsValue(input.value);
+      input.value = v;
+      window.formState[field.name] = v;
+      updateInitialsDisplay(display, v);
+      input.classList.add("pm-initials-hidden");
+      input.tabIndex = -1;
+      display.classList.remove("hidden");
+      isDirty = true;
+      updateStatus();
+      scheduleAutoSave();
+    };
+
+    display.addEventListener("click", startEdit);
+    display.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        startEdit();
+      }
+    });
+
+    // If the user jumps to this field from the missing-fields list, focus() will land here.
+    input.addEventListener("focus", () => {
+      if (input.classList.contains("pm-initials-hidden")) startEdit();
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        input.blur();
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        // revert to last committed value
+        input.value = window.formState[field.name] || "";
+        input.blur();
+      }
+    });
+
+    // Runs after createInputForField's blur normalization listener (registered earlier).
+    input.addEventListener("blur", finishEdit);
+
+    // Stack order: input first, display second (display sits on top until editing).
+    frag.appendChild(input);
+    frag.appendChild(display);
+    return frag;
+  }
+
   function renderPages() {
     const container = els.pages();
     if (!container) return;
@@ -495,7 +587,7 @@ async function prefillFromPackageDraftIfDebug() {
       overlay.className = "pm-overlay";
 
       (byPage[p] || []).forEach((field) => {
-        overlay.appendChild(createInputForField(field));
+        overlay.appendChild(field.kind === "initials" ? createInitialsClickToEdit(field) : createInputForField(field));
       });
 
       pageDiv.appendChild(img);
@@ -747,10 +839,9 @@ async function prefillFromPackageDraftIfDebug() {
         const rect = f?.placement?.rect;
         if (!rect) return "";
         const v = window.formState[f.name] || "";
-        const style = fieldStyleFromPlacement(f);
+        const style = `left:${(rect.x*100).toFixed(4)}%;top:${(rect.y*100).toFixed(4)}%;width:${(rect.w*100).toFixed(4)}%;height:${(rect.h*100).toFixed(4)}%;`;
         const display = escapeHtml(v);
-        const cls = `pm-print-value${f.kind === "initials" ? " pm-print-initials" : ""}`;
-        return `<div class="${cls}" style="${style}">${display}</div>`;
+        return `<div class="pm-print-value" style="${style}">${display}</div>`;
       }).join("");
 
       pagesHtml.push(`
@@ -795,9 +886,8 @@ async function prefillFromPackageDraftIfDebug() {
         const rect = f?.placement?.rect;
         if (!rect) return "";
         const v = window.formState[f.name] || "";
-        const style = fieldStyleFromPlacement(f);
-        const cls = `pm-print-value${f.kind === "initials" ? " pm-print-initials" : ""}`;
-        return `<div class="${cls}" style="${style}">${escapeHtml(v)}</div>`;
+        const style = `left:${(rect.x*100).toFixed(4)}%;top:${(rect.y*100).toFixed(4)}%;width:${(rect.w*100).toFixed(4)}%;height:${(rect.h*100).toFixed(4)}%;`;
+        return `<div class="pm-print-value" style="${style}">${escapeHtml(v)}</div>`;
       }).join("");
 
       pages.push(`
@@ -868,33 +958,12 @@ async function prefillFromPackageDraftIfDebug() {
         </tr>`;
       }).join("");
 
-    const rowsInitials = () =>
-      initials
-        .map((f) => {
-          const v = window.formState[f.name] || "";
-          const section =
-            f.sectionTitle || f.section || f.label || `Initials (page ${f.placement?.page || "?"})`;
-          return `<tr>
-            <td style="border:1px solid #ccc;padding:6px 8px;width:65%;font-weight:700;background:#f3f3f3;">${escapeHtml(section)}</td>
-            <td style="border:1px solid #ccc;padding:6px 8px;">${escapeHtml(v)}</td>
-          </tr>`;
-        })
-        .join("");
-
     return `
       <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111;">
         <h3 style="margin:0 0 10px;">GRASP Parent Manual Agreement</h3>
         <p style="margin:0 0 12px;">Submitted: ${escapeHtml(new Date().toISOString())}</p>
-        <h4 style="margin:16px 0 6px;">Signed off sections</h4>
-        <table style="border-collapse:collapse;width:100%;">
-          <thead>
-            <tr>
-              <th style="text-align:left;border:1px solid #ccc;padding:6px 8px;background:#e8e8e8;">Signed off section</th>
-              <th style="text-align:left;border:1px solid #ccc;padding:6px 8px;background:#e8e8e8;">Initials</th>
-            </tr>
-          </thead>
-          <tbody>${rowsInitials()}</tbody>
-        </table>
+        <h4 style="margin:16px 0 6px;">Initials</h4>
+        <table style="border-collapse:collapse;width:100%;">${rows(initials)}</table>
         <h4 style="margin:16px 0 6px;">Acknowledgement</h4>
         <table style="border-collapse:collapse;width:100%;">${rows(ack)}</table>
       </div>
