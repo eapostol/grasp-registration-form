@@ -203,6 +203,50 @@
   letter-spacing: 0.5px;
 }
 
+/* Click-to-edit initials (show initials in the PDF box; reveal input only on click) */
+.pm-initials-display {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #111;
+  cursor: text;
+  user-select: none;
+  padding: 0;
+}
+
+.pm-initials-display.pm-initials-empty {
+  opacity: 0.55;
+  font-weight: 700;
+}
+
+.pm-field.pm-initials-input {
+  /* Override base input chrome so it matches the PDF box underneath */
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.pm-field.pm-initials-input.pm-initials-hidden {
+  opacity: 0;
+  pointer-events: none;
+  caret-color: transparent;
+}
+
+.pm-field.pm-initials-input:focus {
+  opacity: 1;
+  pointer-events: auto;
+  caret-color: auto;
+  background: rgba(255,255,255,0.75);
+  border: 1px solid rgba(0, 125, 255, 0.75);
+  border-radius: 3px;
+  box-shadow: 0 0 0 2px rgba(0,125,255,0.15);
+}
+
 .pm-field.pm-field-disabled {
   background: rgba(245,245,245,0.95);
   color: #666;
@@ -255,18 +299,6 @@
   white-space: pre;
 }
 
-
-/* Initials in preview/print: center inside the PDF box and make them stand out */
-.pm-print-value.pm-print-initials {
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  pointer-events: none;
-}
 .pm-missing {
   background: #fff3f3;
   border: 1px solid #f1b1b1;
@@ -370,4 +402,26 @@
 
 .pm-zoom-reset {
   padding: 6px 12px;
+}
+
+/* phase 3 - tune displayed initials */
+/* === Phase 3A: initials view-mode tuning (size + nudge) === */
+:root{
+  /* Adjust these later without touching JS */
+  --pm-initials-font-size: 14px;     /* smaller than before, still readable */
+  --pm-initials-x-nudge: -18px;      /* move LEFT (~2–3 chars) */
+  --pm-initials-y-nudge: 8px;        /* move DOWN (~5–10px) */
+}
+
+/* Try multiple selectors to match whatever Phase 2 created */
+.pm-initials-value,
+.pm-initials-display,
+.pm-initials-overlay .value,
+.pm-initials-overlay .pm-initials-value{
+  font-size: var(--pm-initials-font-size) !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  display: inline-block !important;
+  white-space: nowrap;
+  transform: translate(var(--pm-initials-x-nudge), var(--pm-initials-y-nudge));
 }
