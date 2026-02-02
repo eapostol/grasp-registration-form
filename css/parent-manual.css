@@ -425,3 +425,37 @@
   white-space: nowrap;
   transform: translate(var(--pm-initials-x-nudge), var(--pm-initials-y-nudge));
 }
+
+/* === Phase 3B: initials edit-mode box tuning (padding + height) === */
+:root{
+  --pm-initials-input-pad-x: 4px;     /* narrower left/right */
+  --pm-initials-input-pad-y: 1px;     /* shorter/tighter */
+  --pm-initials-label-reserve: 14px;  /* reserve space so PDF 'Initials' label isn't covered */
+}
+
+/* Container should not add extra padding */
+.pm-initials-overlay,
+.pm-initials,
+.pm-field--initials{
+  box-sizing: border-box;
+  padding: 0 !important;
+}
+
+/* Input sizing */
+.pm-initials-overlay input,
+.pm-initials input,
+.pm-field--initials input{
+  box-sizing: border-box !important;
+  width: 100% !important;
+
+  /* Make input less tall so it doesn't cover the PDF label area */
+  height: calc(100% - var(--pm-initials-label-reserve)) !important;
+
+  padding: var(--pm-initials-input-pad-y) var(--pm-initials-input-pad-x) !important;
+  font-weight: 800 !important;
+  font-size: var(--pm-initials-font-size) !important;
+  line-height: 1.1 !important;
+
+  /* Keep it anchored near the top of the initials box */
+  margin-top: 2px !important;
+}
