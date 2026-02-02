@@ -425,3 +425,104 @@
   white-space: nowrap;
   transform: translate(var(--pm-initials-x-nudge), var(--pm-initials-y-nudge));
 }
+
+/* === Phase 3B: initials edit-mode box tuning (padding + height) === */
+:root{
+  --pm-initials-input-pad-x: 4px;     /* narrower left/right */
+  --pm-initials-input-pad-y: 1px;     /* shorter/tighter */
+  --pm-initials-label-reserve: 14px;  /* reserve space so PDF 'Initials' label isn't covered */
+}
+
+/* Container should not add extra padding */
+.pm-initials-overlay,
+.pm-initials,
+.pm-field--initials{
+  box-sizing: border-box;
+  padding: 0 !important;
+}
+
+/* Input sizing */
+.pm-initials-overlay input,
+.pm-initials input,
+.pm-field--initials input{
+  box-sizing: border-box !important;
+  width: 100% !important;
+
+  /* Make input less tall so it doesn't cover the PDF label area */
+  height: calc(100% - var(--pm-initials-label-reserve)) !important;
+
+  padding: var(--pm-initials-input-pad-y) var(--pm-initials-input-pad-x) !important;
+  font-weight: 800 !important;
+  font-size: var(--pm-initials-font-size) !important;
+  line-height: 1.1 !important;
+
+  /* Keep it anchored near the top of the initials box */
+  margin-top: 2px !important;
+}
+
+/* =========================================================
+   Phase 3 (v2): tighter initials stamp/input fit (SAFE)
+   - Do NOT override element width/height (inline styles size the box).
+   - Adjust text position using padding (keeps hit-area aligned).
+   - Use inset focus highlight so the box doesn't "grow".
+   ========================================================= */
+:root{
+  /* Stamp (view mode) */
+  --pm-initials-font-size: 13px;     /* smaller, closer to page text */
+  --pm-initials-font-weight: 800;    /* bold */
+
+  /* Nudge the STAMP text (your note: a bit lower + a touch right) */
+  --pm-initials-stamp-pad-left: 6px; /* right ~2–3px */
+  --pm-initials-stamp-pad-top: 16px;  /* down double the prev. value approx */
+  --pm-initials-stamp-pad-bottom: 10px; /* preserves grey "Initials" label space */
+
+  /* Input (edit mode) */
+  --pm-initials-input-pad-x: 3px;    /* narrower left/right */
+  --pm-initials-input-pad-y: 1px;    /* shorter vertical */
+}
+
+/* ---- View mode (STAMP) ---- */
+.pm-initials-display{
+  font-size: var(--pm-initials-font-size) !important;
+  font-weight: var(--pm-initials-font-weight) !important;
+  line-height: 1.1 !important;
+  letter-spacing: 0.3px !important;
+
+  /* Shift content without moving the click target box */
+  padding-left: var(--pm-initials-stamp-pad-left) !important;
+  padding-top: var(--pm-initials-stamp-pad-top) !important;
+  padding-bottom: var(--pm-initials-stamp-pad-bottom) !important;
+  padding-right: 0 !important;
+
+  cursor: pointer;
+}
+
+/* ---- Edit mode (INPUT) ---- */
+input.pm-initials-input{
+  font-size: var(--pm-initials-font-size) !important;
+  font-weight: var(--pm-initials-font-weight) !important;
+  line-height: 1.1 !important;
+  letter-spacing: 0.3px !important;
+
+  /* Tighter feel, but DO NOT change width/height */
+  padding: var(--pm-initials-input-pad-y) var(--pm-initials-input-pad-x) !important;
+
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* Override the earlier focus style that adds outer border/box-shadow */
+.pm-field.pm-initials-input:focus{
+  background: rgba(255,255,255,0.70) !important;
+  border: 0 !important;
+
+  /* Inset highlight stays within the box */
+  box-shadow: inset 0 0 0 2px rgba(0,125,255,0.55) !important;
+  outline: none !important;
+}
+
