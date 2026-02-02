@@ -403,59 +403,69 @@
 .pm-zoom-reset {
   padding: 6px 12px;
 }
-
-/* phase 3 - tune displayed initials */
-/* === Phase 3A: initials view-mode tuning (size + nudge) === */
+/* =========================================================
+   Phase 3: tighten initials box fit + better typography
+   - Targets the "stamp" element: div.pm-initials-display
+   - Targets the edit input:     input.pm-initials-input
+   Adjustable via CSS variables below.
+   ========================================================= */
 :root{
-  /* Adjust these later without touching JS */
-  --pm-initials-font-size: 14px;     /* smaller than before, still readable */
-  --pm-initials-x-nudge: -18px;      /* move LEFT (~2–3 chars) */
-  --pm-initials-y-nudge: 8px;        /* move DOWN (~5–10px) */
+  /* View-mode (stamp) */
+  --pm-initials-font-size: 14px;      /* smaller, closer to body text */
+  --pm-initials-font-weight: 800;     /* bold for readability */
+  --pm-initials-display-nudge-x: -18px; /* move stamp left (~2–3 chars) */
+  --pm-initials-display-nudge-y: 8px;   /* move stamp down (~5–10px) */
+  --pm-initials-reserve-bottom: 16px;   /* keep PDF "Initials" label visible */
+
+  /* Edit-mode (input) */
+  --pm-initials-input-nudge-x: -18px; /* match stamp horizontal nudge */
+  --pm-initials-input-nudge-y: 10px;  /* slightly lower while editing */
+  --pm-initials-input-pad-x: 4px;     /* narrower left/right padding */
+  --pm-initials-input-pad-y: 1px;     /* shorter vertical padding */
 }
 
-/* Try multiple selectors to match whatever Phase 2 created */
-.pm-initials-value,
-.pm-initials-display,
-.pm-initials-overlay .value,
-.pm-initials-overlay .pm-initials-value{
+/* ---- View mode (stamp) ---- */
+.pm-initials-display{
   font-size: var(--pm-initials-font-size) !important;
-  font-weight: 800 !important;
+  font-weight: var(--pm-initials-font-weight) !important;
   line-height: 1.1 !important;
-  display: inline-block !important;
-  white-space: nowrap;
-  transform: translate(var(--pm-initials-x-nudge), var(--pm-initials-y-nudge));
-}
-
-/* === Phase 3B: initials edit-mode box tuning (padding + height) === */
-:root{
-  --pm-initials-input-pad-x: 4px;     /* narrower left/right */
-  --pm-initials-input-pad-y: 1px;     /* shorter/tighter */
-  --pm-initials-label-reserve: 14px;  /* reserve space so PDF 'Initials' label isn't covered */
-}
-
-/* Container should not add extra padding */
-.pm-initials-overlay,
-.pm-initials,
-.pm-field--initials{
-  box-sizing: border-box;
-  padding: 0 !important;
-}
-
-/* Input sizing */
-.pm-initials-overlay input,
-.pm-initials input,
-.pm-field--initials input{
+  letter-spacing: 0.3px;
+  /* Keep the underlying PDF label visible */
+  padding-bottom: var(--pm-initials-reserve-bottom) !important;
   box-sizing: border-box !important;
-  width: 100% !important;
 
-  /* Make input less tall so it doesn't cover the PDF label area */
-  height: calc(100% - var(--pm-initials-label-reserve)) !important;
+  /* Nudge into the visually correct spot inside the drawn PDF box */
+  transform: translate(var(--pm-initials-display-nudge-x), var(--pm-initials-display-nudge-y)) !important;
 
-  padding: var(--pm-initials-input-pad-y) var(--pm-initials-input-pad-x) !important;
-  font-weight: 800 !important;
+  cursor: pointer;
+}
+.pm-initials-display:focus{
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* ---- Edit mode (input) ---- */
+input.pm-initials-input{
   font-size: var(--pm-initials-font-size) !important;
+  font-weight: var(--pm-initials-font-weight) !important;
   line-height: 1.1 !important;
+  letter-spacing: 0.3px;
 
-  /* Keep it anchored near the top of the initials box */
-  margin-top: 2px !important;
+  /* Make the edit box feel tighter/less "oversized" */
+  padding: var(--pm-initials-input-pad-y) var(--pm-initials-input-pad-x) !important;
+  box-sizing: border-box !important;
+
+  /* Avoid the browser focus ring that makes the box look bigger than the PDF field */
+  outline: none !important;
+  box-shadow: none !important;
+
+  /* Keep the PDF "Initials" label visible while editing */
+  height: calc(100% - var(--pm-initials-reserve-bottom)) !important;
+
+  /* Nudge to match the stamp positioning */
+  transform: translate(var(--pm-initials-input-nudge-x), var(--pm-initials-input-nudge-y)) !important;
+}
+input.pm-initials-input:focus{
+  outline: none !important;
+  box-shadow: none !important;
 }
