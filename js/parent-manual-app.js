@@ -1007,23 +1007,49 @@ async function prefillFromPackageDraftIfDebug() {
     const initials = allFields.filter((f) => f.kind === "initials");
     const ack = allFields.filter((f) => f.kind !== "initials" && !f.officeOnly);
 
-    const rows = (arr) =>
-      arr.map((f) => {
-        const v = window.formState[f.name] || "";
-        return `<tr>
-          <td style="border:1px solid #ccc;padding:6px 8px;width:40%;font-weight:700;background:#f3f3f3;">${escapeHtml(f.label || f.name)}</td>
-          <td style="border:1px solid #ccc;padding:6px 8px;">${escapeHtml(v)}</td>
-        </tr>`;
-      }).join("");
+    const cellStyle = "border:1px solid #ccc;padding:6px 8px;";
+    const labelStyle = cellStyle + "width:40%;font-weight:700;background:#f3f3f3;";
+    const thStyle = cellStyle + "text-align:left;font-weight:700;background:#e9e9e9;";
+
+    const ackRows = ack.map((f) => {
+      const v = window.formState[f.name] || "";
+      const label = f.label || f.name;
+      return `<tr>
+        <td style="${labelStyle}">${escapeHtml(label)}</td>
+        <td style="${cellStyle}">${escapeHtml(v)}</td>
+      </tr>`;
+    }).join("");
+
+    const initialsRows = initials.map((f) => {
+      const v = window.formState[f.name] || "";
+      // The config includes sectionTitle for each initials box so the email explains what was signed off.
+      const section = f.sectionTitle || f.section || f.title || f.label || f.name;
+      return `<tr>
+        <td style="${cellStyle}font-weight:700;background:#f3f3f3;">${escapeHtml(section)}</td>
+        <td style="${cellStyle}">${escapeHtml(v)}</td>
+      </tr>`;
+    }).join("");
+
+    const submitted = new Date().toISOString();
 
     return `
       <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111;">
         <h3 style="margin:0 0 10px;">GRASP Parent Manual Agreement</h3>
-        <p style="margin:0 0 12px;">Submitted: ${escapeHtml(new Date().toISOString())}</p>
+        <p style="margin:0 0 12px;">Submitted: ${escapeHtml(submitted)}</p>
+
         <h4 style="margin:16px 0 6px;">Initials</h4>
-        <table style="border-collapse:collapse;width:100%;">${rows(initials)}</table>
+        <table style="border-collapse:collapse;width:100%;">
+          <thead>
+            <tr>
+              <th style="${thStyle}width:70%;">Signed off Section</th>
+              <th style="${thStyle}">Initials</th>
+            </tr>
+          </thead>
+          <tbody>${initialsRows}</tbody>
+        </table>
+
         <h4 style="margin:16px 0 6px;">Acknowledgement</h4>
-        <table style="border-collapse:collapse;width:100%;">${rows(ack)}</table>
+        <table style="border-collapse:collapse;width:100%;">${ackRows}</table>
       </div>
     `;
   }
