@@ -299,6 +299,16 @@
   white-space: pre;
 }
 
+
+.pm-print-value.pm-print-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0;
+}
 .pm-missing {
   background: #fff3f3;
   border: 1px solid #f1b1b1;
@@ -473,7 +483,7 @@
 
   /* Nudge the STAMP text (your note: a bit lower + a touch right) */
   --pm-initials-stamp-pad-left: 6px; /* right ~2–3px */
-  --pm-initials-stamp-pad-top: 16px;  /* down double the prev. value approx */
+  --pm-initials-stamp-pad-top: 32px;  /* down double the prev. value approx */
   --pm-initials-stamp-pad-bottom: 10px; /* preserves grey "Initials" label space */
 
   /* Input (edit mode) */
