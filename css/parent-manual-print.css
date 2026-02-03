@@ -59,6 +59,8 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    line-height: 1;
+    transform: translate(-15,10);
   }
 
   /* Bottom-right page number */

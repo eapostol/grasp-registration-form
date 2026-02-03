@@ -308,6 +308,8 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 0;
+  line-height: 1;
+  transform: translate(-15px,10px); /* fix initials position */
 }
 .pm-missing {
   background: #fff3f3;
