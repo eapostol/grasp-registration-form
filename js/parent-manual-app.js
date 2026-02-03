@@ -899,7 +899,8 @@ async function prefillFromPackageDraftIfDebug() {
         const v = window.formState[f.name] || "";
         const style = `left:${(rect.x*100).toFixed(4)}%;top:${(rect.y*100).toFixed(4)}%;width:${(rect.w*100).toFixed(4)}%;height:${(rect.h*100).toFixed(4)}%;`;
         const display = escapeHtml(v);
-        return `<div class="pm-print-value" style="${style}">${display}</div>`;
+        const extraClass = (f.kind === "initials") ? " pm-print-initials" : "";
+        return `<div class="pm-print-value${extraClass}" style="${style}">${display}</div>`;
       }).join("");
 
       pagesHtml.push(`
@@ -945,7 +946,8 @@ async function prefillFromPackageDraftIfDebug() {
         if (!rect) return "";
         const v = window.formState[f.name] || "";
         const style = `left:${(rect.x*100).toFixed(4)}%;top:${(rect.y*100).toFixed(4)}%;width:${(rect.w*100).toFixed(4)}%;height:${(rect.h*100).toFixed(4)}%;`;
-        return `<div class="pm-print-value" style="${style}">${escapeHtml(v)}</div>`;
+        const extraClass = (f.kind === "initials") ? " pm-print-initials" : "";
+        return `<div class="pm-print-value${extraClass}" style="${style}">${escapeHtml(v)}</div>`;
       }).join("");
 
       pages.push(`
