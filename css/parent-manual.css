@@ -526,3 +526,26 @@ input.pm-initials-input{
   outline: none !important;
 }
 
+
+/* Submit-in-progress UI (spinner + message in the preview modal) */
+.pm-submit-progress {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #333;
+}
+
+.pm-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 2px solid rgba(0,0,0,0.18);
+  border-top-color: rgba(0,0,0,0.70);
+  animation: pmSpin 0.9s linear infinite;
+}
+
+@keyframes pmSpin {
+  to { transform: rotate(360deg); }
+}
