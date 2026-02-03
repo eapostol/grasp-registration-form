@@ -1,0 +1,27 @@
+# Log files
+*.log
+
+# Windows Zone Identifier
+*.Zone.Identifier
+
+# macOS
+.DS_Store
+
+# Version control
+.git/
+
+# Dependencies
+node_modules/
+
+# Build and cache directories
+dist/
+build/
+.cache/
+.next/
+.nuxt/
+out/
+.vuepress/dist/
+.serverless/
+.fusebox/
+.dynamodb/
+.tern-port/
