@@ -362,6 +362,8 @@ async function prefillFromPackageDraftIfDebug() {
   let autoSaveTimer = null;
   let lastSavedAt = null;
   let flashSavedPill = false;
+  let submitInFlight = false;
+
 
   const els = {
     pages: () => qs("pm-pages"),
@@ -380,6 +382,55 @@ async function prefillFromPackageDraftIfDebug() {
     modalPrint: () => qs("grasp-preview-print"),
     modalSubmit: () => qs("grasp-preview-submit"),
   };
+
+
+  // -----------------------------
+  // Submit UX
+  // -----------------------------
+  function setSubmitInProgress(isOn, message) {
+    submitInFlight = !!isOn;
+
+    const modal = els.modal();
+    const btnSubmit = els.modalSubmit();
+    const btnPrint = els.modalPrint();
+    const btnCancel = els.modalCancel();
+    const btnClose = els.modalClose();
+
+    const prog = qs("pm-submit-progress");
+    const progText = prog ? prog.querySelector(".pm-submit-progress-text") : null;
+
+    if (progText) {
+      progText.textContent = message || "Submitting… Please wait.";
+    }
+    if (prog) {
+      prog.style.display = isOn ? "flex" : "none";
+    }
+
+    if (modal) {
+      if (isOn) modal.setAttribute("aria-busy", "true");
+      else modal.removeAttribute("aria-busy");
+    }
+
+    if (isOn) {
+      if (btnSubmit) {
+        if (!btnSubmit.dataset.originalText) btnSubmit.dataset.originalText = btnSubmit.textContent || "Submit";
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = "Submitting...";
+      }
+      if (btnPrint) btnPrint.disabled = true;
+      if (btnCancel) btnCancel.disabled = true;
+      if (btnClose) btnClose.disabled = true;
+    } else {
+      if (btnPrint) btnPrint.disabled = false;
+      if (btnCancel) btnCancel.disabled = false;
+      if (btnClose) btnClose.disabled = false;
+      if (btnSubmit) {
+        btnSubmit.textContent = btnSubmit.dataset.originalText || "Submit";
+      }
+      // Restore submit enabled/disabled based on validation
+      updateStatus();
+    }
+  }
 
   // -----------------------------
   // Rendering
@@ -683,9 +734,10 @@ async function prefillFromPackageDraftIfDebug() {
       // allow preview anytime, but encourage scroll
       els.btnPreview().disabled = false;
     }
-    if (els.modalSubmit()) {
+    const ms = els.modalSubmit();
+    if (ms) {
       const missing = buildMissingList({ forSubmit: true });
-      els.modalSubmit().disabled = missing.length > 0;
+      ms.disabled = submitInFlight || missing.length > 0;
     }
   }
 
@@ -733,6 +785,9 @@ async function prefillFromPackageDraftIfDebug() {
     const modal = els.modal();
     if (!modal) return;
 
+    // Reset submit UX state (e.g., if the user previously encountered an error)
+    setSubmitInProgress(false);
+
     // The global .grasp-modal styles (from enrollment.css) show the modal by default
     // unless the "hidden" class is present. Keep behavior consistent with Enrollment/Waitlist.
     modal.classList.remove("hidden");
@@ -746,6 +801,9 @@ async function prefillFromPackageDraftIfDebug() {
   function closeModal() {
     const modal = els.modal();
     if (!modal) return;
+    if (submitInFlight) return;
+    setSubmitInProgress(false);
+
 
     modal.classList.add("hidden");
     modal.setAttribute("aria-hidden", "true");
@@ -971,12 +1029,19 @@ async function prefillFromPackageDraftIfDebug() {
   }
 
   async function submit() {
+    if (submitInFlight) return;
+
     const missing = buildMissingList({ forSubmit: true });
     if (missing.length > 0) {
       alert("Please complete all required items before submitting.");
       updateStatus();
       return;
     }
+
+    setSubmitInProgress(
+      true,
+      "Submitting… generating PDF and sending email (this can take a few seconds).",
+    );
 
     try {
       const payload = {
@@ -994,11 +1059,14 @@ async function prefillFromPackageDraftIfDebug() {
 
       const json = await res.json().catch(() => ({}));
       if (!res.ok || json?.ok === false) {
+        setSubmitInProgress(false);
         const msg = json?.message || "Submission failed. Please try again later.";
         alert(msg);
         return;
       }
 
+      // Done processing — restore UI and show the success message.
+      setSubmitInProgress(false);
       alert("Thank you! Your Parent Manual agreement has been submitted.");
 
       try {
@@ -1014,6 +1082,7 @@ async function prefillFromPackageDraftIfDebug() {
       closeModal();
     } catch (err) {
       console.error("[GRASP][parent-manual] submit error:", err);
+      setSubmitInProgress(false);
       alert("Submission failed. Please check your connection and try again.");
     }
   }
