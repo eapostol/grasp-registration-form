@@ -5,8 +5,8 @@
   "steps": [
     {
       "id": "child_parent_info",
-      "title": "Child & Parent Information",
-      "description": "Tell us about your child and the primary parents/guardians.",
+      "title": "Child, Parent/Guardian, and Doctor Information",
+      "description": "Tell us about your child, primary parent(s) / guardian(s), and doctor information.",
       "groups": [
         {
           "id": "child_basic",
@@ -728,7 +728,7 @@
           "fields": [
             {
               "name": "emergency_contact_name",
-              "label": "First person to call in case of emergency (other than the parents/guardians) \u2013 Name",
+              "label": "FIRST PERSON TO CALL IN CASE OF EMERGENCY (other than the parents/guardians) \u2013 Name",
               "type": "text",
               "required": true
             },
