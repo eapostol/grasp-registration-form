@@ -9,7 +9,7 @@ additional_fqdns: []
 database:
     type: mysql
     version: "8.0"
-host_db_port: "32782"
+host_db_port: "33306"
 use_dns_when_possible: true
 composer_version: "2"
 web_environment: []
