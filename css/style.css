@@ -220,8 +220,8 @@ h5 {
 
     padding: 20px 0px 10px;
 
-    /* Remove the green gap between page content and footer */
-    margin: 0px;
+    /* adjusted the green gap between page content and footer */
+    margin: 30px 0px;
 
     width: 990px;
 
@@ -232,6 +232,8 @@ h5 {
     height: auto;
 
     text-align: center;
+
+    border-radius: 5px;
 
 }
 
