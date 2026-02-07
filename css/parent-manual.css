@@ -5,7 +5,8 @@
 #parent-manual-root {
   background: #fff;
   padding: 20px;
-  margin: 0 0 30px 0;
+  /* Keep the white document panel flush with the footer (no green gap) */
+  margin: 0;
   border-radius: 4px;
 }
 
