@@ -129,7 +129,7 @@ function propagateDebugToLinks() {
     closeButton.type = "button";
     closeButton.className = "contact-admin-close";
     closeButton.setAttribute("aria-label", "Close dialog");
-    closeButton.textContent = "Ã—";
+    closeButton.textContent = "\u00D7";
 
     const title = document.createElement("h2");
     title.id = "contact-admin-title";
@@ -264,7 +264,7 @@ function propagateDebugToLinks() {
         return;
       }
 
-      setStatus("Sendingâ€¦", "info");
+      setStatus("Sending\u2026", "info");
       submitButton.disabled = true;
 
       const payload = new FormData();
