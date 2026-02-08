@@ -34,6 +34,8 @@ if (!is_array($payload)) {
 
 $config = require __DIR__ . '/config.php';
 
+
+require_once __DIR__ . '/lib/EmailPrintTemplate.php';
 $to = $config['email_to'] ?? '';
 $from = $config['email_from'] ?? '';
 if (!$to || !$from) {
@@ -45,8 +47,12 @@ if (!$to || !$from) {
 $sessionId = $payload['sessionId'] ?? '';
 $submittedAt = $payload['submittedAt'] ?? '';
 $data = $payload['data'] ?? [];
-$emailHtml = $payload['emailHtml'] ?? '';
-
+// HTML body: server-rendered, Gmail-safe print layout (PDF-like)
+$emailHtml = '';
+$configPath = realpath(__DIR__ . '/../config/parent-manual-fields.json');
+if ($configPath) {
+  $emailHtml = EmailPrintTemplate::renderParentManualWithAttachmentNotice($configPath, (is_array($data) ? $data : []), ['formTitle' => 'GRASP Parent Manual Agreement', 'submittedAt' => ($submittedAt ?: '')]);
+}
 $parentName = '';
 if (is_array($data)) {
   // Prefer acknowledgement printed name

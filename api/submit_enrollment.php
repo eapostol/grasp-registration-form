@@ -45,6 +45,9 @@ if (!empty($data['emailHtml']) && is_string($data['emailHtml'])) {
 
 $config = require __DIR__ . '/config.php';
 
+
+require_once __DIR__ . '/lib/EmailPrintTemplate.php';
+require_once __DIR__ . '/lib/FormPdfGenerator.php';
 // 1) Save to DB (optional)
 $dbSaved = false;
 
@@ -103,11 +106,24 @@ function escape_html($s)
     return htmlspecialchars((string) $s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// If the front-end sent a fully-rendered preview table (with friendly labels),
-// prefer that. Otherwise, fall back to a simple key/value table using raw names.
-if (!empty($emailHtmlFromClient)) {
+// Build a Gmail-safe, "PDF-like" email body from the server-side form config
+$configPath = realpath(__DIR__ . '/../config/enrollment-fields.json');
+$emailHtml = '';
+if ($configPath) {
+    $emailHtml = EmailPrintTemplate::renderPdfFromConfig($configPath, $fields, [
+        'formTitle'   => 'GRASP Enrollment Form',
+        'submittedAt' => $submittedAt,
+    ]);
+}
+
+// Optional: if you explicitly want to use the client-provided HTML, set "useClientEmailHtml": true in the POST payload
+$useClientEmailHtml = (!empty($data['useClientEmailHtml']) && $data['useClientEmailHtml'] === true);
+if ($useClientEmailHtml && !empty($emailHtmlFromClient)) {
     $emailHtml = $emailHtmlFromClient;
-} else {
+}
+
+if ($emailHtml === '') {
+    // Last-resort fallback
     $rows = '';
     foreach ($fields as $k => $v) {
         if (is_array($v)) {
@@ -116,16 +132,14 @@ if (!empty($emailHtmlFromClient)) {
         $rows .= '<tr><td style="border:1px solid #e5e7eb;padding:6px 8px;font-weight:600;width:38%;">'
               . escape_html($k)
               . '</td><td style="border:1px solid #e5e7eb;padding:6px 8px;">'
-              . escape_html($v)
+              . escape_html((string)$v)
               . '</td></tr>';
     }
-
-    $emailHtml = '<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;">
-      <h2 style="margin:0 0 10px;">GRASP Enrollment Submission</h2>
-      <p style="margin:0 0 12px;">Submitted at: ' . escape_html($submittedIso) . '</p>
-      <table style="border-collapse:collapse;width:100%;max-width:900px;">' . $rows . '</table>
-    </div>';
+    $emailHtml = '<h2 style="margin:0 0 12px 0;">GRASP Enrollment Form</h2>'
+              . '<p style="margin:0 0 10px 0;">Submitted: ' . escape_html($submittedAt) . '</p>'
+              . '<table style="border-collapse:collapse;width:100%;">' . $rows . '</table>';
 }
+
 
 // Subject and headers
 $subject = isset($config['email_subject'])
@@ -188,9 +202,52 @@ if (!empty($config['email_bcc'])) {
 // Send email
 // RFC 5321: max line length is 998 characters. Wrap body to a safe width so
 // no single line is too long for the receiving mail server.
-$emailBodyForMail = wordwrap($emailHtml, 900, "\r\n", true);
+$htmlDoc = '<!doctype html><html><head><meta charset="utf-8"></head><body>' . $emailHtml . '</body></html>';
 
-$success = @mail($to, $subject, $emailBodyForMail, implode("\r\n", $headers));
+// Generate a PDF attachment from the same HTML
+$pdfTmpPath = null;
+$pdfFilename = 'GRASP-Enrollment.pdf';
+try {
+    $pdfInfo = FormPdfGenerator::generateFromHtml('GRASP Enrollment Form', $htmlDoc, 'GRASP-Enrollment-' . ($sessionId ?: date('Ymd-His')));
+    $pdfTmpPath = $pdfInfo['path'] ?? null;
+    $pdfFilename = $pdfInfo['filename'] ?? $pdfFilename;
+} catch (Throwable $e) {
+    // Non-fatal: still send email without PDF if generation fails
+    $pdfTmpPath = null;
+}
+
+// Build multipart email (HTML + optional PDF)
+$boundary = '=_GRASP_ENR_' . bin2hex(random_bytes(12));
+$headersMixed = [];
+$headersMixed[] = 'From: ' . $from;
+$headersMixed[] = 'Reply-To: ' . $from;
+$headersMixed[] = 'X-Mailer: PHP/' . phpversion();
+$headersMixed[] = 'MIME-Version: 1.0';
+if (!empty($config['email_bcc'])) {
+    $headersMixed[] = 'Bcc: ' . $config['email_bcc'];
+}
+$headersMixed[] = 'Content-Type: multipart/mixed; boundary="' . $boundary . '"';
+
+$htmlPart = wordwrap($htmlDoc, 900, "\r\n", true);
+
+$message = '';
+$message .= '--' . $boundary . "\r\n";
+$message .= "Content-Type: text/html; charset=UTF-8\r\n";
+$message .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
+$message .= $htmlPart . "\r\n\r\n";
+
+if ($pdfTmpPath && file_exists($pdfTmpPath)) {
+    $attachmentData = chunk_split(base64_encode(file_get_contents($pdfTmpPath)));
+    $message .= '--' . $boundary . "\r\n";
+    $message .= 'Content-Type: application/pdf; name="' . addcslashes($pdfFilename, '"') . '"' . "\r\n";
+    $message .= "Content-Transfer-Encoding: base64\r\n";
+    $message .= 'Content-Disposition: attachment; filename="' . addcslashes($pdfFilename, '"') . '"' . "\r\n\r\n";
+    $message .= $attachmentData . "\r\n";
+}
+
+$message .= '--' . $boundary . "--\r\n";
+
+$success = @mail($to, $subject, $message, implode("\r\n", $headersMixed));
 
 // Optional: log outcome while debugging on staging
 
@@ -212,3 +269,8 @@ echo json_encode([
     'success' => (bool) $success,
     'dbSaved' => $dbSaved,
 ]);
+
+// cleanup temp pdf
+if ($pdfTmpPath && file_exists($pdfTmpPath)) {
+    @unlink($pdfTmpPath);
+}
