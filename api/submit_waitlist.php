@@ -34,6 +34,9 @@ if (!is_array($payload)) {
 
 $config = require __DIR__ . '/config.php';
 
+
+require_once __DIR__ . '/lib/EmailPrintTemplate.php';
+require_once __DIR__ . '/lib/FormPdfGenerator.php';
 $to = $config['email_to'] ?? '';
 $from = $config['email_from'] ?? '';
 if (!$to || !$from) {
@@ -56,32 +59,63 @@ if ($childName !== '') {
   $subject .= ' - ' . $childName;
 }
 
-// HTML body: use provided emailHtml (rendered in the client) if present
+// HTML body: server-rendered, Gmail-safe print layout (PDF-like)
+$data = (isset($payload['data']) && is_array($payload['data'])) ? $payload['data'] : [];
+$configPath = realpath(__DIR__ . '/../config/waitlist-fields.json');
 $emailHtml = '';
-if (isset($payload['emailHtml'])) {
-  $emailHtml = (string)$payload['emailHtml'];
+if ($configPath) {
+  $emailHtml = EmailPrintTemplate::renderPdfFromConfig($configPath, $data, ['formTitle' => 'GRASP Wait List Application']);
 }
-
 if ($emailHtml === '') {
-  // Fallback: very simple HTML from data
-  $emailHtml = '<h3>GRASP Wait List Application</h3><pre>' . htmlspecialchars(json_encode($payload['data'] ?? [], JSON_PRETTY_PRINT)) . '</pre>';
+  $emailHtml = '<h3>GRASP Wait List Application</h3><pre>' . htmlspecialchars(json_encode($data, JSON_PRETTY_PRINT)) . '</pre>';
 }
 
 // Wrap with basic HTML document
 $body = '<!doctype html><html><head><meta charset="utf-8"></head><body>' . $emailHtml . '</body></html>';
 
+// Generate a PDF attachment from the same HTML (Enrollment/Waitlist now match Parent Manual behavior)
+$pdfTmpPath = null;
+$pdfFilename = 'GRASP-Waitlist.pdf';
+try {
+  $pdfInfo = FormPdfGenerator::generateFromHtml('GRASP Wait List Application', $body, 'GRASP-Waitlist-' . ($childName ?: date('Ymd-His')));
+  $pdfTmpPath = $pdfInfo['path'] ?? null;
+  $pdfFilename = $pdfInfo['filename'] ?? $pdfFilename;
+} catch (Throwable $e) {
+  // Non-fatal: still send the email body even if PDF generation fails (unlike Parent Manual)
+  $pdfTmpPath = null;
+}
 
-// Avoid very long lines that can cause SMTP issues on some servers
-$body = wordwrap($body, 950, "\r\n", true);
+// Build MIME email (HTML + optional PDF)
+$boundary = '=_GRASP_WL_' . bin2hex(random_bytes(12));
 $headers = [];
 $headers[] = 'MIME-Version: 1.0';
-$headers[] = 'Content-type: text/html; charset=UTF-8';
 $headers[] = 'From: ' . $from;
 $headers[] = 'Reply-To: ' . $from;
 $headers[] = 'X-Mailer: PHP/' . phpversion();
 if (!empty($config['email_bcc'])) {
   $headers[] = 'Bcc: ' . $config['email_bcc'];
 }
+$headers[] = 'Content-Type: multipart/mixed; boundary="' . $boundary . '"';
+
+// Avoid very long lines that can cause SMTP issues on some servers
+$htmlPart = wordwrap($body, 950, "\r\n", true);
+
+$message = '';
+$message .= '--' . $boundary . "\r\n";
+$message .= "Content-Type: text/html; charset=UTF-8\r\n";
+$message .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
+$message .= $htmlPart . "\r\n\r\n";
+
+if ($pdfTmpPath && file_exists($pdfTmpPath)) {
+  $attachmentData = chunk_split(base64_encode(file_get_contents($pdfTmpPath)));
+  $message .= '--' . $boundary . "\r\n";
+  $message .= 'Content-Type: application/pdf; name="' . addcslashes($pdfFilename, '"') . '"' . "\r\n";
+  $message .= "Content-Transfer-Encoding: base64\r\n";
+  $message .= 'Content-Disposition: attachment; filename="' . addcslashes($pdfFilename, '"') . '"' . "\r\n\r\n";
+  $message .= $attachmentData . "\r\n";
+}
+
+$message .= '--' . $boundary . "--\r\n";
 
 $headersStr = implode("\r\n", $headers);
 
@@ -104,7 +138,7 @@ $mailError = '';
 
 if ($envFrom !== '') {
   $envFromUsed = 1;
-  $sent = @mail($to, $subject, $body, $headersStr, "-f $envFrom");
+  $sent = @mail($to, $subject, $message, $headersStr, "-f $envFrom");
   if (!$sent) {
     $last = error_get_last();
     if (is_array($last) && isset($last['message'])) {
@@ -112,12 +146,12 @@ if ($envFrom !== '') {
     }
     // Fallback: retry without additional parameters
     $envFromUsed = 0;
-    $sent = @mail($to, $subject, $body, $headersStr);
+    $sent = @mail($to, $subject, $message, $headersStr);
   }
 }
 
 if (!$sent && $envFrom === '') {
-  $sent = @mail($to, $subject, $body, $headersStr);
+  $sent = @mail($to, $subject, $message, $headersStr);
 }
 
 if (!$sent && $mailError === '') {
@@ -150,3 +184,8 @@ if (!$sent) {
 }
 
 echo json_encode(['ok' => true]);
+
+// cleanup temp pdf
+if ($pdfTmpPath && file_exists($pdfTmpPath)) {
+  @unlink($pdfTmpPath);
+}
