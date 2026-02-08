@@ -30,7 +30,7 @@ if ($isDdev) {
         'password' => 'db',
     ];
     $config['email_to'] = 'ed@edapostol.com';
-    $config['email_bcc'] = 'work@edapostol.com';
+    $config['email_bcc'] = 'edward.apostol@gmail.com';
 
 } else {
     // Remote WHC hosting
@@ -43,12 +43,12 @@ if ($isDdev) {
 
     if ($isStagingPath) {
         // e.g. /staging/reg-form/...
-        $config['email_to'] = 'edward.apostol@gmail.com';
-        $config['email_bcc'] = 'ed@edapostol.com';
+        $config['email_to'] = 'info@greenlandrecreational.com';
+        $config['email_bcc'] = 'edward.apostol@gmail.com';
     } else {
         // e.g. /reg-form/ on site1762545518.mywhc.ca or greenlandrecreational.com
-        $config['email_to'] = 'edward.apostol@gmail.com';
-        $config['email_bcc'] = 'ed@edapostol.com';
+        $config['email_to'] = 'info@greenlandrecreational.com';
+        $config['email_bcc'] = 'edward.apostol@gmail.com';
     }
 }
 

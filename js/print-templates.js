@@ -288,7 +288,7 @@
 
     const emergencyBlock = [
       renderLineField(
-        "First person to call in case of emergency (other than parent/guardians) – Name",
+        "FIRST PERSON to call in case of emergency (other than parent/guardians) – Name",
         normalizeValueForPrint(getValue(state, "emergency_contact_name")),
         { wide: true },
       ),
