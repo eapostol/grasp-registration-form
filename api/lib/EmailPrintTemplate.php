@@ -175,23 +175,50 @@ class EmailPrintTemplate
             throw new Exception("Invalid config JSON: " . $configPath);
         }
 
-        $formTitle = $meta['formTitle'] ?? ($cfg['formTitle'] ?? 'GRASP Form Submission');
+        $formTitle = $meta['formTitle'] ?? ($cfg['title'] ?? ($cfg['formTitle'] ?? 'GRASP Form Submission'));
         $submittedAt = $meta['submittedAt'] ?? date('F j, Y, g:i a');
 
-        // Your configs are either:
-        // - { sections: [...] }
-        // - or { fields: [...] } (single section)
-        $sections = $cfg['sections'] ?? null;
-        if (!is_array($sections)) {
-            $sections = [
-                [
-                    'title' => 'Form Details',
-                    'fields' => $cfg['fields'] ?? []
-                ]
+        // Config schema support:
+// - Newer configs: { title, steps:[{title, groups:[{title, fields:[...]}]}] }
+// - Legacy: { sections:[{title, fields:[...]}] } or { fields:[...] }
+$sections = null;
+
+// Prefer steps/groups (current front-end config format)
+if (!empty($cfg['steps']) && is_array($cfg['steps'])) {
+    $sections = [];
+    foreach ($cfg['steps'] as $step) {
+        if (!is_array($step)) continue;
+        $groups = $step['groups'] ?? [];
+        if (!is_array($groups)) continue;
+        foreach ($groups as $group) {
+            if (!is_array($group)) continue;
+            $gTitle = $group['title'] ?? ($step['title'] ?? 'Section');
+            $gFields = $group['fields'] ?? [];
+            if (!is_array($gFields) || count($gFields) === 0) continue;
+            $sections[] = [
+                'title'  => $gTitle,
+                'fields' => $gFields
             ];
         }
+    }
+}
 
-        $content = self::renderSections($kind, $sections, $data);
+// Legacy sections
+if (!is_array($sections) || count($sections) === 0) {
+    $sections = $cfg['sections'] ?? null;
+}
+
+// Single-section legacy fallback
+if (!is_array($sections)) {
+    $sections = [
+        [
+            'title'  => 'Form Details',
+            'fields' => $cfg['fields'] ?? []
+        ]
+    ];
+}
+
+$content = self::renderSections($kind, $sections, $data);
 
         $baseTpl = self::loadTemplate($kind, 'base');
         return str_replace(
