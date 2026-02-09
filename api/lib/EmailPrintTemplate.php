@@ -79,6 +79,37 @@ class EmailPrintTemplate
         return '';
     }
 
+    /**
+     * Create derived/normalized values for display.
+     *
+     * - If *_postal_code is missing but *_postal1 and *_postal2 exist, synthesize *_postal_code.
+     */
+    private static function preprocessData(array $data): array
+    {
+        // Synthesize "*_postal_code" values from "*_postal1" + "*_postal2" when needed.
+        foreach ($data as $k => $v) {
+            if (!is_string($k)) continue;
+            if (!preg_match('/_postal1$/', $k)) continue;
+
+            $base = preg_replace('/_postal1$/', '', $k);
+            $k1 = $base . '_postal1';
+            $k2 = $base . '_postal2';
+            $kc = $base . '_postal_code';
+
+            if (!empty($data[$kc])) {
+                continue;
+            }
+
+            $p1 = isset($data[$k1]) ? trim((string)$data[$k1]) : '';
+            $p2 = isset($data[$k2]) ? trim((string)$data[$k2]) : '';
+            if ($p1 !== '' && $p2 !== '') {
+                $data[$kc] = strtoupper($p1 . ' ' . $p2);
+            }
+        }
+
+        return $data;
+    }
+
     private static function rowLabel(array $field): string
     {
         // Parent Manual initials: associate to section title
@@ -88,8 +119,26 @@ class EmailPrintTemplate
             $prefix = $page !== '' ? ('p' . self::h((string)$page) . ' — ') : '';
             return $prefix . self::h((string)$field['sectionTitle']);
         }
+        // Enrollment postal code: give a clearer label than "full, derived".
+        $key = self::fieldKey($field);
+        if ($key !== '') {
+            $postalMap = [
+                'parent1_postal_code' => 'Home Postal Code (Parent / Guardian 1)',
+                'parent1_work_postal_code' => 'Work/School Postal Code (Parent / Guardian 1)',
+                'parent2_postal_code' => 'Home Postal Code (Parent / Guardian 2)',
+                'parent2_work_postal_code' => 'Work/School Postal Code (Parent / Guardian 2)',
+                'doctor_postal_code' => 'Doctor/Clinic Postal Code',
+            ];
+            if (isset($postalMap[$key])) {
+                return self::h($postalMap[$key]);
+            }
+        }
+
         $label = $field['label'] ?? '';
-        return self::h((string)$label);
+        // Strip "(first part...)" / "(second part...)" if it leaks into a label.
+        $label = preg_replace('/\s*\((first|second) part[^\)]*\)\s*/i', ' ', (string)$label);
+        $label = trim(preg_replace('/\s+/', ' ', $label));
+        return self::h($label);
     }
 
     private static function shouldSkipField(array $field, array $data): bool
@@ -105,6 +154,48 @@ class EmailPrintTemplate
             }
         }
         return false;
+    }
+
+    private static function splitWaitlistGuardians(array $fields): array
+    {
+        // Split parent1_* and parent2_* into two readable blocks.
+        $p1 = [];
+        $p2 = [];
+
+        $labelBySuffix = [
+            '_name' => 'Name',
+            '_email' => 'Email Address',
+            '_work_phone' => 'Work Phone #',
+            '_cell_phone' => 'Cell Phone #',
+        ];
+
+        foreach ($fields as $f) {
+            if (!is_array($f)) continue;
+            $k = self::fieldKey($f);
+            if ($k === '') continue;
+
+            $target = null;
+            if (strpos($k, 'parent1_') === 0) $target = 'p1';
+            if (strpos($k, 'parent2_') === 0) $target = 'p2';
+            if ($target === null) continue;
+
+            // Normalize label
+            $new = $f;
+            foreach ($labelBySuffix as $suffix => $pretty) {
+                if (str_ends_with($k, $suffix)) {
+                    $new['label'] = $pretty;
+                    break;
+                }
+            }
+
+            if ($target === 'p1') $p1[] = $new;
+            if ($target === 'p2') $p2[] = $new;
+        }
+
+        $out = [];
+        if (count($p1)) $out[] = ['title' => 'Parent / Guardian 1 Info', 'fields' => $p1];
+        if (count($p2)) $out[] = ['title' => 'Parent / Guardian 2 Info', 'fields' => $p2];
+        return $out;
     }
 
     private static function renderRows(string $kind, array $fields, array $data): string
@@ -148,6 +239,23 @@ class EmailPrintTemplate
 
             if (!is_array($fields) || count($fields) === 0) continue;
 
+            // Special case: Waitlist Parents/Guardians should be split into 2 blocks.
+            if (is_string($title) && trim($title) === 'Parents / Guardians') {
+                $split = self::splitWaitlistGuardians($fields);
+                if (count($split) > 0) {
+                    foreach ($split as $sub) {
+                        $rows = self::renderRows($kind, $sub['fields'], $data);
+                        if (trim($rows) === '') continue;
+                        $out[] = str_replace(
+                            ['{{SECTION_TITLE}}', '{{ROWS}}'],
+                            [self::h($sub['title']), $rows],
+                            $sectionTpl
+                        );
+                    }
+                    continue;
+                }
+            }
+
             $rows = self::renderRows($kind, $fields, $data);
 
             // If every row was skipped, don't render the section
@@ -165,6 +273,7 @@ class EmailPrintTemplate
 
     private static function renderFromConfigInternal(string $kind, string $configPath, array $data, array $meta = []): string
     {
+        $data = self::preprocessData($data);
         if (!file_exists($configPath)) {
             throw new Exception("Config not found: " . $configPath);
         }
