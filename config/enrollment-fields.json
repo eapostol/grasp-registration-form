@@ -960,6 +960,25 @@
           "title": "Initial Parent/Guardian Interview",
           "fields": [
             {
+              "name": "child_name",
+              "label": "Child Name",
+              "type": "static",
+              "required": false
+            },
+            {
+              "name": "child_birth_date",
+              "label": "Date of Birth",
+              "type": "static",
+              "required": false
+            },
+            {
+              "name": "child_birthmarks",
+              "label": "Birthmarks",
+              "type": "textarea",
+              "required": false,
+              "helpText": "Describe any unique birthmarks attributed to the child."
+            },
+            {
               "name": "child_disposition",
               "label": "Child’s disposition / temperament",
               "type": "textarea",
