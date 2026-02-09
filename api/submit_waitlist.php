@@ -63,11 +63,19 @@ if ($childName !== '') {
 $data = (isset($payload['data']) && is_array($payload['data'])) ? $payload['data'] : [];
 $configPath = realpath(__DIR__ . '/../config/waitlist-fields.json');
 $emailHtml = '';
+$pdfHtml = '';
 if ($configPath) {
   $emailHtml = EmailPrintTemplate::renderFromConfig($configPath, $data, ['formTitle' => 'GRASP Wait List Application']);
+  // PDF attachments should use the TCPDF-friendly template skin.
+  $pdfHtml = EmailPrintTemplate::renderPdfFromConfig($configPath, $data, ['formTitle' => 'GRASP Wait List Application']);
 }
 if ($emailHtml === '') {
   $emailHtml = '<h3>GRASP Wait List Application</h3><pre>' . htmlspecialchars(json_encode($data, JSON_PRETTY_PRINT)) . '</pre>';
+}
+
+if ($pdfHtml === '') {
+  // Fall back to email HTML if PDF HTML wasn't produced.
+  $pdfHtml = $emailHtml;
 }
 
 // Wrap with basic HTML document
