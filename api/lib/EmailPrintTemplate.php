@@ -117,30 +117,35 @@ class EmailPrintTemplate
 
         return $value;
     }
-
-    private static function inlineFill(string $value, int $minWidthPx = 180): string
+    private static function inlineFill(string $value, string $kind = 'email', int $minWidthPx = 180): string
     {
         $v = trim($value);
         $safe = self::h($v);
         if ($safe === '') {
             $safe = '&nbsp;';
         }
+
+        // TCPDF doesn't reliably render CSS border-bottom; use semantic underline/bold.
+        if ($kind === 'pdf') {
+            return '<b><u>' . $safe . '</u></b>';
+        }
+
         return '<span style="border-bottom:1px solid #111; display:inline-block; min-width:' . (int)$minWidthPx . 'px; padding:0 6px; line-height:1.2;">' . $safe . '</span>';
     }
 
-    private static function replaceTokens(string $html, array $data): string
+    private static function replaceTokens(string $html, array $data, string $kind = 'email'): string
     {
         if ($html === '') return $html;
 
         // {{fill:key}} -> underlined fill with escaped data
-        $html = preg_replace_callback('/\{\{\s*fill:([a-zA-Z0-9_\-]+)\s*\}\}/', function ($m) use ($data) {
+        $html = preg_replace_callback('/\{\{\s*fill:([a-zA-Z0-9_\-]+)\s*\}\}/', function ($m) use ($data, $kind) {
             $key = $m[1];
             $val = isset($data[$key]) ? (string)$data[$key] : '';
-            return self::inlineFill($val);
+            return self::inlineFill($val, $kind);
         }, $html);
 
         // {{key}} -> escaped data
-        $html = preg_replace_callback('/\{\{\s*([a-zA-Z0-9_\-]+)\s*\}\}/', function ($m) use ($data) {
+        $html = preg_replace_callback('/\{\{\s*([a-zA-Z0-9_\-]+)\s*\}\}/', function ($m) use ($data, $kind) {
             $key = $m[1];
             $val = isset($data[$key]) ? (string)$data[$key] : '';
             return self::h($val);
@@ -353,6 +358,15 @@ class EmailPrintTemplate
                 $style .= ';';
             }
 
+            $bgcolorAttr = '';
+            if ($kind === 'pdf') {
+                // TCPDF renders bgcolor reliably; CSS background may not.
+                if (preg_match('/(?:background|background-color)\s*:\s*(#[0-9a-fA-F]{3,6})/i', $style, $mm)) {
+                    $bg = strtoupper($mm[1]);
+                    $bgcolorAttr = 'bgcolor="' . $bg . '"';
+                }
+            }
+
             $title = trim((string)($block['title'] ?? ''));
             $html = '';
 
@@ -362,7 +376,7 @@ class EmailPrintTemplate
                 $html = nl2br(self::h(self::normalizeWhitespace((string)$block['text'])));
             }
 
-            $html = self::replaceTokens($html, $data);
+            $html = self::replaceTokens($html, $data, $kind);
 
             if ($title !== '') {
                 $html = '<div style="font-weight:bold; margin:0 0 4px 0;">' . self::h($title) . '</div>' . $html;
@@ -371,8 +385,8 @@ class EmailPrintTemplate
             if (trim($html) === '') continue;
 
             $row = str_replace(
-                ['{{STYLE}}', '{{CONTENT}}'],
-                [self::h($style), $html],
+                ['{{STYLE}}', '{{CONTENT}}', '{{BGCOLOR_ATTR}}'],
+                [self::h($style), $html, $bgcolorAttr],
                 $rowTpl
             );
 
