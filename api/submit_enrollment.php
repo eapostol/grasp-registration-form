@@ -110,7 +110,15 @@ function escape_html($s)
 $configPath = realpath(__DIR__ . '/../config/enrollment-fields.json');
 $emailHtml = '';
 if ($configPath) {
-    $emailHtml = EmailPrintTemplate::renderPdfFromConfig($configPath, $fields, [
+    $emailHtml = EmailPrintTemplate::renderFromConfig($configPath, $fields, [
+        'formTitle'   => 'GRASP Enrollment Form',
+        'submittedAt' => $submittedAt,
+    ]);
+}
+
+$pdfHtml = $emailHtml;
+if ($configPath) {
+    $pdfHtml = EmailPrintTemplate::renderPdfFromConfig($configPath, $fields, [
         'formTitle'   => 'GRASP Enrollment Form',
         'submittedAt' => $submittedAt,
     ]);
@@ -203,12 +211,13 @@ if (!empty($config['email_bcc'])) {
 // RFC 5321: max line length is 998 characters. Wrap body to a safe width so
 // no single line is too long for the receiving mail server.
 $htmlDoc = '<!doctype html><html><head><meta charset="utf-8"></head><body>' . $emailHtml . '</body></html>';
+$pdfDoc  = '<!doctype html><html><head><meta charset="utf-8"></head><body>' . $pdfHtml  . '</body></html>';
 
 // Generate a PDF attachment from the same HTML
 $pdfTmpPath = null;
 $pdfFilename = 'GRASP-Enrollment.pdf';
 try {
-    $pdfInfo = FormPdfGenerator::generateFromHtml('GRASP Enrollment Form', $htmlDoc, 'GRASP-Enrollment-' . ($sessionId ?: date('Ymd-His')));
+    $pdfInfo = FormPdfGenerator::generateFromHtml('GRASP Enrollment Form', $pdfDoc, 'GRASP-Enrollment-' . ($sessionId ?: date('Ymd-His')));
     $pdfTmpPath = $pdfInfo['path'] ?? null;
     $pdfFilename = $pdfInfo['filename'] ?? $pdfFilename;
 } catch (Throwable $e) {
