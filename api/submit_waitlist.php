@@ -64,20 +64,21 @@ $data = (isset($payload['data']) && is_array($payload['data'])) ? $payload['data
 $configPath = realpath(__DIR__ . '/../config/waitlist-fields.json');
 $emailHtml = '';
 if ($configPath) {
-  $emailHtml = EmailPrintTemplate::renderPdfFromConfig($configPath, $data, ['formTitle' => 'GRASP Wait List Application']);
+  $emailHtml = EmailPrintTemplate::renderFromConfig($configPath, $data, ['formTitle' => 'GRASP Wait List Application']);
 }
 if ($emailHtml === '') {
   $emailHtml = '<h3>GRASP Wait List Application</h3><pre>' . htmlspecialchars(json_encode($data, JSON_PRETTY_PRINT)) . '</pre>';
 }
 
 // Wrap with basic HTML document
-$body = '<!doctype html><html><head><meta charset="utf-8"></head><body>' . $emailHtml . '</body></html>';
+$body    = '<!doctype html><html><head><meta charset="utf-8"></head><body>' . $emailHtml . '</body></html>';
+$pdfBody = '<!doctype html><html><head><meta charset="utf-8"></head><body>' . $pdfHtml . '</body></html>';
 
 // Generate a PDF attachment from the same HTML (Enrollment/Waitlist now match Parent Manual behavior)
 $pdfTmpPath = null;
 $pdfFilename = 'GRASP-Waitlist.pdf';
 try {
-  $pdfInfo = FormPdfGenerator::generateFromHtml('GRASP Wait List Application', $body, 'GRASP-Waitlist-' . ($childName ?: date('Ymd-His')));
+  $pdfInfo = FormPdfGenerator::generateFromHtml('GRASP Wait List Application', $pdfBody, 'GRASP-Waitlist-' . ($childName ?: date('Ymd-His')));
   $pdfTmpPath = $pdfInfo['path'] ?? null;
   $pdfFilename = $pdfInfo['filename'] ?? $pdfFilename;
 } catch (Throwable $e) {
