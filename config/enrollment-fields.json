@@ -1,6 +1,6 @@
 {
   "formId": "grasp_enrollment_2025",
-  "title": "Greenland Recreational After School Program \u2013 Enrollment Form",
+  "title": "Greenland Recreational After School Program – Enrollment Form",
   "version": "1.0.0",
   "steps": [
     {
@@ -728,7 +728,7 @@
           "fields": [
             {
               "name": "emergency_contact_name",
-              "label": "FIRST PERSON TO CALL IN CASE OF EMERGENCY (other than the parents/guardians) \u2013 Name",
+              "label": "Name (other than parents/guardians)",
               "type": "text",
               "required": true
             },
@@ -757,6 +757,13 @@
               "required": false,
               "helpText": "List each authorized pick up on a new line."
             }
+          ],
+          "contentBlocks": [
+            {
+              "kind": "heading",
+              "html": "PERSON TO CALL IN CASE OF EMERGENCY",
+              "style": "background:#fff59d; font-weight:bold; text-align:center;"
+            }
           ]
         }
       ]
@@ -772,7 +779,7 @@
           "fields": [
             {
               "name": "medication_notes",
-              "label": "Medication (prescription only) \u2013 details",
+              "label": "Medication (prescription only) – details",
               "type": "textarea",
               "required": false,
               "helpText": "List any prescription medications that may need to be administered."
@@ -792,6 +799,18 @@
                   "label": "I do not agree"
                 }
               ]
+            }
+          ],
+          "contentBlocks": [
+            {
+              "kind": "policy",
+              "title": "MEDICATION",
+              "text": "The Centre will administer only prescription medication as required. All medication must come in the original container with the prescription label. The Centre will document all medication on the appropriate consent form and parents/guardians must sign this medication form before the medication is administered to their child."
+            },
+            {
+              "kind": "policy",
+              "title": "(MEDICAL RELEASE) PARENTS CONSENT FOR MEDICAL TREATMENT",
+              "html": "In the event that a parent/guardian cannot be reached, I, {{fill:parent_signature}}, give permission for a Greenland Recreational After School Program qualified staff member to secure any emergency medical treatment deemed necessary for my child, {{fill:child_name}}, by the attending physician. Treatment may include anesthetic and/or blood transfusion. I also consent to emergency transportation of whatever type seen fit by the staff of the child care centre at the time of the incident. Transportation will be by ambulance, taxi or on rare occasion private vehicle driven by a licensed driver. Parents will be notified that their child has been taken to the hospital and updated as often as possible thereafter. (In cases where child abuse is suspected parents will be contacted as advised by a Children Aid Society worker.) <em>A copy of an updated immunization record must be attached to this form.</em>"
             }
           ]
         },
@@ -901,7 +920,7 @@
             },
             {
               "name": "hand_sanitizer_consent",
-              "label": "Authorization for the use of hand sanitizer (70\u201390% alcohol, as per Toronto Public Health)",
+              "label": "Authorization for the use of hand sanitizer (70–90% alcohol, as per Toronto Public Health)",
               "type": "radio",
               "required": true,
               "options": [
@@ -914,6 +933,18 @@
                   "label": "I do not consent"
                 }
               ]
+            }
+          ],
+          "contentBlocks": [
+            {
+              "kind": "policy",
+              "title": "AUTHORIZATION FOR RECREATIONAL WATER PLAY",
+              "html": "I, the parent/guardian of {{fill:child_name}}, hereby give my consent for my child to participate in water play such as splash pads and kids town and swimming pools under the supervision and guidance of the Centre staff."
+            },
+            {
+              "kind": "policy",
+              "title": "AUTHORIZATION FOR THE USE OF HAND SANITIZER",
+              "html": "I, the parent/guardian of {{fill:child_name}}, hereby give my consent for my child to use hand sanitizer with 70% to 90% alcohol content under the supervision and guidance of the Centre staff."
             }
           ]
         }
@@ -930,7 +961,7 @@
           "fields": [
             {
               "name": "child_disposition",
-              "label": "Child\u2019s disposition / temperament",
+              "label": "Child’s disposition / temperament",
               "type": "textarea",
               "required": false
             },
@@ -978,13 +1009,13 @@
             },
             {
               "name": "child_special_needs",
-              "label": "Child\u2019s special needs or cultural interests",
+              "label": "Child’s special needs or cultural interests",
               "type": "textarea",
               "required": false
             },
             {
               "name": "child_interests",
-              "label": "Child\u2019s interests (activities, sports, hobbies, etc.)",
+              "label": "Child’s interests (activities, sports, hobbies, etc.)",
               "type": "textarea",
               "required": false
             }
@@ -1031,7 +1062,7 @@
           "fields": [
             {
               "name": "info_sharing_consent",
-              "label": "I consent to reciprocal exchange of information about my child between GRASP, the school and Toronto Children\u2019s Services.",
+              "label": "I consent to reciprocal exchange of information about my child between GRASP, the school and Toronto Children’s Services.",
               "type": "radio",
               "required": true,
               "default": "yes",
@@ -1128,11 +1159,11 @@
               "options": [
                 {
                   "value": "centre",
-                  "label": "GRASP will provide sunscreen (NO-AD SPF 30\u201345)"
+                  "label": "GRASP will provide sunscreen (NO-AD SPF 30–45)"
                 },
                 {
                   "value": "parent",
-                  "label": "I will provide my child\u2019s sunscreen (cream only)"
+                  "label": "I will provide my child’s sunscreen (cream only)"
                 }
               ]
             },
