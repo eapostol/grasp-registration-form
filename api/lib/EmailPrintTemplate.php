@@ -70,6 +70,85 @@ class EmailPrintTemplate
         return nl2br(self::h($value));
     }
 
+
+    private static function truthy($value): bool
+    {
+        if (is_bool($value)) return $value;
+        if (is_numeric($value)) return ((int)$value) !== 0;
+        $s = strtolower(trim((string)$value));
+        return in_array($s, ['1', 'true', 'yes', 'y', 'on'], true);
+    }
+
+    private static function optionLabel(array $field, $value): string
+    {
+        $options = $field['options'] ?? [];
+        if (!is_array($options) || count($options) === 0) {
+            return (string)$value;
+        }
+        foreach ($options as $opt) {
+            if (!is_array($opt)) continue;
+            $ov = $opt['value'] ?? null;
+            if ((string)$ov === (string)$value) {
+                return (string)($opt['label'] ?? ($opt['value'] ?? $value));
+            }
+        }
+        return (string)$value;
+    }
+
+    private static function normalizeFieldValue(array $field, $value)
+    {
+        $type = $field['type'] ?? '';
+
+        // Map radio/select values to their option label (for readability in emails/PDFs)
+        if (($type === 'radio' || $type === 'select') && isset($field['options'])) {
+            if (is_array($value)) {
+                $mapped = array_map(function ($v) use ($field) {
+                    return self::optionLabel($field, $v);
+                }, $value);
+                return implode(', ', array_filter($mapped, function ($v) { return trim((string)$v) !== ''; }));
+            }
+            return self::optionLabel($field, $value);
+        }
+
+        // Checkbox: display Yes/No
+        if ($type === 'checkbox') {
+            return self::truthy($value) ? 'Yes' : 'No';
+        }
+
+        return $value;
+    }
+
+    private static function inlineFill(string $value, int $minWidthPx = 180): string
+    {
+        $v = trim($value);
+        $safe = self::h($v);
+        if ($safe === '') {
+            $safe = '&nbsp;';
+        }
+        return '<span style="border-bottom:1px solid #111; display:inline-block; min-width:' . (int)$minWidthPx . 'px; padding:0 6px; line-height:1.2;">' . $safe . '</span>';
+    }
+
+    private static function replaceTokens(string $html, array $data): string
+    {
+        if ($html === '') return $html;
+
+        // {{fill:key}} -> underlined fill with escaped data
+        $html = preg_replace_callback('/\{\{\s*fill:([a-zA-Z0-9_\-]+)\s*\}\}/', function ($m) use ($data) {
+            $key = $m[1];
+            $val = isset($data[$key]) ? (string)$data[$key] : '';
+            return self::inlineFill($val);
+        }, $html);
+
+        // {{key}} -> escaped data
+        $html = preg_replace_callback('/\{\{\s*([a-zA-Z0-9_\-]+)\s*\}\}/', function ($m) use ($data) {
+            $key = $m[1];
+            $val = isset($data[$key]) ? (string)$data[$key] : '';
+            return self::h($val);
+        }, $html);
+
+        return $html;
+    }
+
     private static function fieldKey(array $field): string
     {
         // Your configs primarily use "name"
@@ -105,6 +184,37 @@ class EmailPrintTemplate
             if ($p1 !== '' && $p2 !== '') {
                 $data[$kc] = strtoupper($p1 . ' ' . $p2);
             }
+        }
+
+
+        // Derived display helpers for content blocks (ensures placeholders can be filled server-side)
+        $childName = trim((string)($data['child_name'] ?? ''));
+        if ($childName === '') {
+            $first = trim((string)($data['child_first_name'] ?? ''));
+            $middle = trim((string)($data['child_middle_name_or_initial'] ?? ''));
+            $last = trim((string)($data['child_last_name'] ?? ''));
+            $parts = array_filter([$first, $middle, $last], function ($p) { return $p !== ''; });
+            $childName = trim(implode(' ', $parts));
+            if ($childName !== '') {
+                $data['child_name'] = $childName;
+            }
+        }
+        if ($childName !== '') {
+            $data['child_full_name'] = $childName;
+        }
+
+        // parent_signature: prefer explicit signature field, else Parent/Guardian 1 name
+        $parentSig = trim((string)($data['parent_full_name_signature'] ?? ''));
+        if ($parentSig === '') {
+            $parentSig = trim((string)($data['parent1_name'] ?? ''));
+        }
+        if ($parentSig === '') {
+            $p1First = trim((string)($data['parent1_first_name'] ?? ''));
+            $p1Last  = trim((string)($data['parent1_last_name'] ?? ''));
+            $parentSig = trim($p1First . ' ' . $p1Last);
+        }
+        if ($parentSig !== '') {
+            $data['parent_signature'] = $parentSig;
         }
 
         return $data;
@@ -213,6 +323,7 @@ class EmailPrintTemplate
             if ($key === '') continue;
 
             $value = $data[$key] ?? '';
+            $value = self::normalizeFieldValue($field, $value);
             // For checkboxes/radios, some forms send string/array; handled in displayValue()
             $label = self::rowLabel($field);
 
@@ -223,6 +334,51 @@ class EmailPrintTemplate
             );
             $out[] = $row;
         }
+        return implode("\n", $out);
+    }
+
+
+    private static function renderContentBlocks(string $kind, array $blocks, array $data): string
+    {
+        if (!is_array($blocks) || count($blocks) === 0) return '';
+
+        $rowTpl = self::loadTemplate($kind, 'row_full');
+        $out = [];
+
+        foreach ($blocks as $block) {
+            if (!is_array($block)) continue;
+
+            $style = isset($block['style']) ? trim((string)$block['style']) : '';
+            if ($style !== '' && substr($style, -1) !== ';') {
+                $style .= ';';
+            }
+
+            $title = trim((string)($block['title'] ?? ''));
+            $html = '';
+
+            if (!empty($block['html'])) {
+                $html = (string)$block['html'];
+            } elseif (!empty($block['text'])) {
+                $html = nl2br(self::h(self::normalizeWhitespace((string)$block['text'])));
+            }
+
+            $html = self::replaceTokens($html, $data);
+
+            if ($title !== '') {
+                $html = '<div style="font-weight:bold; margin:0 0 4px 0;">' . self::h($title) . '</div>' . $html;
+            }
+
+            if (trim($html) === '') continue;
+
+            $row = str_replace(
+                ['{{STYLE}}', '{{CONTENT}}'],
+                [self::h($style), $html],
+                $rowTpl
+            );
+
+            $out[] = $row;
+        }
+
         return implode("\n", $out);
     }
 
@@ -256,7 +412,11 @@ class EmailPrintTemplate
                 }
             }
 
-            $rows = self::renderRows($kind, $fields, $data);
+            $contentRows = '';
+            if (!empty($section['contentBlocks']) && is_array($section['contentBlocks'])) {
+                $contentRows = self::renderContentBlocks($kind, $section['contentBlocks'], $data);
+            }
+            $rows = trim($contentRows) === '' ? self::renderRows($kind, $fields, $data) : ($contentRows . "\n" . self::renderRows($kind, $fields, $data));
 
             // If every row was skipped, don't render the section
             if (trim($rows) === '') continue;
@@ -306,7 +466,8 @@ if (!empty($cfg['steps']) && is_array($cfg['steps'])) {
             if (!is_array($gFields) || count($gFields) === 0) continue;
             $sections[] = [
                 'title'  => $gTitle,
-                'fields' => $gFields
+                'fields' => $gFields,
+                'contentBlocks' => (isset($group['contentBlocks']) && is_array($group['contentBlocks'])) ? $group['contentBlocks'] : []
             ];
         }
     }
