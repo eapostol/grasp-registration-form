@@ -858,7 +858,7 @@ function createFieldRow(fieldDef) {
   const labelText = fieldDef.label || fieldDef.name;
   let label;
 
-  if (fieldDef.type === "radio") {
+  if (fieldDef.type === "radio" || fieldDef.type === "static") {
     label = document.createElement("div");
     label.className = "grasp-field-label";
     const labelId = "label_" + fieldDef.name;
@@ -890,6 +890,14 @@ function createFieldRow(fieldDef) {
   let control = null;
   const value = getFieldValue(fieldDef.name);
 
+  if (fieldDef.type === "static") {
+    control = document.createElement("div");
+    control.className = "grasp-input grasp-static";
+    control.id = "field_" + fieldDef.name;
+    // Display-only value (derived or prefilled from earlier steps)
+    control.textContent = value;
+    wrapper.appendChild(control);
+  } else
   if (fieldDef.type === "textarea") {
     control = document.createElement("textarea");
     control.className = "grasp-textarea";
