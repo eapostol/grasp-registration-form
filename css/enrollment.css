@@ -188,7 +188,7 @@
 .form-header-address {
   display: block;
   text-align: center;
-  font-size: clamp(0.75rem, 0.7rem + 0.3vw, 0.875rem);
+  font-size: clamp(0.55rem, 0.5rem + 0.15vw, 0.65rem);
 }
 
 @media (max-width: 768px) {
