@@ -375,3 +375,89 @@ function propagateDebugToLinks() {
     });
   }
 })();
+
+/* Global email link handler (obfuscated) */
+(function () {
+  // Default email: "info@greenlandrecreational.com" (Base64)
+  const DEFAULT_EMAIL_B64 = "aW5mb0BncmVlbmxhbmRyZWNyZWF0aW9uYWwuY29t";
+
+  // Any of these will be treated as an email trigger:
+  //  - class="js-email"
+  //  - data-email="..." (plain or Base64)
+  //  - href="mailto:..." (legacy)
+  const EMAIL_LINK_SELECTOR = 'a.js-email, a[data-email], a[href^="mailto:"]';
+
+  function safeAtob(value) {
+    try {
+      return window.atob(value);
+    } catch (_e) {
+      return "";
+    }
+  }
+
+  function extractEmailFromMailtoHref(href) {
+    if (!href) return "";
+    const raw = String(href).trim();
+    if (!raw.toLowerCase().startsWith("mailto:")) return "";
+    const withoutScheme = raw.slice(7); // after "mailto:"
+    // mailto can include query params (e.g., ?subject=...)
+    const emailPart = withoutScheme.split("?")[0];
+    return (emailPart || "").trim();
+  }
+
+  function resolveEmailForElement(el) {
+    if (!el) return "";
+
+    // 1) data-email override (plain or Base64)
+    const override = (el.getAttribute("data-email") || "").trim();
+    if (override) {
+      if (override.includes("@")) return override;
+      const decodedOverride = safeAtob(override);
+      if (decodedOverride && decodedOverride.includes("@")) return decodedOverride.trim();
+    }
+
+    // 2) legacy mailto: in href
+    const href = el.getAttribute("href") || "";
+    const legacy = extractEmailFromMailtoHref(href);
+    if (legacy) return legacy;
+
+    // 3) default Base64
+    const decodedDefault = safeAtob(DEFAULT_EMAIL_B64);
+    return decodedDefault || "info@greenlandrecreational.com";
+  }
+
+  function wireEmailLink(el) {
+    if (!el || el.dataset.emailWired === "true") return;
+
+    // Ensure we can "track" these in markup via class (no styling assumed)
+    if (!el.classList.contains("js-email")) {
+      el.classList.add("js-email");
+    }
+
+    // If this is a legacy mailto link, neutralize the href to prevent exposing email in-page behavior.
+    const href = el.getAttribute("href") || "";
+    if (/^mailto:/i.test(href)) {
+      el.setAttribute("href", "#");
+    }
+
+    el.addEventListener("click", function (event) {
+      event.preventDefault();
+      const email = resolveEmailForElement(el);
+      if (!email) return;
+      window.location.href = "mailto:" + email;
+    });
+
+    el.dataset.emailWired = "true";
+  }
+
+  function initEmailLinks() {
+    const links = document.querySelectorAll(EMAIL_LINK_SELECTOR);
+    links.forEach(wireEmailLink);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initEmailLinks);
+  } else {
+    initEmailLinks();
+  }
+})();

@@ -1,0 +1,85 @@
+h4 {
+  font-size: 17px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  margin-top: 15px;
+}
+h3 {
+  font-size: 21px;
+  font-weight: bold;
+}
+ul.lower-alpha {
+  list-style-type: lower-alpha;
+  margin-left: 20px;
+}
+ul.lower-alpha li {
+  padding-left: 5px;
+}
+ul.upper-alpha {
+  list-style-type: upper-alpha;
+  margin-left: 20px;
+  margin-top: 10px;
+}
+ul.upper-alpha li {
+  padding-left: 5px;
+}
+ul.disc {
+  list-style-type: disc;
+  margin-left: 20px;
+  margin-top: 10px;
+}
+ul.disc li {
+  padding-left: 5px;
+}
+ul {
+  margin-left: 20px;
+  margin-top: 10px;
+}
+ul li {
+  padding-left: 5px;
+}
+ol {
+  margin-left: 20px;
+  margin-top: 10px;
+}
+ol li {
+  padding-left: 5px;
+}
+
+table.tblstl {
+  margin: 0;
+  padding: 0;
+  background: #fff;
+  vertical-align: top;
+  border-spacing: 0;
+  border: 1px solid #4f6c23;
+}
+table.tblstl td,
+th {
+  border: 1px solid #4f6c23;
+  padding: 5px 10px;
+  vertical-align: top;
+}
+table.tblstl th {
+  background: #ccc;
+  vertical-align: middle;
+}
+table.tblstl p {
+  margin: 10px 0 15px;
+  line-height: 18px;
+}
+/* new styles */
+h4.h4_title {
+  text-align: center;
+}
+p.program_statements {
+  margin-bottom: 5px;
+  text-align: justify;
+}
+p#program_statement_subheading {
+  margin-bottom: 5px;
+  text-align: justify;
+}
+p#table_spacer {
+  margin: 5px 0;
+}
