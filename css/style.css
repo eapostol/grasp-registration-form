@@ -24,10 +24,17 @@ body {
   line-height: 22px;
 
   /* font-family: "Cambria", "Hoefler Text", "Liberation Serif", Times, "Times New Roman", serif; */
-  font-family: system-ui, -apple-system, BlinkMacSystemFont,
-             "Segoe UI", Roboto, "Helvetica Neue", Arial,
-             "Noto Sans", "Liberation Sans", sans-serif;
-
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    "Noto Sans",
+    "Liberation Sans",
+    sans-serif;
 }
 
 h2 {
@@ -119,21 +126,21 @@ h5 {
 }
 
 #cont-seclft {
-    background: #fff;
+  background: #fff;
 
-    width: 290px;
+  width: 290px;
 
-    margin: 0px 30px 0px 0px;
+  margin: 0px 30px 0px 0px;
 
-    padding: 5px 10px;
+  padding: 5px 10px;
 
-    display: inline-block;
+  display: inline-block;
 
-    height: stretch;
+  height: stretch;
 
-    vertical-align: top;
+  vertical-align: top;
 
-    border-radius: 5px;
+  border-radius: 5px;
 }
 
 #cont-secrht {
@@ -177,7 +184,8 @@ h5 {
   margin: 30px;
 }
 
-.homestyle p, h2 {
+.homestyle p,
+h2 {
   margin: 20px 0;
   padding: 0px 10px;
   font-size: 1rem;
@@ -268,17 +276,24 @@ h5 {
   line-height: 1.1;
 }
 
-.tblstl{
-    border-collapse: collapse;
-    width: 100%;
-    border-radius: 5px;
-    overflow:auto;
-    border: 1px solid #333;
-    text-align: left;
-    vertical-align: top;
+.tblstl {
+  border-collapse: collapse;
+  width: 100%;
+  border-radius: 5px;
+  overflow: auto;
+  border: 1px solid #333;
+  text-align: left;
+  vertical-align: top;
 }
 
 .tblstl td,
 .tblstl th {
   vertical-align: top;
+}
+
+.smallprint {
+  padding: 20px;
+  margin: 5px 0px 0px;
+  font-size: 0.5rem;
+  line-height: auto;
 }
