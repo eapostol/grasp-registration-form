@@ -3,298 +3,297 @@
 /* CSS Document */
 
 html {
+  background: url(../img/body_bg.jpg) repeat;
 
-    background: url(../img/body_bg.jpg) repeat;
+  margin: 0px;
 
-    margin: 0px;
-
-    padding: 0px;
-
+  padding: 0px;
 }
 
 body {
+  background: url(../img/bg.png) repeat-x top;
 
-    background: url(../img/bg.png) repeat-x top;
+  margin: 0px auto;
 
-    margin: 0px auto;
+  padding: 0px;
 
-    padding: 0px;
+  font-size: 17px;
 
-    font-size: 17px;
+  color: #211a11;
 
-    color: #211a11;
+  line-height: 22px;
 
-    line-height: 22px;
-
-    font-family: Cambria, 'Hoefler Text', 'Liberation Serif', Times,
-
-        'Times New Roman', serif;
-
+  /* font-family: "Cambria", "Hoefler Text", "Liberation Serif", Times, "Times New Roman", serif; */
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    "Noto Sans",
+    "Liberation Sans",
+    sans-serif;
 }
 
 h2 {
-
-    font-style: italic;
-
+  font-style: italic;
 }
 
 h5 {
+  font-size: 18px;
 
-    font-size: 18px;
+  font-weight: bold;
 
-    font-weight: bold;
+  margin: 0px 0px 5px;
 
-    margin: 0px 0px 5px;
-
-    padding: 0px;
-
+  padding: 0px;
 }
 
 .clear {
-
-    clear: both;
-
+  clear: both;
 }
-
-
 
 #wrapper {
+  background: url(../img/wrap_bg.jpg) repeat-x top #7b905b;
 
-    background: url(../img/wrap_bg.jpg) repeat-x top #7b905b;
+  padding: 0px 15px;
 
-    padding: 0px 15px;
+  margin: 0px auto;
 
-    margin: 0px auto;
+  width: 990px;
 
-    width: 990px;
+  height: auto;
 
-    height: auto;
-
-    min-height: 790px;
-
+  min-height: 790px;
 }
-
-
 
 #navigation {
+  background: #fff url(../img/nav-bg.png) no-repeat;
 
-    background: #fff url(../img/nav-bg.png) no-repeat;
+  height: 71px;
 
-    height: 71px;
+  padding: 0px 0px 5px;
 
-    padding: 0px 0px 5px;
+  margin: 0px;
 
-    margin: 0px;
+  width: 990px;
 
-    width: 990px;
+  border-top: 10px solid #fff;
 
-    border-top: 10px solid #fff;
-
-    font-family: 'Architects Daughter', cursive;
-
+  font-family: "Architects Daughter", cursive;
 }
-
-
 
 #navigation ul {
+  margin: 0;
 
-    margin: 0;
-
-    padding: 0;
-
+  padding: 0;
 }
-
-
 
 #navigation ul li {
+  display: inline;
 
-    display: inline;
+  color: #fff;
 
-    color: #fff;
+  padding: 0 10px;
 
-    padding: 0 10px;
+  font-size: 18px;
 
-    font-size: 18px;
+  text-shadow: 2px 2px 2px #333333;
 
-    text-shadow: 2px 2px 2px #333333;
-
-    line-height: 70px;
-
+  line-height: 70px;
 }
 
-
-
 #navigation ul li a {
+  color: #fff;
 
-    color: #fff;
-
-    text-decoration: none;
-
+  text-decoration: none;
 }
 
 #banner {
+  margin: 0px 0px 30px;
 
-    margin: 0px 0px 30px;
+  padding: 10px 0px 10px;
 
-    padding: 10px 0px 10px;
+  display: block;
 
-    display: block;
+  width: 990px;
 
-    width: 990px;
+  height: 255px;
 
-    height: 255px;
-
-    background: #fff;
-
+  background: #fff;
 }
-
-
 
 #cont-seclft {
+  background: #fff;
 
-    background: #fff;
+  width: 290px;
 
-    width: 290px;
+  margin: 0px 30px 0px 0px;
 
-    margin: 0px 30px 0px 0px;
+  padding: 5px 10px;
 
-    padding: 5px 10px;
+  display: inline-block;
 
-    display: inline-block;
+  height: stretch;
 
-    height: auto;
+  vertical-align: top;
 
-    vertical-align: top;
-
+  border-radius: 5px;
 }
 
-
-
 #cont-secrht {
+  width: 635px;
 
-    width: 635px;
+  margin: 0px;
 
-    margin: 0px;
+  padding: 0px;
 
-    padding: 0px;
+  display: inline-block;
 
-    display: inline-block;
+  height: auto;
 
-    height: auto;
-
-    vertical-align: top;
-
+  vertical-align: top;
 }
 
 #cont-secrht .li-set {
+  margin: 0px;
 
-    margin: 0px;
-
-    padding: 0px;
-
+  padding: 0px;
 }
 
 #cont-secrht .li-set ul {
+  list-style: circle;
 
-    list-style: circle;
+  padding: 0px;
 
-    padding: 0px;
-
-    margin: 0px 0px 0px 30px;
-
+  margin: 0px 0px 0px 30px;
 }
 
 #cont-secrht .li-set ul li {
+  margin: 0px 0px 5px;
 
-    margin: 0px 0px 5px;
-
-    padding: 0px;
-
+  padding: 0px;
 }
 
+.homestyle {
+  background-color: #fff;
+  border-radius: 5px;
+  padding: 20px;
+  margin: 30px;
+}
 
+.homestyle p,
+h2 {
+  margin: 20px 0;
+  padding: 0px 10px;
+  font-size: 1rem;
+}
+
+.homestyle h2 {
+  margin: 20px 0;
+  padding: 0px 10px;
+  font-size: 1.5rem;
+}
+
+.homestyle h3 {
+  margin: 20px 0;
+  padding: 0px 10px;
+  font-size: 1.25rem;
+}
+
+.homestyle h4 {
+  margin: 20px 0;
+  padding: 0px 10px;
+  font-size: 1.2rem;
+}
 
 #footer {
+  background: #fff;
 
-    background: #fff;
+  padding: 20px 0px 10px;
 
-    padding: 20px 0px 10px;
+  /* adjusted the green gap between page content and footer */
+  margin: 30px 0px;
 
-    /* adjusted the green gap between page content and footer */
-    margin: 30px 0px;
+  width: 990px;
 
-    width: 990px;
+  line-height: 40px;
 
-    line-height: 40px;
+  font-size: 14px;
 
-    font-size: 14px;
+  height: auto;
 
-    height: auto;
+  text-align: center;
 
-    text-align: center;
-
-    border-radius: 5px;
-
+  border-radius: 5px;
 }
-
 
 /* Footer text sizing + spacing (exclude the footer navigation links) */
 #footer #small-print-note {
+  margin: 8px 0px 0px;
 
-    margin: 8px 0px 0px;
+  font-size: 12px;
 
-    font-size: 12px;
-
-    line-height: 18px;
-
+  line-height: 18px;
 }
 
 #footer #small-print-note p {
+  margin: 4px 0px;
 
-    margin: 4px 0px;
-
-    padding: 0px;
-
+  padding: 0px;
 }
 
 #footer .footerlinks > p {
+  margin: 10px 0px 0px;
 
-    margin: 10px 0px 0px;
+  font-size: 12px;
 
-    font-size: 12px;
-
-    line-height: 18px;
-
+  line-height: 18px;
 }
-
-
 
 /* Align Instagram icon and adjacent text to the icon's top edge */
 
 #cont-seclft .instagram-icon {
+  display: inline-block;
 
-    display: inline-block;
+  width: 40px;
 
-    width: 40px;
+  height: 40px;
 
-    height: 40px;
-
-    vertical-align: middle;
-
+  vertical-align: middle;
 }
 
-
-
 #cont-seclft .follow-text,
-
 #cont-seclft .instagram-text {
+  display: inline-block;
 
-    display: inline-block;
+  vertical-align: middle;
 
-    vertical-align: middle;
+  margin-left: 8px;
 
-    margin-left: 8px;
+  line-height: 1.1;
+}
 
-    line-height: 1.1;
+.tblstl {
+  border-collapse: collapse;
+  width: 100%;
+  border-radius: 5px;
+  overflow: auto;
+  border: 1px solid #333;
+  text-align: left;
+  vertical-align: top;
+}
 
+.tblstl td,
+.tblstl th {
+  vertical-align: top;
+}
+
+.smallprint {
+  padding: 20px;
+  margin: 5px 0px 0px;
+  font-size: 0.5rem;
+  line-height: auto;
 }
