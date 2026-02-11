@@ -273,7 +273,7 @@ function propagateDebugToLinks() {
       payload.append("message", values.message);
 
       try {
-        const response = await fetch("js/public_html/cgi-bin/submit.php", {
+        const response = await fetch("/js/public_html/cgi-bin/submit.php", {
           method: "POST",
           body: payload,
         });
