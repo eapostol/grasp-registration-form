@@ -313,6 +313,49 @@ class EmailPrintTemplate
         return $out;
     }
 
+    private static function renderWaitlistGuardiansTwoColPdf(array $split, array $data): string
+    {
+        // Expected $split: [ ['title'=>..., 'fields'=>...], ['title'=>..., 'fields'=>...] ]
+        $leftFields = $split[0]['fields'] ?? [];
+        $rightFields = $split[1]['fields'] ?? [];
+
+        $leftRows = self::renderRows('pdf', is_array($leftFields) ? $leftFields : [], $data);
+        $rightRows = self::renderRows('pdf', is_array($rightFields) ? $rightFields : [], $data);
+
+        if (trim($leftRows) === '' && trim($rightRows) === '') return '';
+
+        $subHeaderStyle = 'background-color:#f3f3f3; font-weight:bold; border-bottom:0.5pt solid #333;';
+        $colTableStyle = 'border-collapse:collapse;';
+
+        $leftTitle = 'Parent / Guardian 1';
+        $rightTitle = 'Parent / Guardian 2';
+
+        $leftTable = '<table width="100%" cellpadding="4" cellspacing="0" style="' . $colTableStyle . '">' .
+            '<tr><td colspan="2" style="' . $subHeaderStyle . '">' . self::h($leftTitle) . '</td></tr>' .
+            $leftRows .
+            '</table>';
+
+        $rightTable = '<table width="100%" cellpadding="4" cellspacing="0" style="' . $colTableStyle . '">' .
+            '<tr><td colspan="2" style="' . $subHeaderStyle . '">' . self::h($rightTitle) . '</td></tr>' .
+            $rightRows .
+            '</table>';
+
+        $nested = '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">' .
+            '<tr>' .
+            '<td width="50%" style="vertical-align:top; padding:0 6px 0 0;">' . $leftTable . '</td>' .
+            '<td width="50%" style="vertical-align:top; padding:0 0 0 6px;">' . $rightTable . '</td>' .
+            '</tr>' .
+            '</table>';
+
+        $rowFullTpl = self::loadTemplate('pdf', 'row_full');
+        return str_replace(
+            ['{{BGCOLOR_ATTR}}', '{{STYLE}}', '{{CONTENT}}'],
+            ['', 'padding:4px 6px;', $nested],
+            $rowFullTpl
+        );
+    }
+
+
     private static function renderRows(string $kind, array $fields, array $data): string
     {
         $rowTpl = self::loadTemplate($kind, 'row');
@@ -409,10 +452,26 @@ class EmailPrintTemplate
 
             if (!is_array($fields) || count($fields) === 0) continue;
 
-            // Special case: Waitlist Parents/Guardians should be split into 2 blocks.
+            // Special case: Waitlist Parents/Guardians.
+            // Email: render as 2 stacked blocks. PDF: render side-by-side to reduce vertical space (closer to original 1-page layout).
             if (is_string($title) && trim($title) === 'Parents / Guardians') {
                 $split = self::splitWaitlistGuardians($fields);
                 if (count($split) > 0) {
+
+                    // PDF-only: two-column layout when both parent1_ and parent2_ exist
+                    if ($kind === 'pdf' && count($split) === 2) {
+                        $rows = self::renderWaitlistGuardiansTwoColPdf($split, $data);
+                        if (trim($rows) !== '') {
+                            $out[] = str_replace(
+                                ['{{SECTION_TITLE}}', '{{ROWS}}'],
+                                [self::h('Parents / Guardians'), $rows],
+                                $sectionTpl
+                            );
+                        }
+                        continue;
+                    }
+
+                    // Default: two stacked sections
                     foreach ($split as $sub) {
                         $rows = self::renderRows($kind, $sub['fields'], $data);
                         if (trim($rows) === '') continue;
