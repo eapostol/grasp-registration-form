@@ -107,8 +107,52 @@
   }
 
   // [GRASP-DEBUG] Build a bundle of first/last names for split-name fields.
+  // [GRASP-DEBUG] Build a bundle of first/last names for split-name fields.
+  // NOTE (2026-02): randomuser.me no longer permits cross-origin browser fetches
+  // in many environments, causing noisy CORS console errors. We now generate
+  // realistic Canadian-style names locally for debug mode.
   async function buildDebugNameBundle() {
-    var fallbackLast = "Registrant";
+    // Optional: allow external randomuser API when explicitly enabled.
+    // Set window.GRASP_DEBUG_USE_RANDOMUSER = true before this runs if desired.
+    var allowExternal = (typeof window !== "undefined" && window.GRASP_DEBUG_USE_RANDOMUSER === true);
+
+    function pick(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function toTitleCaseSafe(s) {
+      return toTitleCase(String(s || ""));
+    }
+
+    // Local fallback lists (small but varied)
+    var FIRST_NAMES = [
+      "Liam","Noah","Oliver","Elijah","James","William","Benjamin","Lucas","Henry","Theodore",
+      "Charlotte","Amelia","Olivia","Ava","Sophia","Isabella","Mia","Evelyn","Harper","Ella",
+      "Mason","Ethan","Logan","Aiden","Jacob","Michael","Daniel","Jackson","Sebastian","Jack",
+      "Emily","Abigail","Grace","Chloe","Lily","Zoey","Hannah","Aria","Scarlett","Victoria"
+    ];
+    var LAST_NAMES = [
+      "Martin","Roy","Gagnon","Lee","Wilson","Taylor","Brown","Anderson","Clark","Wright",
+      "Johnson","MacDonald","Campbell","Thompson","Nguyen","Singh","Patel","Kaur","Chen","Wong"
+    ];
+
+    function buildLocal() {
+      var lastName = toTitleCaseSafe(pick(LAST_NAMES));
+      return {
+        childFirst: toTitleCaseSafe(pick(FIRST_NAMES)),
+        childLast: lastName,
+        parent1First: toTitleCaseSafe(pick(FIRST_NAMES)),
+        parent1Last: lastName,
+        parent2First: toTitleCaseSafe(pick(FIRST_NAMES)),
+        parent2Last: lastName,
+      };
+    }
+
+    if (!allowExternal) {
+      return buildLocal();
+    }
+
+    // External mode (may fail due to CORS) — fall back silently to local.
     try {
       var res = await fetch("https://randomuser.me/api/?results=3&nat=ca");
       if (!res.ok) throw new Error("Bad response from randomuser");
@@ -120,35 +164,22 @@
       var parent1User = results[1] || results[0];
       var parent2User = results[2] || results[1] || results[0];
 
-      var lastName = toTitleCase(childUser.name.last);
-      var childFirst = toTitleCase(childUser.name.first);
-      var parent1First = toTitleCase(parent1User.name.first);
-      var parent2First = toTitleCase(parent2User.name.first);
+      var lastName = toTitleCaseSafe(childUser.name.last);
+      var childFirst = toTitleCaseSafe(childUser.name.first);
+      var parent1First = toTitleCaseSafe(parent1User.name.first);
+      var parent2First = toTitleCaseSafe(parent2User.name.first);
 
       return {
-        // Child
         childFirst: childFirst,
         childLast: lastName,
-        // Parent / Guardian 1
         parent1First: parent1First,
         parent1Last: lastName,
-        // Parent / Guardian 2
         parent2First: parent2First,
         parent2Last: lastName,
       };
     } catch (e) {
-      console.warn(
-        "DEBUG: failed to fetch random names, falling back to defaults",
-        e
-      );
-      return {
-        childFirst: "Test",
-        childLast: "Registrant",
-        parent1First: "Parent",
-        parent1Last: fallbackLast,
-        parent2First: "Guardian",
-        parent2Last: fallbackLast,
-      };
+      // Keep the console clean — this is debug-only.
+      return buildLocal();
     }
   }
 

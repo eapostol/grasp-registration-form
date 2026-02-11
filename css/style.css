@@ -230,6 +230,13 @@ h2 {
   border-radius: 5px;
 }
 
+#footer p.smallprint {
+    margin: 0;
+    padding: 0;
+    font-size: small;
+    text-align: center;
+}
+
 /* Footer text sizing + spacing (exclude the footer navigation links) */
 #footer #small-print-note {
   margin: 8px 0px 0px;
