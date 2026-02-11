@@ -315,41 +315,49 @@ class EmailPrintTemplate
         return $out;
     }
 
-    private static function renderWaitlistGuardiansTwoColPdf(array $split, array $data): string
+    
+private static function renderWaitlistGuardiansTwoColPdf(string $kind, array $split, array $data): string
     {
+        // Two-column "Parents / Guardians" layout for Waitlist (works for both email + pdf)
         // Expected $split: [ ['title'=>..., 'fields'=>...], ['title'=>..., 'fields'=>...] ]
         $leftFields = $split[0]['fields'] ?? [];
         $rightFields = $split[1]['fields'] ?? [];
 
-        $leftRows = self::renderRows('pdf', is_array($leftFields) ? $leftFields : [], $data);
-        $rightRows = self::renderRows('pdf', is_array($rightFields) ? $rightFields : [], $data);
+        $leftRows = self::renderRows($kind, is_array($leftFields) ? $leftFields : [], $data);
+        $rightRows = self::renderRows($kind, is_array($rightFields) ? $rightFields : [], $data);
 
         if (trim($leftRows) === '' && trim($rightRows) === '') return '';
 
-        $subHeaderStyle = 'background-color:#f3f3f3; font-weight:bold; border-bottom:0.5pt solid #333;';
+        $subHeaderStyle = self::waitlistHeaderCellStyle($kind);
         $colTableStyle = 'border-collapse:collapse;';
 
         $leftTitle = 'Parent / Guardian 1';
         $rightTitle = 'Parent / Guardian 2';
 
-        $leftTable = '<table width="100%" cellpadding="4" cellspacing="0" style="' . $colTableStyle . '">' .
+        $cellpad = ($kind === 'pdf') ? '6' : '0';
+
+        $leftTable = '<table width="100%" cellpadding="' . $cellpad . '" cellspacing="0" style="' . $colTableStyle . '">' .
             '<tr><td colspan="2" style="' . $subHeaderStyle . '">' . self::h($leftTitle) . '</td></tr>' .
             $leftRows .
             '</table>';
 
-        $rightTable = '<table width="100%" cellpadding="4" cellspacing="0" style="' . $colTableStyle . '">' .
+        $rightTable = '<table width="100%" cellpadding="' . $cellpad . '" cellspacing="0" style="' . $colTableStyle . '">' .
             '<tr><td colspan="2" style="' . $subHeaderStyle . '">' . self::h($rightTitle) . '</td></tr>' .
             $rightRows .
             '</table>';
 
+        $gap = ($kind === 'pdf') ? '6px' : '10px';
+
         $nested = '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">' .
             '<tr>' .
-            '<td width="50%" style="vertical-align:top; padding:0 6px 0 0;">' . $leftTable . '</td>' .
-            '<td width="50%" style="vertical-align:top; padding:0 0 0 6px;">' . $rightTable . '</td>' .
+            '<td width="50%" style="vertical-align:top; padding:0 ' . $gap . ' 0 0;">' . $leftTable . '</td>' .
+            '<td width="50%" style="vertical-align:top; padding:0 0 0 ' . $gap . ';">' . $rightTable . '</td>' .
             '</tr>' .
             '</table>';
 
-        $rowFullTpl = self::loadTemplate('pdf', 'row_full');
+        $rowFullTpl = self::loadTemplate($kind, 'row_full');
+
+        // pdf row_full has an extra {{BGCOLOR_ATTR}} token, email row_full does not (safe to replace either way)
         return str_replace(
             ['{{BGCOLOR_ATTR}}', '{{STYLE}}', '{{CONTENT}}'],
             ['', 'padding:4px 6px;', $nested],
@@ -454,6 +462,36 @@ class EmailPrintTemplate
         return '<tr>' . implode('', $tds) . '</tr>';
     }
 
+    private static function renderWaitlistFourColRow(string $kind, array $cells, array $data): string
+    {
+        // $cells: [ [field|null, labelHtmlOverride], ... ] (4 items)
+        $cellStyle = self::waitlistCellStyle($kind);
+        $w = '25%';
+
+        $tds = [];
+        for ($i = 0; $i < 4; $i++) {
+            $field = $cells[$i][0] ?? null;
+            $labelHtml = $cells[$i][1] ?? '';
+            $html = '&nbsp;';
+            if (is_array($field)) {
+                $label = $labelHtml !== '' ? $labelHtml : self::rowLabel($field);
+                $html = self::waitlistInlineLabelValue($label, self::waitlistFieldValueHtml($field, $data));
+            }
+            $tds[] = '<td width="' . $w . '" style="' . $cellStyle . '">' . $html . '</td>';
+        }
+
+        return '<tr>' . implode('', $tds) . '</tr>';
+    }
+
+    private static function renderWaitlistFullWidthRowColspan(string $kind, array $field, array $data, int $colspan, string $labelHtml = ''): string
+    {
+        $cellStyle = self::waitlistCellStyle($kind);
+        $label = $labelHtml !== '' ? $labelHtml : self::rowLabel($field);
+        $html = self::waitlistInlineLabelValue($label, self::waitlistFieldValueHtml($field, $data));
+        return '<tr><td colspan="' . (string)$colspan . '" style="' . $cellStyle . '">' . $html . '</td></tr>';
+    }
+
+
     private static function renderWaitlistFullWidthRow(string $kind, array $field, array $data, string $labelHtml = ''): string
     {
         $cellStyle = self::waitlistCellStyle($kind);
@@ -481,6 +519,7 @@ class EmailPrintTemplate
 
         $headerStyle = self::waitlistHeaderCellStyle($kind);
         $cellStyle = self::waitlistCellStyle($kind);
+        $cellStyleNoTop = preg_replace('/border-top:\s*[^;]+;?/', 'border-top:none;', $cellStyle);
 
         $subTitle = self::h('Subsidy / Fee Status');
         $sibTitle = self::h('Sibling at GRASP');
@@ -512,13 +551,13 @@ class EmailPrintTemplate
             '<td width="33.33%" style="' . $headerStyle . '">' . $allTitle . '</td>' .
             '</tr>' .
             '<tr>' .
-            '<td width="33.33%" style="' . $cellStyle . '">' . $subHtml . '</td>' .
-            '<td width="33.33%" style="' . $cellStyle . '">' . $sibHtml . '</td>' .
+            '<td width="33.33%" style="' . $cellStyle . ' border-bottom:none;">' . $subHtml . '</td>' .
+            '<td width="33.33%" style="' . $cellStyle . ' border-bottom:none;">' . $sibHtml . '</td>' .
             '<td width="33.33%" rowspan="2" style="' . $cellStyle . '">' . $allHtml . '</td>' .
             '</tr>' .
             '<tr>' .
-            '<td width="33.33%" style="' . $cellStyle . '">&nbsp;</td>' .
-            '<td width="33.33%" style="' . $cellStyle . '">' . $sibNameHtml . '</td>' .
+            '<td width="33.33%" style="' . $cellStyleNoTop . '">&nbsp;</td>' .
+            '<td width="33.33%" style="' . $cellStyleNoTop . '">' . $sibNameHtml . '</td>' .
             '</tr>' .
             '</table>';
 
@@ -649,16 +688,26 @@ class EmailPrintTemplate
                     continue;
                 }
 
-                // 2) Address: 2-column rows + Home Phone full-width
+                // 2) Address: single 4-field row + Home Phone full-width (saves vertical space)
                 if ($titleTrim === 'Address') {
                     $map = self::mapFieldsByName($fields);
+
+                    $postalLabel = self::h('Home Postal Code (Parent /') . '<br>' . self::h('Guardian 1)');
+
                     $rows = [];
-                    $rows[] = self::renderWaitlistTwoColRow($kind, $map['parent1_home_street'] ?? null, $map['parent1_home_unit'] ?? null, $data);
-                    $rows[] = self::renderWaitlistTwoColRow($kind, $map['parent1_home_city'] ?? null, $map['parent1_postal_code'] ?? null, $data);
+                    $rows[] = self::renderWaitlistFourColRow($kind, [
+                        [$map['parent1_home_street'] ?? null, ''],
+                        [$map['parent1_home_unit'] ?? null, ''],
+                        [$map['parent1_home_city'] ?? null, ''],
+                        [$map['parent1_postal_code'] ?? null, $postalLabel],
+                    ], $data);
+
                     if (isset($map['parent1_phones']) && is_array($map['parent1_phones'])) {
-                        $rows[] = self::renderRows($kind, [$map['parent1_phones']], $data);
+                        $rows[] = self::renderWaitlistFullWidthRowColspan($kind, $map['parent1_phones'], $data, 4);
                     }
-                    $rowsHtml = implode("\n", array_filter($rows, function ($r) { return trim((string)$r) !== ''; }));
+
+                    $rowsHtml = implode("
+", array_filter($rows, function ($r) { return trim((string)$r) !== ''; }));
                     if (trim($rowsHtml) !== '') {
                         $out[] = str_replace(
                             ['{{SECTION_TITLE}}', '{{ROWS}}'],
@@ -711,26 +760,20 @@ class EmailPrintTemplate
                     }
                 }
 
-                // 5) Program Interest: 2 columns row + a single full-width row
+                // 5) Program Interest: 3 columns in a single row
                 if ($titleTrim === 'Program Interest') {
                     $map = self::mapFieldsByName($fields);
-                    $rows = [];
 
-                    $rows[] = self::renderWaitlistTwoColRow($kind,
-                        $map['interested_summer_camp_only'] ?? null,
-                        $map['interested_school_year_only'] ?? null,
-                        $data
-                    );
+                    $row = self::renderWaitlistThreeColRow($kind, [
+                        [$map['interested_summer_camp_only'] ?? null, ''],
+                        [$map['interested_school_year_only'] ?? null, ''],
+                        [$map['interested_both_summer_and_school_year'] ?? null, ''],
+                    ], $data);
 
-                    if (isset($map['interested_both_summer_and_school_year']) && is_array($map['interested_both_summer_and_school_year'])) {
-                        $rows[] = self::renderWaitlistFullWidthRow($kind, $map['interested_both_summer_and_school_year'], $data);
-                    }
-
-                    $rowsHtml = implode("\n", array_filter($rows, function ($r) { return trim((string)$r) !== ''; }));
-                    if (trim($rowsHtml) !== '') {
+                    if (trim($row) !== '') {
                         $out[] = str_replace(
                             ['{{SECTION_TITLE}}', '{{ROWS}}'],
-                            [self::h('Program Interest'), $rowsHtml],
+                            [self::h('Program Interest'), $row],
                             $sectionTpl
                         );
                     }
@@ -739,14 +782,14 @@ class EmailPrintTemplate
             }
 
             // Special case: Waitlist Parents/Guardians.
-            // Email: render as 2 stacked blocks. PDF: render side-by-side to reduce vertical space (closer to original 1-page layout).
-            if (is_string($title) && trim($title) === 'Parents / Guardians') {
+            // Email + PDF: render side-by-side (2 columns) when both parent1_ and parent2_ exist.
+            if ($isWaitlist && is_string($title) && trim($title) === 'Parents / Guardians') {
                 $split = self::splitWaitlistGuardians($fields);
                 if (count($split) > 0) {
 
-                    // PDF-only: two-column layout when both parent1_ and parent2_ exist
-                    if ($kind === 'pdf' && count($split) === 2) {
-                        $rows = self::renderWaitlistGuardiansTwoColPdf($split, $data);
+                    // Two-column layout when both parent1_ and parent2_ exist
+                    if (($kind === 'pdf' || $kind === 'email') && count($split) === 2) {
+                        $rows = self::renderWaitlistGuardiansTwoColPdf($kind, $split, $data);
                         if (trim($rows) !== '') {
                             $out[] = str_replace(
                                 ['{{SECTION_TITLE}}', '{{ROWS}}'],
@@ -757,7 +800,7 @@ class EmailPrintTemplate
                         continue;
                     }
 
-                    // Default: two stacked sections
+                    // Fallback: two stacked sections
                     foreach ($split as $sub) {
                         $rows = self::renderRows($kind, $sub['fields'], $data);
                         if (trim($rows) === '') continue;
