@@ -320,7 +320,7 @@ function updateProgressBar() {
 async function loadConfig() {
   // IMPORTANT: use a relative path so deployments under a subdirectory
   // (e.g. https://greenlandrecreational.com/staging/) resolve correctly.
-  const res = await fetch("config/enrollment-fields.json", {
+  const res = await fetch("../config/enrollment-fields.json", {
     cache: "no-store",
   });
   if (!res.ok) {
@@ -1861,7 +1861,7 @@ async function openPreview() {
  */
 async function submitEnrollment(payload, previewHtml) {
   try {
-    const res = await fetch("api/submit_enrollment.php", {
+    const res = await fetch("../api/submit_enrollment.php", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
