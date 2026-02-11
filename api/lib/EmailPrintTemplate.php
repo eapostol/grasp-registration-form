@@ -9,6 +9,8 @@
 class EmailPrintTemplate
 {
     private static $templateCache = [];
+    private static $currentConfigPath = '';
+    private static $currentFormId = '';
 
     private static function tplPath(string $kind, string $name): string
     {
@@ -355,6 +357,174 @@ class EmailPrintTemplate
         );
     }
 
+    private static function isWaitlistContext(): bool
+    {
+        if (self::$currentFormId !== '' && strtolower(self::$currentFormId) === 'waitlist') return true;
+        if (self::$currentConfigPath !== '' && stripos(self::$currentConfigPath, 'waitlist') !== false) return true;
+        return false;
+    }
+
+    private static function mapFieldsByName(array $fields): array
+    {
+        $map = [];
+        foreach ($fields as $f) {
+            if (!is_array($f)) continue;
+            $name = $f['name'] ?? '';
+            if ($name !== '') $map[$name] = $f;
+        }
+        return $map;
+    }
+
+    private static function waitlistCellStyle(string $kind): string
+    {
+        if ($kind === 'pdf') {
+            return 'border-top:0.5pt solid #333; vertical-align:top;';
+        }
+        return 'padding:7px 10px; border-top:1px solid #333; vertical-align:top;';
+    }
+
+    private static function waitlistHeaderCellStyle(string $kind): string
+    {
+        if ($kind === 'pdf') {
+            return 'background-color:#f3f3f3; font-weight:bold; border-bottom:0.5pt solid #333; vertical-align:top;';
+        }
+        return 'background:#f3f3f3; padding:8px 10px; font-weight:bold; border-bottom:1px solid #333; vertical-align:top;';
+    }
+
+    private static function waitlistInlineLabelValue(string $labelHtml, string $valueHtml): string
+    {
+        // Compact "label ... value" within a single cell (value aligned right).
+        return '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">' .
+            '<tr>' .
+            '<td style="font-weight:bold; vertical-align:top;">' . $labelHtml . '</td>' .
+            '<td style="text-align:right; vertical-align:top;">' . $valueHtml . '</td>' .
+            '</tr>' .
+            '</table>';
+    }
+
+    private static function waitlistFieldValueHtml(array $field, array $data): string
+    {
+        $key = self::fieldKey($field);
+        if ($key === '') return '<span style="color:#888;">(blank)</span>';
+        $value = $data[$key] ?? '';
+        $value = self::normalizeFieldValue($field, $value);
+        return self::displayValue($value);
+    }
+
+    private static function renderWaitlistTwoColRow(string $kind, ?array $leftField, ?array $rightField, array $data, string $leftLabelHtml = '', string $rightLabelHtml = ''): string
+    {
+        $cellStyle = self::waitlistCellStyle($kind);
+
+        $left = '&nbsp;';
+        if (is_array($leftField)) {
+            $label = $leftLabelHtml !== '' ? $leftLabelHtml : self::rowLabel($leftField);
+            $left = self::waitlistInlineLabelValue($label, self::waitlistFieldValueHtml($leftField, $data));
+        }
+
+        $right = '&nbsp;';
+        if (is_array($rightField)) {
+            $label = $rightLabelHtml !== '' ? $rightLabelHtml : self::rowLabel($rightField);
+            $right = self::waitlistInlineLabelValue($label, self::waitlistFieldValueHtml($rightField, $data));
+        }
+
+        return '<tr>' .
+            '<td width="50%" style="' . $cellStyle . '">' . $left . '</td>' .
+            '<td width="50%" style="' . $cellStyle . '">' . $right . '</td>' .
+            '</tr>';
+    }
+
+    private static function renderWaitlistThreeColRow(string $kind, array $cells, array $data): string
+    {
+        // $cells: [ [field|null, labelHtmlOverride], ... ] (3 items)
+        $cellStyle = self::waitlistCellStyle($kind);
+        $w = '33.33%';
+
+        $tds = [];
+        for ($i = 0; $i < 3; $i++) {
+            $field = $cells[$i][0] ?? null;
+            $labelHtml = $cells[$i][1] ?? '';
+            $html = '&nbsp;';
+            if (is_array($field)) {
+                $label = $labelHtml !== '' ? $labelHtml : self::rowLabel($field);
+                $html = self::waitlistInlineLabelValue($label, self::waitlistFieldValueHtml($field, $data));
+            }
+            $tds[] = '<td width="' . $w . '" style="' . $cellStyle . '">' . $html . '</td>';
+        }
+
+        return '<tr>' . implode('', $tds) . '</tr>';
+    }
+
+    private static function renderWaitlistFullWidthRow(string $kind, array $field, array $data, string $labelHtml = ''): string
+    {
+        $cellStyle = self::waitlistCellStyle($kind);
+        $label = $labelHtml !== '' ? $labelHtml : self::rowLabel($field);
+        $html = self::waitlistInlineLabelValue($label, self::waitlistFieldValueHtml($field, $data));
+        return '<tr><td colspan="2" style="' . $cellStyle . '">' . $html . '</td></tr>';
+    }
+
+    private static function renderWaitlistTrioCompactBox(string $kind, array $subsidySection, array $siblingSection, array $allergySection, array $data): string
+    {
+        $sMap = self::mapFieldsByName($subsidySection['fields'] ?? []);
+        $sibMap = self::mapFieldsByName($siblingSection['fields'] ?? []);
+        $aMap = self::mapFieldsByName($allergySection['fields'] ?? []);
+
+        $subsidy = $sMap['child_subsidy_status'] ?? null;
+        $hasSibling = $sibMap['has_sibling_at_grasp'] ?? null;
+        $sibName = $sibMap['sibling_name'] ?? null;
+        $allergies = $aMap['allergies_special_needs'] ?? null;
+
+        if (!is_array($subsidy) && !is_array($hasSibling) && !is_array($sibName) && !is_array($allergies)) return '';
+
+        $outerStyle = ($kind === 'pdf')
+            ? 'border:0.5pt solid #333; border-collapse:collapse; margin:0 0 10px 0;'
+            : 'border:1px solid #333; border-collapse:collapse; margin:0 0 14px 0;';
+
+        $headerStyle = self::waitlistHeaderCellStyle($kind);
+        $cellStyle = self::waitlistCellStyle($kind);
+
+        $subTitle = self::h('Subsidy / Fee Status');
+        $sibTitle = self::h('Sibling at GRASP');
+        $allTitle = self::h('Allergies / Special Needs');
+
+        // Label overrides (with intentional line breaks)
+        $subLabel = self::h('My Child (has / has not) subsidy in place:');
+        $sibLabel = self::h('My Child has a') . '<br>' . self::h('Sibling at GRASP');
+        $allLabel = self::h('Please list any allergies and/or') . '<br>' .
+            self::h('special needs your child may have') . '<br>' .
+            self::h('or need assistance with');
+
+        $subHtml = is_array($subsidy) ? self::waitlistInlineLabelValue($subLabel, self::waitlistFieldValueHtml($subsidy, $data)) : '&nbsp;';
+        $sibHtml = is_array($hasSibling) ? self::waitlistInlineLabelValue($sibLabel, self::waitlistFieldValueHtml($hasSibling, $data)) : '&nbsp;';
+        $sibNameHtml = is_array($sibName) ? self::waitlistInlineLabelValue(self::rowLabel($sibName), self::waitlistFieldValueHtml($sibName, $data)) : '&nbsp;';
+
+        $allHtml = '&nbsp;';
+        if (is_array($allergies)) {
+            // For long textarea, stack label + value to preserve readability.
+            $allHtml = '<div style="font-weight:bold; margin:0 0 4px 0;">' . $allLabel . '</div>' .
+                self::waitlistFieldValueHtml($allergies, $data);
+        }
+
+        // Outer table: no extra "section title" row (saves vertical space).
+        $tbl = '<table width="100%" cellpadding="' . ($kind === 'pdf' ? '6' : '0') . '" cellspacing="0" style="' . $outerStyle . '">' .
+            '<tr>' .
+            '<td width="33.33%" style="' . $headerStyle . '">' . $subTitle . '</td>' .
+            '<td width="33.33%" style="' . $headerStyle . '">' . $sibTitle . '</td>' .
+            '<td width="33.33%" style="' . $headerStyle . '">' . $allTitle . '</td>' .
+            '</tr>' .
+            '<tr>' .
+            '<td width="33.33%" style="' . $cellStyle . '">' . $subHtml . '</td>' .
+            '<td width="33.33%" style="' . $cellStyle . '">' . $sibHtml . '</td>' .
+            '<td width="33.33%" rowspan="2" style="' . $cellStyle . '">' . $allHtml . '</td>' .
+            '</tr>' .
+            '<tr>' .
+            '<td width="33.33%" style="' . $cellStyle . '">&nbsp;</td>' .
+            '<td width="33.33%" style="' . $cellStyle . '">' . $sibNameHtml . '</td>' .
+            '</tr>' .
+            '</table>';
+
+        return $tbl;
+    }
+
 
     private static function renderRows(string $kind, array $fields, array $data): string
     {
@@ -439,18 +609,134 @@ class EmailPrintTemplate
         return implode("\n", $out);
     }
 
-    private static function renderSections(string $kind, array $sections, array $data): string
+        private static function renderSections(string $kind, array $sections, array $data): string
     {
         $sectionTpl = self::loadTemplate($kind, 'section');
         $out = [];
 
-        foreach ($sections as $section) {
+        $isWaitlist = self::isWaitlistContext();
+
+        // Use an index-based loop so we can "merge" multiple consecutive sections for the Waitlist layout.
+        for ($i = 0; $i < count($sections); $i++) {
+            $section = $sections[$i];
             if (!is_array($section)) continue;
 
             $title = $section['title'] ?? ($section['sectionTitle'] ?? 'Section');
             $fields = $section['fields'] ?? [];
 
             if (!is_array($fields) || count($fields) === 0) continue;
+
+            $titleTrim = is_string($title) ? trim($title) : '';
+
+            // --- WAITLIST-SPECIFIC COMPACT LAYOUTS (email + pdf) ---
+            if ($isWaitlist && $titleTrim !== '') {
+
+                // 1) Child Information: 2 columns per row
+                if ($titleTrim === 'Child Information') {
+                    $map = self::mapFieldsByName($fields);
+                    $rows = [];
+                    $rows[] = self::renderWaitlistTwoColRow($kind, $map['child_name'] ?? null, $map['child_birth_date'] ?? null, $data);
+                    $rows[] = self::renderWaitlistTwoColRow($kind, $map['date_care_needed'] ?? null, $map['date_applied'] ?? null, $data);
+                    $rows[] = self::renderWaitlistTwoColRow($kind, $map['child_gender'] ?? null, $map['subsidy_file_number'] ?? null, $data);
+                    $rowsHtml = implode("\n", array_filter($rows, function ($r) { return trim((string)$r) !== ''; }));
+                    if (trim($rowsHtml) !== '') {
+                        $out[] = str_replace(
+                            ['{{SECTION_TITLE}}', '{{ROWS}}'],
+                            [self::h('Child Information'), $rowsHtml],
+                            $sectionTpl
+                        );
+                    }
+                    continue;
+                }
+
+                // 2) Address: 2-column rows + Home Phone full-width
+                if ($titleTrim === 'Address') {
+                    $map = self::mapFieldsByName($fields);
+                    $rows = [];
+                    $rows[] = self::renderWaitlistTwoColRow($kind, $map['parent1_home_street'] ?? null, $map['parent1_home_unit'] ?? null, $data);
+                    $rows[] = self::renderWaitlistTwoColRow($kind, $map['parent1_home_city'] ?? null, $map['parent1_postal_code'] ?? null, $data);
+                    if (isset($map['parent1_phones']) && is_array($map['parent1_phones'])) {
+                        $rows[] = self::renderRows($kind, [$map['parent1_phones']], $data);
+                    }
+                    $rowsHtml = implode("\n", array_filter($rows, function ($r) { return trim((string)$r) !== ''; }));
+                    if (trim($rowsHtml) !== '') {
+                        $out[] = str_replace(
+                            ['{{SECTION_TITLE}}', '{{ROWS}}'],
+                            [self::h('Address'), $rowsHtml],
+                            $sectionTpl
+                        );
+                    }
+                    continue;
+                }
+
+                // 3) Current Attendance: 3 columns in a single row, shorter labels
+                if ($titleTrim === 'Current Attendance') {
+                    $map = self::mapFieldsByName($fields);
+
+                    $l1 = self::h('Attends day care at') . '<br>' . self::h('the current time:');
+                    $l2 = self::h('Attends this school') . '<br>' . self::h('at the current time:');
+                    $l3 = self::h('Will attend when we') . '<br>' . self::h('require care at GRASP');
+
+                    $row = self::renderWaitlistThreeColRow($kind, [
+                        [$map['currently_attends_daycare'] ?? null, $l1],
+                        [$map['currently_attending_school'] ?? null, $l2],
+                        [$map['will_attend_when_require_care'] ?? null, $l3],
+                    ], $data);
+
+                    if (trim($row) !== '') {
+                        $out[] = str_replace(
+                            ['{{SECTION_TITLE}}', '{{ROWS}}'],
+                            [self::h('Current Attendance - My Child...'), $row],
+                            $sectionTpl
+                        );
+                    }
+                    continue;
+                }
+
+                // 4) Merge: Subsidy / Fee Status + Sibling at GRASP + Allergies / Special Needs into one compact 3-column block
+                if ($titleTrim === 'Subsidy / Fee Status') {
+                    $n1 = $sections[$i + 1] ?? null;
+                    $n2 = $sections[$i + 2] ?? null;
+
+                    $t1 = is_array($n1) ? trim((string)($n1['title'] ?? ($n1['sectionTitle'] ?? ''))) : '';
+                    $t2 = is_array($n2) ? trim((string)($n2['title'] ?? ($n2['sectionTitle'] ?? ''))) : '';
+
+                    if ($t1 === 'Sibling at GRASP' && $t2 === 'Allergies / Special Needs') {
+                        $box = self::renderWaitlistTrioCompactBox($kind, $section, $n1, $n2, $data);
+                        if (trim($box) !== '') {
+                            $out[] = $box;
+                        }
+                        $i += 2; // skip the next 2 sections (merged)
+                        continue;
+                    }
+                }
+
+                // 5) Program Interest: 2 columns row + a single full-width row
+                if ($titleTrim === 'Program Interest') {
+                    $map = self::mapFieldsByName($fields);
+                    $rows = [];
+
+                    $rows[] = self::renderWaitlistTwoColRow($kind,
+                        $map['interested_summer_camp_only'] ?? null,
+                        $map['interested_school_year_only'] ?? null,
+                        $data
+                    );
+
+                    if (isset($map['interested_both_summer_and_school_year']) && is_array($map['interested_both_summer_and_school_year'])) {
+                        $rows[] = self::renderWaitlistFullWidthRow($kind, $map['interested_both_summer_and_school_year'], $data);
+                    }
+
+                    $rowsHtml = implode("\n", array_filter($rows, function ($r) { return trim((string)$r) !== ''; }));
+                    if (trim($rowsHtml) !== '') {
+                        $out[] = str_replace(
+                            ['{{SECTION_TITLE}}', '{{ROWS}}'],
+                            [self::h('Program Interest'), $rowsHtml],
+                            $sectionTpl
+                        );
+                    }
+                    continue;
+                }
+            }
 
             // Special case: Waitlist Parents/Guardians.
             // Email: render as 2 stacked blocks. PDF: render side-by-side to reduce vertical space (closer to original 1-page layout).
@@ -485,6 +771,7 @@ class EmailPrintTemplate
                 }
             }
 
+            // Default rendering
             $contentRows = '';
             if (!empty($section['contentBlocks']) && is_array($section['contentBlocks'])) {
                 $contentRows = self::renderContentBlocks($kind, $section['contentBlocks'], $data);
@@ -504,6 +791,7 @@ class EmailPrintTemplate
         return implode("\n", $out);
     }
 
+
     private static function renderFromConfigInternal(string $kind, string $configPath, array $data, array $meta = []): string
     {
         $data = self::preprocessData($data);
@@ -516,6 +804,9 @@ class EmailPrintTemplate
         if (!is_array($cfg)) {
             throw new Exception("Invalid config JSON: " . $configPath);
         }
+
+        self::$currentConfigPath = $configPath;
+        self::$currentFormId = (string)($cfg['formId'] ?? '');
 
         $formTitle = $meta['formTitle'] ?? ($cfg['title'] ?? ($cfg['formTitle'] ?? 'GRASP Form Submission'));
         $submittedAt = $meta['submittedAt'] ?? date('F j, Y, g:i a');
