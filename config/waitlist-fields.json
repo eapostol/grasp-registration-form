@@ -39,7 +39,7 @@
             },
             {
               "name": "child_gender",
-              "label": "Circle: Male or Female",
+              "label": "Gender",
               "type": "radio",
               "required": false,
               "options": [
