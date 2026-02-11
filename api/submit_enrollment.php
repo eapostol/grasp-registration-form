@@ -256,7 +256,51 @@ if ($pdfTmpPath && file_exists($pdfTmpPath)) {
 
 $message .= '--' . $boundary . "--\r\n";
 
-$success = @mail($to, $subject, $message, implode("\r\n", $headersMixed));
+
+// Build headers string once
+$headersStr = implode("\r\n", $headersMixed);
+
+// Try to set an envelope-from for better deliverability (mirrors waitlist endpoint).
+// Extract a plain email address from $from (supports "Name <email@domain>").
+$envFrom = '';
+if (preg_match('/<([^>]+)>/', $from, $m)) {
+    $envFrom = trim($m[1]);
+} else {
+    $envFrom = trim($from);
+}
+$envFrom = preg_replace("/[\r\n]+/", "", $envFrom);
+if (!filter_var($envFrom, FILTER_VALIDATE_EMAIL)) {
+    $envFrom = '';
+}
+
+$success = false;
+$envFromUsed = 0;
+$mailError = '';
+
+if ($envFrom !== '') {
+    $envFromUsed = 1;
+    $success = @mail($to, $subject, $message, $headersStr, "-f $envFrom");
+    if (!$success) {
+        $last = error_get_last();
+        if (is_array($last) && isset($last['message'])) {
+            $mailError = (string) $last['message'];
+        }
+        // Fallback: retry without additional parameters
+        $envFromUsed = 0;
+        $success = @mail($to, $subject, $message, $headersStr);
+    }
+}
+
+if (!$success && $envFrom === '') {
+    $success = @mail($to, $subject, $message, $headersStr);
+}
+
+if (!$success && $mailError === '') {
+    $last = error_get_last();
+    if (is_array($last) && isset($last['message'])) {
+        $mailError = (string) $last['message'];
+    }
+}
 
 // Optional: log outcome while debugging on staging
 
@@ -267,6 +311,8 @@ $logFile = __DIR__ . '/../submit_enrollment.log';
     . ' host=' . ($_SERVER['HTTP_HOST'] ?? '')
     . ' uri='  . ($_SERVER['REQUEST_URI'] ?? '')
     . ' success=' . var_export($success, true)
+    . ' envFromUsed=' . var_export($envFromUsed, true)
+    . ' mailError=' . ($mailError !== '' ? $mailError : '-')
     . ' dbSaved=' . var_export($dbSaved, true)
     . ' to=' . $to
     . PHP_EOL,
@@ -276,6 +322,8 @@ $logFile = __DIR__ . '/../submit_enrollment.log';
 
 echo json_encode([
     'success' => (bool) $success,
+    'envFromUsed' => $envFromUsed,
+    'mailError' => $mailError,
     'dbSaved' => $dbSaved,
 ]);
 
