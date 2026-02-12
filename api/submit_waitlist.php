@@ -61,6 +61,23 @@ if ($childName !== '') {
 
 // HTML body: server-rendered, Gmail-safe print layout (PDF-like)
 $data = (isset($payload['data']) && is_array($payload['data'])) ? $payload['data'] : [];
+
+// Normalize "Current Attendance" sentence fields:
+// They are treated as required on the front-end, but if left blank we store "none"
+foreach (['currently_attends_daycare', 'currently_attending_school', 'will_attend_when_require_care'] as $k) {
+  if (!isset($data[$k])) {
+    $data[$k] = 'none';
+    continue;
+  }
+  $v = $data[$k];
+  if (is_bool($v)) {
+    $data[$k] = $v ? 'yes' : 'none';
+    continue;
+  }
+  $s = trim((string)$v);
+  if ($s === '') $data[$k] = 'none';
+}
+
 $configPath = realpath(__DIR__ . '/../config/waitlist-fields.json');
 $emailHtml = '';
 $pdfHtml = '';

@@ -104,7 +104,38 @@
     `;
   }
 
-  function renderTwoCol(leftHtml, rightHtml) {
+  
+  function safeNone(v) {
+    const s = (v === null || typeof v === "undefined") ? "" : String(v);
+    return s.trim() === "" ? "none" : s;
+  }
+
+  function renderInlineBlank(value, minWidthPx = 220) {
+    const safeValue = escapeHtml(safeNone(value));
+    return `<span style="display:inline-block; min-width:${minWidthPx}px; border-bottom:1px solid #999; padding:0 4px;">${safeValue || "&nbsp;"}</span>`;
+  }
+
+  function renderSentenceLineParts(parts) {
+    // parts: [{text:"..."}, {value: "...", width: 220}, ...]
+    const html = parts
+      .map((p) => {
+        if (p && Object.prototype.hasOwnProperty.call(p, "value")) {
+          return renderInlineBlank(p.value, p.width || 220);
+        }
+        const t = escapeHtml((p && p.text) ? p.text : "");
+        const isStrong = !!(p && p.strong);
+        return `<span${isStrong ? ' style="font-weight:600;"' : ""}>${t}</span>`;
+      })
+      .join(" ");
+
+    return `
+      <div class="grasp-line-field grasp-wide" style="display:flex; flex-wrap:wrap; gap:6px; align-items:baseline;">
+        ${html}
+      </div>
+    `;
+  }
+
+function renderTwoCol(leftHtml, rightHtml) {
     return `
       <div class="grasp-two-col">
         <div class="grasp-col">${leftHtml}</div>
@@ -1496,10 +1527,19 @@ an updated immunization record must be attached to thisform. </em>
         ${renderTwoCol(p1, p2)}
 
         <div class="grasp-subsection">
-          <div class="grasp-subtitle">Current care / school</div>
-          ${renderLineField("My child attends day care and is attending", currentlyDaycare, { wide: true })}
-          ${renderLineField("My child is attending school at", currentlySchool, { wide: true })}
-          ${renderLineField("My child will attend", willAttendWhen, { wide: true })}
+          <div class="grasp-subtitle">Current Attendance - My Child...</div>
+          ${renderSentenceLineParts([
+            { text: "My child attends", strong: true },
+            { value: currentlyDaycare, width: 220 },
+            { text: "day care at the current time. My child is attending" },
+            { value: currentlySchool, width: 220 },
+            { text: "at the current time." }
+          ])}
+          ${renderSentenceLineParts([
+            { text: "My child will attend", strong: true },
+            { value: willAttendWhen, width: 220 },
+            { text: "when we require care at GRASP." }
+          ])}
         </div>
 
         <div class="grasp-subsection">
