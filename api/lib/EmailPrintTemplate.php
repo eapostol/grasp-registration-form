@@ -963,12 +963,16 @@ $content = self::renderSections($kind, $sections, $data, $meta);
   }
 
 
-  private static function renderWaitlistKeyValueTable(string $kind, array $fields, array $data, array $opts = []): string {
-    $pad = ($kind === 'pdf') ? '2px 6px' : '4px 8px';
-    $labelW = isset($opts['labelWidth']) ? (int)$opts['labelWidth'] : 58;
+    private static function renderWaitlistKeyValueTable(string $kind, array $fields, array $data, array $opts = []): string {
+    $pad = ($kind === 'pdf') ? '2px 8px' : '4px 8px';
+
+    // Match the standard PDF row proportions (label ~38% / value ~62%) and improve readability.
+    $labelW = isset($opts['labelWidth']) ? (int)$opts['labelWidth'] : 38;
     $valueW = 100 - $labelW;
 
     $valueAlignByKey = (isset($opts['valueAlignByKey']) && is_array($opts['valueAlignByKey'])) ? $opts['valueAlignByKey'] : [];
+    $defaultAlign = isset($opts['defaultValueAlign']) ? (string)$opts['defaultValueAlign'] : 'left';
+    if ($defaultAlign !== 'left' && $defaultAlign !== 'right' && $defaultAlign !== 'center') $defaultAlign = 'left';
 
     // For long-form fields (e.g., allergies), render label and value stacked to reduce wrapping.
     $stackKeys = (isset($opts['stackKeys']) && is_array($opts['stackKeys'])) ? $opts['stackKeys'] : [];
@@ -1001,8 +1005,8 @@ $content = self::renderSections($kind, $sections, $data, $meta);
         continue;
       }
 
-      $align = isset($valueAlignByKey[$key]) ? (string)$valueAlignByKey[$key] : 'right';
-      if ($align !== 'left' && $align !== 'right' && $align !== 'center') $align = 'right';
+      $align = isset($valueAlignByKey[$key]) ? (string)$valueAlignByKey[$key] : $defaultAlign;
+      if ($align !== 'left' && $align !== 'right' && $align !== 'center') $align = $defaultAlign;
 
       $rows[] = '<tr>'
         . '<td style="width:' . $labelW . '%; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . $label . '</td>'
@@ -1013,34 +1017,46 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     if (count($rows) === 0) return '';
 
     return '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
-      . implode("
-", $rows)
+      . implode("\n", $rows)
       . '</table>';
   }
 
-  private static function renderWaitlistTwoColumnBox(string $kind, string $leftTitle, array $leftFields, string $rightTitle, array $rightFields, array $data, array $opts = []): string {
+
+    private static function renderWaitlistTwoColumnBox(string $kind, string $leftTitle, array $leftFields, string $rightTitle, array $rightFields, array $data, array $opts = []): string {
     $b = self::borderAll($kind);
     $bg = '#f3f3f3';
     $headPad = ($kind === 'pdf') ? '6px 8px' : '8px 10px';
     $margin = ($kind === 'pdf') ? '0 0 6px 0' : '0 0 14px 0';
     $nobr = ($kind === 'pdf') ? ' nobr="true"' : '';
 
+    // Defaults for compact column blocks: left-aligned values + standard proportions.
+    $opts = array_merge(['defaultValueAlign' => 'left', 'labelWidth' => 38], $opts);
+
     $leftTable = self::renderWaitlistKeyValueTable($kind, $leftFields, $data, $opts);
     $rightTable = self::renderWaitlistKeyValueTable($kind, $rightFields, $data, $opts);
 
+    // Match section heading style; remove internal divider line; reinforce outer borders for TCPDF.
+    $headCommon = 'background-color:' . $bg . '; padding:' . $headPad . '; font-weight:bold; border-bottom:' . $b . ';';
+    $headLeft = $headCommon . ' border-left:' . $b . '; border-top:' . $b . ';';
+    $headRight = $headCommon . ' border-right:' . $b . '; border-top:' . $b . ';';
+
+    // Add a small gutter between columns without drawing a divider.
+    $gutter = ($kind === 'pdf') ? '6px' : '10px';
+
     return '<table' . $nobr . ' width="100%" cellpadding="0" cellspacing="0" style="border:' . $b . '; border-collapse:collapse; margin:' . $margin . ';">'
       . '<tr>'
-        . '<td width="50%" style="background:' . $bg . '; padding:' . $headPad . '; font-weight:bold; border-bottom:' . $b . '; border-right:' . $b . ';">' . self::h($leftTitle) . '</td>'
-        . '<td width="50%" style="background:' . $bg . '; padding:' . $headPad . '; font-weight:bold; border-bottom:' . $b . ';">' . self::h($rightTitle) . '</td>'
+        . '<td width="50%" style="' . $headLeft . '">' . self::h($leftTitle) . '</td>'
+        . '<td width="50%" style="' . $headRight . '">' . self::h($rightTitle) . '</td>'
       . '</tr>'
       . '<tr>'
-        . '<td width="50%" style="vertical-align:top; padding:0; border-right:' . $b . ';">' . $leftTable . '</td>'
-        . '<td width="50%" style="vertical-align:top; padding:0;">' . $rightTable . '</td>'
+        . '<td width="50%" style="vertical-align:top; padding:0 ' . $gutter . ' 0 0; border-left:' . $b . ';">' . $leftTable . '</td>'
+        . '<td width="50%" style="vertical-align:top; padding:0 0 0 ' . $gutter . '; border-right:' . $b . ';">' . $rightTable . '</td>'
       . '</tr>'
     . '</table>';
   }
 
-  private static function renderWaitlistThreeColumnBox(string $kind, array $cols, array $data, array $opts = []): string {
+
+    private static function renderWaitlistThreeColumnBox(string $kind, array $cols, array $data, array $opts = []): string {
     // $cols: [ ['title'=>..., 'fields'=>...], ... ] expected 3
     $b = self::borderAll($kind);
     $bg = '#f3f3f3';
@@ -1050,13 +1066,24 @@ $content = self::renderSections($kind, $sections, $data, $meta);
 
     $w = [34, 33, 33];
 
+    // Section-heading style (no internal column dividers)
+    $headCommon = 'background-color:' . $bg . '; padding:' . $headPad . '; font-weight:bold; border-bottom:' . $b . ';';
     $head = '<tr>';
     for ($i = 0; $i < 3; $i++) {
       $title = $cols[$i]['title'] ?? ('Column ' . ($i+1));
-      $right = ($i < 2) ? ' border-right:' . $b . ';' : '';
-      $head .= '<td width="' . $w[$i] . '%" style="background:' . $bg . '; padding:' . $headPad . '; font-weight:bold; border-bottom:' . $b . ';' . $right . '">' . self::h((string)$title) . '</td>';
+      $style = $headCommon;
+
+      // Reinforce only OUTER borders (avoid internal vertical lines)
+      if ($i === 0) $style .= ' border-left:' . $b . '; border-top:' . $b . ';';
+      if ($i === 2) $style .= ' border-right:' . $b . '; border-top:' . $b . ';';
+
+      $head .= '<td width="' . $w[$i] . '%" style="' . $style . '">' . self::h((string)$title) . '</td>';
     }
     $head .= '</tr>';
+
+    // Gutters between columns without dividers
+    $g = ($kind === 'pdf') ? '6px' : '10px';
+    $pads = ['0 ' . $g . ' 0 0', '0 ' . $g . ' 0 ' . $g, '0 0 0 ' . $g];
 
     $body = '<tr>';
     for ($i = 0; $i < 3; $i++) {
@@ -1069,9 +1096,16 @@ $content = self::renderSections($kind, $sections, $data, $meta);
         $colOpts = array_merge($colOpts, $cols[$i]['opts']);
       }
 
+      // Defaults for compact columns: left-aligned values + standard proportions.
+      $colOpts = array_merge(['defaultValueAlign' => 'left', 'labelWidth' => 38], $colOpts);
+
       $table = self::renderWaitlistKeyValueTable($kind, $fields, $data, $colOpts);
-      $right = ($i < 2) ? ' border-right:' . $b . ';' : '';
-      $body .= '<td width="' . $w[$i] . '%" style="vertical-align:top; padding:0;' . $right . '">' . $table . '</td>';
+
+      $style = 'vertical-align:top; padding:' . $pads[$i] . ';';
+      if ($i === 0) $style .= ' border-left:' . $b . ';';
+      if ($i === 2) $style .= ' border-right:' . $b . ';';
+
+      $body .= '<td width="' . $w[$i] . '%" style="' . $style . '">' . $table . '</td>';
     }
     $body .= '</tr>';
 
@@ -1080,4 +1114,5 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       . $body
       . '</table>';
   }
+
 }
