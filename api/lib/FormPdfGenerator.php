@@ -16,7 +16,7 @@ class FormPdfGenerator
      * @param string $filenameBase (no extension)
      * @return array{path:string, filename:string}
      */
-    public static function generateFromHtml(string $title, string $htmlBody, string $filenameBase): array
+    public static function generateFromHtml(string $title, string $htmlBody, string $filenameBase, array $opts = []): array
     {
         $autoload = __DIR__ . '/../vendor/autoload.php';
         if (!file_exists($autoload)) {
@@ -39,9 +39,17 @@ class FormPdfGenerator
         $pdf->setPrintFooter(false);
 
         // Comfortable margins similar to print preview
-        $pdf->SetMargins(12, 12, 12);
-        $pdf->SetAutoPageBreak(true, 12);
-        $pdf->SetFont('helvetica', '', 10);
+        // Waitlist-only compaction profile: keep output to one page where possible
+        $profile = isset($opts['profile']) ? (string)$opts['profile'] : '';
+        if ($profile === 'waitlist') {
+            $pdf->SetMargins(10, 10, 10);
+            $pdf->SetAutoPageBreak(true, 10);
+            $pdf->SetFont('helvetica', '', 9.5);
+        } else {
+            $pdf->SetMargins(12, 12, 12);
+            $pdf->SetAutoPageBreak(true, 12);
+            $pdf->SetFont('helvetica', '', 10);
+        }
 
         $pdf->AddPage();
 

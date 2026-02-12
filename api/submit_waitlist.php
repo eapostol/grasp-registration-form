@@ -82,9 +82,9 @@ $configPath = realpath(__DIR__ . '/../config/waitlist-fields.json');
 $emailHtml = '';
 $pdfHtml = '';
 if ($configPath) {
-  $emailHtml = EmailPrintTemplate::renderFromConfig($configPath, $data, ['formTitle' => 'GRASP Wait List Application']);
+  $emailHtml = EmailPrintTemplate::renderFromConfig($configPath, $data, ['formTitle' => 'GRASP Wait List Application', 'templateProfile' => 'waitlist']);
   // PDF attachments should use the TCPDF-friendly template skin.
-  $pdfHtml = EmailPrintTemplate::renderPdfFromConfig($configPath, $data, ['formTitle' => 'GRASP Wait List Application']);
+  $pdfHtml = EmailPrintTemplate::renderPdfFromConfig($configPath, $data, ['formTitle' => 'GRASP Wait List Application', 'templateProfile' => 'waitlist']);
 }
 if ($emailHtml === '') {
   $emailHtml = '<h3>GRASP Wait List Application</h3><pre>' . htmlspecialchars(json_encode($data, JSON_PRETTY_PRINT)) . '</pre>';
@@ -103,7 +103,7 @@ $pdfBody = '<!doctype html><html><head><meta charset="utf-8"></head><body>' . $p
 $pdfTmpPath = null;
 $pdfFilename = 'GRASP-Waitlist.pdf';
 try {
-  $pdfInfo = FormPdfGenerator::generateFromHtml('GRASP Wait List Application', $pdfBody, 'GRASP-Waitlist-' . ($childName ?: date('Ymd-His')));
+  $pdfInfo = FormPdfGenerator::generateFromHtml('GRASP Wait List Application', $pdfBody, 'GRASP-Waitlist-' . ($childName ?: date('Ymd-His')), ['profile' => 'waitlist']);
   $pdfTmpPath = $pdfInfo['path'] ?? null;
   $pdfFilename = $pdfInfo['filename'] ?? $pdfFilename;
 } catch (Throwable $e) {
