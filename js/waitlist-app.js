@@ -812,81 +812,21 @@ Notes:
     }
   }
 
-  
-  function renderCurrentAttendanceSentence(fields) {
-    const wrap = document.createElement("div");
-    wrap.className = "grasp-field";
-    wrap.style.marginTop = "6px";
-
-    // map fields by name
-    const byName = {};
-    (fields || []).forEach((f) => {
-      if (f && f.name) byName[f.name] = f;
-    });
-
-    const fDaycare = byName["currently_attends_daycare"];
-    const fSchool = byName["currently_attending_school"];
-    const fWill = byName["will_attend_when_require_care"];
-
-    const line = document.createElement("div");
-    line.style.lineHeight = "1.9";
-    line.style.display = "block";
-
-    function makeInlineInput(field, widthPx) {
-      const input = createInput(field);
-      input.classList.add("grasp-input");
-      input.style.display = "inline-block";
-      input.style.width = (widthPx || 260) + "px";
-      input.style.margin = "0 8px";
-      input.style.verticalAlign = "baseline";
-      input.setAttribute("aria-label", field.label || field.name || "");
-      return input;
+  function waitlistAttendanceInlineNote(fieldName) {
+    switch (fieldName) {
+      case "currently_attends_daycare":
+        return "day care at the current time.";
+      case "currently_attending_school":
+        return "at the current time.";
+      case "will_attend_when_require_care":
+        return "when we require care at GRASP.";
+      default:
+        return "";
     }
-
-    function addErrorDiv(fieldName) {
-      const err = document.createElement("div");
-      err.className = "grasp-error";
-      err.id = `err_${fieldName}`;
-      err.style.display = "none";
-      wrap.appendChild(err);
-    }
-
-    // Sentence 1
-    const s1 = document.createElement("div");
-    s1.style.marginBottom = "6px";
-    s1.appendChild(document.createTextNode("My child attends"));
-    if (fDaycare) {
-      s1.appendChild(makeInlineInput(fDaycare, 260));
-      addErrorDiv(fDaycare.name);
-    }
-    s1.appendChild(document.createTextNode("day care at the current time."));
-    wrap.appendChild(s1);
-
-    // Sentence 2
-    const s2 = document.createElement("div");
-    s2.style.marginBottom = "6px";
-    s2.appendChild(document.createTextNode("My child is attending"));
-    if (fSchool) {
-      s2.appendChild(makeInlineInput(fSchool, 260));
-      addErrorDiv(fSchool.name);
-    }
-    s2.appendChild(document.createTextNode("at the current time."));
-    wrap.appendChild(s2);
-
-    // Sentence 3
-    const s3 = document.createElement("div");
-    s3.appendChild(document.createTextNode("My child will attend"));
-    if (fWill) {
-      s3.appendChild(makeInlineInput(fWill, 260));
-      addErrorDiv(fWill.name);
-    }
-    s3.appendChild(document.createTextNode("when we require care at GRASP."));
-    wrap.appendChild(s3);
-
-    return wrap;
   }
 
-function renderField(field) {
+
+  function renderField(field) {
     const wrap = document.createElement("div");
     wrap.className = "grasp-field";
 
@@ -903,6 +843,17 @@ function renderField(field) {
 
     wrap.appendChild(label);
     wrap.appendChild(input);
+
+    // Waitlist: add sentence-style inline notes under Current Attendance inputs
+    const noteText = waitlistAttendanceInlineNote(field.name);
+    if (noteText) {
+      const note = document.createElement("div");
+      // Reuse label styling so it matches the bold label look
+      note.className = "grasp-label grasp-inline-note";
+      note.innerHTML = '<strong>' + noteText + '</strong>';
+      wrap.appendChild(note);
+    }
+
     wrap.appendChild(err);
 
     return wrap;
@@ -986,26 +937,6 @@ function renderField(field) {
     scheduleDraftSave();
   }
 
-  function normalizeWaitlistAttendanceDefaults() {
-    // These 3 fields are treated as required, but if left blank we default to "none"
-    const keys = [
-      "currently_attends_daycare",
-      "currently_attending_school",
-      "will_attend_when_require_care",
-    ];
-
-    for (const key of keys) {
-      const raw = window.formState[key];
-      const val = (raw === null || raw === undefined) ? "" : String(raw);
-      if (val.trim() === "") {
-        window.formState[key] = "none";
-        const el = document.getElementById(`fld_${key}`);
-        if (el && typeof el.value !== "undefined") el.value = "none";
-      }
-    }
-  }
-
-
   // -----------------------------
   // Validation
   // -----------------------------
@@ -1046,7 +977,6 @@ function renderField(field) {
   }
 
   function validateCurrentStep() {
-    normalizeWaitlistAttendanceDefaults();
     const step = window.config.steps[window.currentStepIndex];
     let ok = true;
     for (const group of step.groups) {
@@ -1188,7 +1118,6 @@ function renderField(field) {
     return parts.join('');
   }
   function openPreview() {
-    normalizeWaitlistAttendanceDefaults();
     // Validate all steps before preview
     if (!validateAllSteps()) {
       // Also validate the current step to show inline errors
