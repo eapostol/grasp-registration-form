@@ -1212,10 +1212,10 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       ['Postal Code', 'parent1_postal_code', 'parent2_postal_code'],
       ['Cell and Home #', 'parent1_phones', 'parent2_phones'],
       ['Work / School Street Address', 'parent1_work_street', 'parent2_work_street'],
-      ['Parent Work/School Unit / Suite / Extra', 'parent1_work_unit', 'parent2_work_unit'],
-      ['Work/School City', 'parent1_work_city', 'parent2_work_city'],
-      ['Work/School Province/Territory', 'parent1_work_province', 'parent2_work_province'],
-      ['Work/School Phone #', 'parent1_work_phone', 'parent2_work_phone'],
+      ['Work / School Unit / Suite / Extra', 'parent1_work_unit', 'parent2_work_unit'],
+      ['Work / School City', 'parent1_work_city', 'parent2_work_city'],
+      ['Work / School Province/Territory', 'parent1_work_province', 'parent2_work_province'],
+      ['Work / School Phone #', 'parent1_work_phone', 'parent2_work_phone'],
     ];
 
     $b = self::borderTop($kind);
