@@ -671,24 +671,9 @@ private static function renderRows(string $kind, array $fields, array $data): st
                     $vSchool  = ($vSchool === '' ? 'none' : $vSchool);
                     $vWill    = ($vWill === '' ? 'none' : $vWill);
 
-                    $row1 = self::renderWaitlistSentenceFullRow(
-                        $kind,
-                        'My child attends ',
-                        $vDaycare,
-                        ' day care at the current time. My child is attending ',
-                        $vSchool,
-                        ' at the current time.'
-                    );
-
-                    $row2 = self::renderWaitlistSentenceSingleValueRow(
-                        $kind,
-                        'My child will attend ',
-                        $vWill,
-                        ' when we require care at GRASP.'
-                    );
-
-                    $rowsHtml = trim($row1 . "
-" . $row2);
+                    // Render as a single, compact sentence row.
+                    // Values are underlined; "when we require care at GRASP" is bold.
+                    $rowsHtml = self::renderWaitlistCurrentAttendanceOneRow($kind, $vDaycare, $vSchool, $vWill);
                     if (trim($rowsHtml) !== '') {
                         $out[] = str_replace(
                             ['{{SECTION_TITLE}}', '{{ROWS}}'],
@@ -973,6 +958,40 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     return '<tr><td colspan="2" style="padding:7px 10px; border-top:'.$b.'; vertical-align:top;">'.$content.'</td></tr>';
   }
 
+  // Waitlist Current Attendance: render as a single compact sentence row (email + PDF)
+  // - Underline all field values
+  // - Bold the "when we require care at GRASP" phrase
+  // - Reduce font-size slightly so the full sentence fits on one row when possible
+  private static function renderWaitlistCurrentAttendanceOneRow(
+    string $kind,
+    string $daycare,
+    string $school,
+    string $willAttend
+  ): string {
+    $b = self::borderTop($kind);
+
+    $daycare = self::h(trim($daycare) === '' ? 'none' : $daycare);
+    $school  = self::h(trim($school) === '' ? 'none' : $school);
+    $will    = self::h(trim($willAttend) === '' ? 'none' : $willAttend);
+
+    $fs = ($kind === 'pdf') ? '8.4pt' : '12px';
+    $lh = ($kind === 'pdf') ? '1.08' : '1.15';
+
+    $u1 = '<u><b>' . $daycare . '</b></u>';
+    $u2 = '<u><b>' . $school  . '</b></u>';
+    $u3 = '<u><b>' . $will    . '</b></u>';
+
+    $content = ''
+      . '<span style="font-size:' . $fs . '; line-height:' . $lh . ';">'
+        . '<span style="font-weight:bold;">My child attends </span>' . $u1
+        . '<span style="font-weight:bold;"> day care at the current time. My child is attending </span>' . $u2
+        . '<span style="font-weight:bold;"> at the current time. My child will attend </span>' . $u3
+        . '<span style="font-weight:bold;"> when we require care at GRASP.</span>'
+      . '</span>';
+
+    return '<tr><td colspan="2" style="padding:7px 10px; border-top:' . $b . '; vertical-align:top;">' . $content . '</td></tr>';
+  }
+
 
 
 
@@ -997,6 +1016,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     // Reduce font-size for a couple of very long labels in compact blocks (email + PDF).
     $smallLabelKeys = [
       'has_sibling_at_grasp' => true,
+      'sibling_name' => true,
       'allergies_special_needs' => true,
     ];
     $stackKeys = (isset($opts['stackKeys']) && is_array($opts['stackKeys'])) ? $opts['stackKeys'] : [];
@@ -1017,6 +1037,16 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       $val = self::normalizeFieldValue($field, $val);
 
       $label = self::rowLabel($field); // already escaped
+
+      // TCPDF quirk: padding on nested tables/cells can be inconsistently applied.
+      // For the left-most compact blocks, we optionally prefix labels with NBSPs to
+      // ensure a visible inset from the left border in the PDF.
+      if ($kind === 'pdf') {
+        $nbspCount = isset($opts['leftPadNbsp']) ? (int)$opts['leftPadNbsp'] : 0;
+        if ($nbspCount > 0) {
+          $label = str_repeat('&nbsp;', $nbspCount) . $label;
+        }
+      }
       $valueHtml = self::displayValue($val);
 
       if (isset($stackSet[$key]) && $stackSet[$key]) {
@@ -1060,13 +1090,20 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     // Defaults for compact column blocks: left-aligned values + standard proportions.
     $opts = array_merge(['defaultValueAlign' => 'left', 'labelWidth' => 38], $opts);
 
-    $leftTable = self::renderWaitlistKeyValueTable($kind, $leftFields, $data, $opts);
+    // PDF-only: the left-most compact block can crowd the left border in TCPDF.
+    // Use NBSP-prefixed labels for the left table only to guarantee a visible inset.
+    $leftOpts = $opts;
+    if ($kind === 'pdf') {
+      $leftOpts['leftPadNbsp'] = 4;
+    }
+
+    $leftTable = self::renderWaitlistKeyValueTable($kind, $leftFields, $data, $leftOpts);
     $rightTable = self::renderWaitlistKeyValueTable($kind, $rightFields, $data, $opts);
 
     // Match section heading style (same as section.html).
     // No explicit left/right borders on header cells to avoid heavy vertical lines.
     $headCommon = 'background-color:' . $bg . '; padding:' . $headPad . '; font-weight:bold; border-bottom:' . $b . ';';
-    $headLeft = $headCommon;
+    $headLeft = $headCommon . (($kind === 'pdf') ? ' padding-left:12pt;' : '');
     $headRight = $headCommon;
 
     // Add outer padding + a small inner gutter between columns (no divider line).
@@ -1075,7 +1112,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
 
     return '<table' . $nobr . ' width="100%" cellpadding="0" cellspacing="0" style="border:' . $b . '; border-collapse:collapse; margin:' . $margin . ';">'
       . '<tr>'
-        . '<td width="50%" style="' . $headLeft . '">' . self::h($leftTitle) . '</td>'
+        . '<td width="50%" style="' . $headLeft . '">' . (($kind === 'pdf') ? '&nbsp;&nbsp;' : '') . self::h($leftTitle) . '</td>'
         . '<td width="50%" style="' . $headRight . '">' . self::h($rightTitle) . '</td>'
       . '</tr>'
       . '<tr>'
@@ -1102,6 +1139,12 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     for ($i = 0; $i < 3; $i++) {
       $title = $cols[$i]['title'] ?? ('Column ' . ($i+1));
       $style = $headCommon;
+
+      // PDF-only: add a touch more left padding for the left-most header to avoid
+      // crowding against the outer border.
+      if ($kind === 'pdf' && $i === 0) {
+        $style .= ' padding-left:12pt;';
+      }
 
       // No explicit left/right borders on header cells (match section header styling).
       // The table's outer border provides the frame.
@@ -1132,6 +1175,12 @@ $content = self::renderSections($kind, $sections, $data, $meta);
 
       // Defaults for compact columns: left-aligned values + standard proportions.
       $colOpts = array_merge(['defaultValueAlign' => 'left', 'labelWidth' => 38], $colOpts);
+
+      // PDF-only: the left-most compact block can crowd the left border in TCPDF.
+      // Prefix labels with NBSPs to guarantee a visible inset.
+      if ($kind === 'pdf' && $i === 0) {
+        $colOpts['leftPadNbsp'] = 4;
+      }
 
       $table = self::renderWaitlistKeyValueTable($kind, $fields, $data, $colOpts);
 
