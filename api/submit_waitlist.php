@@ -61,13 +61,30 @@ if ($childName !== '') {
 
 // HTML body: server-rendered, Gmail-safe print layout (PDF-like)
 $data = (isset($payload['data']) && is_array($payload['data'])) ? $payload['data'] : [];
+
+// Normalize "Current Attendance" sentence fields:
+// They are treated as required on the front-end, but if left blank we store "none"
+foreach (['currently_attends_daycare', 'currently_attending_school', 'will_attend_when_require_care'] as $k) {
+  if (!isset($data[$k])) {
+    $data[$k] = 'none';
+    continue;
+  }
+  $v = $data[$k];
+  if (is_bool($v)) {
+    $data[$k] = $v ? 'yes' : 'none';
+    continue;
+  }
+  $s = trim((string)$v);
+  if ($s === '') $data[$k] = 'none';
+}
+
 $configPath = realpath(__DIR__ . '/../config/waitlist-fields.json');
 $emailHtml = '';
 $pdfHtml = '';
 if ($configPath) {
-  $emailHtml = EmailPrintTemplate::renderFromConfig($configPath, $data, ['formTitle' => 'GRASP Wait List Application']);
+  $emailHtml = EmailPrintTemplate::renderFromConfig($configPath, $data, ['formTitle' => 'GRASP Wait List Application', 'templateProfile' => 'waitlist']);
   // PDF attachments should use the TCPDF-friendly template skin.
-  $pdfHtml = EmailPrintTemplate::renderPdfFromConfig($configPath, $data, ['formTitle' => 'GRASP Wait List Application']);
+  $pdfHtml = EmailPrintTemplate::renderPdfFromConfig($configPath, $data, ['formTitle' => 'GRASP Wait List Application', 'templateProfile' => 'waitlist']);
 }
 if ($emailHtml === '') {
   $emailHtml = '<h3>GRASP Wait List Application</h3><pre>' . htmlspecialchars(json_encode($data, JSON_PRETTY_PRINT)) . '</pre>';
@@ -86,7 +103,7 @@ $pdfBody = '<!doctype html><html><head><meta charset="utf-8"></head><body>' . $p
 $pdfTmpPath = null;
 $pdfFilename = 'GRASP-Waitlist.pdf';
 try {
-  $pdfInfo = FormPdfGenerator::generateFromHtml('GRASP Wait List Application', $pdfBody, 'GRASP-Waitlist-' . ($childName ?: date('Ymd-His')));
+  $pdfInfo = FormPdfGenerator::generateFromHtml('GRASP Wait List Application', $pdfBody, 'GRASP-Waitlist-' . ($childName ?: date('Ymd-His')), ['profile' => 'waitlist']);
   $pdfTmpPath = $pdfInfo['path'] ?? null;
   $pdfFilename = $pdfInfo['filename'] ?? $pdfFilename;
 } catch (Throwable $e) {
