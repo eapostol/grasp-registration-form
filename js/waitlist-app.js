@@ -812,6 +812,20 @@ Notes:
     }
   }
 
+  function waitlistAttendanceInlineNote(fieldName) {
+    switch (fieldName) {
+      case "currently_attends_daycare":
+        return "day care at the current time.";
+      case "currently_attending_school":
+        return "at the current time.";
+      case "will_attend_when_require_care":
+        return "when we require care at GRASP.";
+      default:
+        return "";
+    }
+  }
+
+
   function renderField(field) {
     const wrap = document.createElement("div");
     wrap.className = "grasp-field";
@@ -829,6 +843,17 @@ Notes:
 
     wrap.appendChild(label);
     wrap.appendChild(input);
+
+    // Waitlist: add sentence-style inline notes under Current Attendance inputs
+    const noteText = waitlistAttendanceInlineNote(field.name);
+    if (noteText) {
+      const note = document.createElement("div");
+      // Reuse label styling so it matches the bold label look
+      note.className = "grasp-label grasp-inline-note";
+      note.innerHTML = '<strong>' + noteText + '</strong>';
+      wrap.appendChild(note);
+    }
+
     wrap.appendChild(err);
 
     return wrap;

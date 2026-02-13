@@ -39,7 +39,7 @@
             },
             {
               "name": "child_gender",
-              "label": "Circle: Male or Female",
+              "label": "Gender",
               "type": "radio",
               "required": false,
               "options": [
@@ -179,23 +179,27 @@
           "fields": [
             {
               "name": "currently_attends_daycare",
-              "label": "My child attends Day care at the current time",
-              "type": "checkbox",
-              "required": false
+              "label": "My child attends",
+              "type": "text",
+              "required": true,
+              "inputType": "text",
+              "placeholder": "name of day care or 'none'"
             },
             {
               "name": "currently_attending_school",
-              "label": "My child is attending this school at the current time",
+              "label": "My child is attending",
               "type": "text",
               "inputType": "text",
-              "required": false,
-              "placeholder": "School name"
+              "required": true,
+              "placeholder": "name of school or 'none'"
             },
             {
               "name": "will_attend_when_require_care",
-              "label": "My child will attend when we require care at GRASP",
-              "type": "checkbox",
-              "required": false
+              "label": "My child will attend",
+              "type": "text",
+              "required": true,
+              "inputType": "text",
+              "placeholder": "enter value or 'none'"
             }
           ]
         },
