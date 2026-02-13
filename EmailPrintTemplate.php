@@ -673,6 +673,9 @@ private static function renderRows(string $kind, array $fields, array $data): st
                                 'child_birth_date' => 'Birth Date',
                                 'subsidy_file_number' => 'Subsidy File #',
                             ],
+                            // Keep the horizontal divider line continuous across the
+                            // full width (under the 3rd column from the row above).
+                            'fillThirdCell' => true,
                         ]
                     );
 
@@ -836,13 +839,12 @@ private static function renderRows(string $kind, array $fields, array $data): st
         if (in_array(($meta['templateProfile'] ?? ''), ['waitlist','enrollment'], true)) {
             if ($kind === 'pdf') {
                 $orgBlock = '<tr>'
-                  . '<td style="font-size:6.8pt; color:#555; padding-bottom:0px; line-height:1.05;">'
+                  . '<td style="font-size:6.8pt; color:#555; padding-bottom:8px; line-height:1.05;">'
                   . '<nobr>Greenland Recreational After School Program&nbsp;*&nbsp;15 Greenland Road, Toronto, ON M3C 1N1&nbsp;*&nbsp;416-444-7427&nbsp;*&nbsp;info@greenlandrecreational.com</nobr>'
                   . '</td>'
-                  . '</tr>'
-                  . '<tr><td style="height:2px; font-size:1px; line-height:1px;">&nbsp;</td></tr>';
+                  . '</tr>';
             } else {
-                $orgBlock = '<div style="font-size:11px; color:#555; margin-top:2px; margin-bottom:3px; line-height:1.2;">'
+                $orgBlock = '<div style="font-size:11px; color:#555; margin-top:2px; margin-bottom:6px; line-height:1.2;">'
                   . '<nobr>Greenland Recreational After School Program&nbsp;*&nbsp;15 Greenland Road, Toronto, ON M3C 1N1&nbsp;*&nbsp;416-444-7427&nbsp;*&nbsp;info@greenlandrecreational.com</nobr>'
                   . '</div>';
             }
@@ -1017,26 +1019,29 @@ $content = self::renderSections($kind, $sections, $data, $meta);
         $labelHtml = '<nobr>' . $labelHtml . '</nobr>';
       }
 
-      $labelStyle = 'font-weight:bold; vertical-align:top;';
-      $valueStyle = 'text-align:left; vertical-align:top;';
-      if ($kind === 'email') {
-        $labelStyle .= ' width:1%; white-space:nowrap; padding-right:10px;';
-        $valueStyle = 'text-align:left; vertical-align:top; width:99%;';
-      }
-      // Ensure the middle-name label stays on one line in compact layouts.
+      // Compact layout: keep label+value close together (left aligned)
+      // by rendering them inline rather than as a 2-column table.
+      $labelStyle = 'font-weight:bold;';
+      $valueStyle = 'margin-left:6px;';
+
+      // Ensure middle label stays on one line.
       if ($name === 'child_middle_name_or_initial') {
         $labelStyle .= ($kind === 'pdf')
           ? ' font-size:8.2pt; white-space:nowrap;'
           : ' font-size:12px; white-space:nowrap;';
       }
+      // Prevent "Last Name" from wrapping in narrow cells.
+      if ($name === 'child_last_name') {
+        $labelStyle .= ($kind === 'pdf')
+          ? ' white-space:nowrap;'
+          : ' white-space:nowrap;';
+      }
 
       $tds[] = '<td style="width:' . $w . '; padding:' . $pad . '; border-top:' . $b . '; vertical-align:top;">'
-        . '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
-          . '<tr>'
-            . '<td style="' . $labelStyle . '">' . $labelHtml . '</td>'
-            . '<td style="' . $valueStyle . '">' . $valueHtml . '</td>'
-          . '</tr>'
-        . '</table>'
+        . '<div style="text-align:left;">'
+          . '<span style="' . $labelStyle . '">' . $labelHtml . '</span>'
+          . '<span style="' . $valueStyle . '">' . $valueHtml . '</span>'
+        . '</div>'
       . '</td>';
     }
 
@@ -1053,10 +1058,21 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     $b = self::borderTop($kind);
     $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
 
-    $cells = [
-      [$f1, '50%'],
-      [$f2, '50%'],
-    ];
+    // For Enrollment compact rows that follow a 3-column row, we sometimes
+    // need a third empty cell so the horizontal divider continues across the
+    // full width (under the 3rd column).
+    $fillThird = (bool)($opts['fillThirdCell'] ?? false);
+
+    $cells = $fillThird
+      ? [
+          [$f1, '33.33%'],
+          [$f2, '33.33%'],
+          [null, '33.34%'],
+        ]
+      : [
+          [$f1, '50%'],
+          [$f2, '50%'],
+        ];
 
     $tds = [];
     foreach ($cells as $pair) {
@@ -1065,20 +1081,17 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       $labelHtml = self::h(trim($label));
       $valueHtml = self::displayFieldValueHtml($kind, $f, $data);
 
-      $labelStyle = 'font-weight:bold; vertical-align:top;';
-      $valueStyle = 'text-align:left; vertical-align:top;';
-      if ($kind === 'email') {
-        $labelStyle .= ' width:1%; white-space:nowrap; padding-right:10px;';
-        $valueStyle = 'text-align:left; vertical-align:top; width:99%;';
+      // Empty filler cell (keeps the divider line continuous).
+      if (!$f) {
+        $tds[] = '<td style="width:' . $w . '; padding:0; border-top:' . $b . '; vertical-align:top;"></td>';
+        continue;
       }
 
       $tds[] = '<td style="width:' . $w . '; padding:' . $pad . '; border-top:' . $b . '; vertical-align:top;">'
-        . '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
-          . '<tr>'
-            . '<td style="' . $labelStyle . '">' . $labelHtml . '</td>'
-            . '<td style="' . $valueStyle . '">' . $valueHtml . '</td>'
-          . '</tr>'
-        . '</table>'
+        . '<div style="text-align:left;">'
+          . '<span style="font-weight:bold;">' . $labelHtml . '</span>'
+          . '<span style="margin-left:6px;">' . $valueHtml . '</span>'
+        . '</div>'
       . '</td>';
     }
 
