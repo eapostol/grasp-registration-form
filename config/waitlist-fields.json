@@ -195,7 +195,7 @@
             },
             {
               "name": "will_attend_when_require_care",
-              "label": "My child will attend",
+              "label": "My child will be attending",
               "type": "text",
               "required": true,
               "inputType": "text",
