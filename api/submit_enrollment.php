@@ -113,6 +113,8 @@ if ($configPath) {
     $emailHtml = EmailPrintTemplate::renderFromConfig($configPath, $fields, [
         'formTitle'   => 'GRASP Enrollment Form',
         'submittedAt' => $submittedAt,
+        'sessionId'   => $sessionId,
+        'templateProfile' => 'enrollment',
     ]);
 }
 
@@ -121,6 +123,8 @@ if ($configPath) {
     $pdfHtml = EmailPrintTemplate::renderPdfFromConfig($configPath, $fields, [
         'formTitle'   => 'GRASP Enrollment Form',
         'submittedAt' => $submittedAt,
+        'sessionId'   => $sessionId,
+        'templateProfile' => 'enrollment',
     ]);
 }
 
