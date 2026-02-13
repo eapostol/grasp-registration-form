@@ -693,6 +693,44 @@ private static function renderRows(string $kind, array $fields, array $data): st
                 }
             }
 
+
+
+            // -----------------------------------------------------------------
+            // Enrollment-only layout compaction (email + PDF):
+            // Parent / Guardian Information
+            //
+            // Combine the "Parent / Guardian 1" + "Parent / Guardian 2 (optional)"
+            // sections into a single 3-column matrix.
+            // -----------------------------------------------------------------
+            if ($profile === 'enrollment' && $titleTrim !== '') {
+                $normTitle = str_replace(["\u{2019}", "’"], "'", $titleTrim);
+
+                if ($normTitle === 'Parent / Guardian 1' && ($i + 1) < $n) {
+                    $next = $sections[$i + 1];
+                    if (is_array($next)) {
+                        $nextTitle = $next['title'] ?? ($next['sectionTitle'] ?? '');
+                        $nextTrim = is_string($nextTitle) ? trim($nextTitle) : '';
+                        $nextNorm = str_replace(["\u{2019}", "’"], "'", $nextTrim);
+
+                        if (strpos($nextNorm, 'Parent / Guardian 2') === 0) {
+                            $p1Fields = $fields;
+                            $p2Fields = is_array($next['fields'] ?? null) ? $next['fields'] : [];
+
+                            $rowsHtml = self::renderEnrollmentParentGuardianMatrix($kind, $p1Fields, $p2Fields, $data);
+                            if (trim($rowsHtml) !== '') {
+                                $out[] = str_replace(
+                                    ['{{SECTION_TITLE}}', '{{ROWS}}'],
+                                    [self::h('Parent / Guardian Information'), $rowsHtml],
+                                    $sectionTpl
+                                );
+                            }
+
+                            $i++; // skip Parent / Guardian 2 (consumed)
+                            continue;
+                        }
+                    }
+                }
+            }
             // -----------------------------------------------------------------
             // Special case: Waitlist Parents/Guardians.
             // Email + PDF: render as 2 columns when both parent blocks exist.
@@ -1109,6 +1147,120 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     }
 
     return "<tr>\n" . implode("\n", $tds) . "\n</tr>";
+  }
+
+  private static function renderEnrollmentParentGuardianMatrix(string $kind, array $p1Fields, array $p2Fields, array $data): string
+  {
+    $p1 = self::mapFieldsByName($p1Fields);
+    $p2 = self::mapFieldsByName($p2Fields);
+
+    // Effective data (supports: "Parent / Guardian 2 home address same as Parent / Guardian 1")
+    $eff = $data;
+
+    // Ensure derived postal codes exist (some submissions may only include postal1/postal2)
+    $derivePostal = function (string $prefix) use (&$eff): void {
+      $key = $prefix . '_postal_code';
+      if (isset($eff[$key]) && trim((string)$eff[$key]) !== '') return;
+      $p1 = trim((string)($eff[$prefix . '_home_postal1'] ?? ''));
+      $p2 = trim((string)($eff[$prefix . '_home_postal2'] ?? ''));
+      if ($p1 !== '' || $p2 !== '') {
+        $eff[$key] = trim(strtoupper(trim($p1 . ' ' . $p2)));
+      }
+    };
+    $derivePostal('parent1');
+    $derivePostal('parent2');
+
+    if (self::truthy($eff['parent2_home_same_as_parent1'] ?? '')) {
+      $copy = [
+        'parent2_home_street' => 'parent1_home_street',
+        'parent2_home_unit' => 'parent1_home_unit',
+        'parent2_home_city' => 'parent1_home_city',
+        'parent2_home_province' => 'parent1_home_province',
+        'parent2_postal_code' => 'parent1_postal_code',
+        'parent2_home_address' => 'parent1_home_address',
+      ];
+      foreach ($copy as $k2 => $k1) {
+        $v2 = trim((string)($eff[$k2] ?? ''));
+        if ($v2 === '') {
+          $eff[$k2] = $eff[$k1] ?? '';
+        }
+      }
+    }
+
+    $rowSpecs = [
+      ['E-mail Address', 'parent1_email', 'parent2_email'],
+      ['Home Address', 'parent1_home_street', 'parent2_home_street'],
+      ['Apt. / Suite / Unit', 'parent1_home_unit', 'parent2_home_unit'],
+      ['City', 'parent1_home_city', 'parent2_home_city'],
+      ['Province / Territory', 'parent1_home_province', 'parent2_home_province'],
+      ['Postal Code', 'parent1_postal_code', 'parent2_postal_code'],
+      ['Cell and Home #', 'parent1_phones', 'parent2_phones'],
+      ['Work / School Street Address', 'parent1_work_street', 'parent2_work_street'],
+      ['Parent Work/School Unit / Suite / Extra', 'parent1_work_unit', 'parent2_work_unit'],
+      ['Work/School City', 'parent1_work_city', 'parent2_work_city'],
+      ['Work/School Province/Territory', 'parent1_work_province', 'parent2_work_province'],
+      ['Work/School Phone #', 'parent1_work_phone', 'parent2_work_phone'],
+    ];
+
+    $b = self::borderTop($kind);
+    $bgAttr = ($kind === 'pdf') ? ' bgcolor="#F3F3F3"' : '';
+
+    // Match default section typography/padding:
+    // - PDF: use table cellpadding=5 (same as section_enrollment inner table)
+    // - Email: use padding 7px 10px (same as email row template)
+    $tableCellpadding = ($kind === 'pdf') ? '5' : '0';
+    $cellPad = ($kind === 'pdf') ? '' : ' padding:7px 10px;';
+
+    $t = '<table width="100%" cellpadding="' . $tableCellpadding . '" cellspacing="0" style="border-collapse:collapse;">';
+
+    // Header row (3 columns) - NO inner vertical borders
+    $hdrCommon = 'font-weight:bold; text-align:center; background:#f3f3f3;' . $cellPad . ' white-space:nowrap;';
+    $t .= '<tr>'
+      . '<td width="38%"' . $bgAttr . ' style="' . $hdrCommon . '"></td>'
+      . '<td width="31%"' . $bgAttr . ' style="' . $hdrCommon . '">' . self::h('Parent / Guardian 1') . '</td>'
+      . '<td width="31%"' . $bgAttr . ' style="' . $hdrCommon . '">' . self::h('Parent / Guardian 2') . '</td>'
+      . '</tr>';
+
+    foreach ($rowSpecs as $spec) {
+      $label = $spec[0];
+      $k1 = $spec[1];
+      $k2 = $spec[2];
+
+      $f1 = $p1[$k1] ?? null;
+      $f2 = $p2[$k2] ?? null;
+
+      $v1 = self::displayFieldValueHtml($kind, $f1, $eff);
+      $v2 = self::displayFieldValueHtml($kind, $f2, $eff);
+
+      // Data rows: horizontal separators only (NO inner vertical borders)
+      $labelStyle = 'font-weight:bold; text-align:left; vertical-align:top;' . $cellPad . ' white-space:nowrap; border-top:' . $b . ';';
+      $v1Style = 'text-align:left; vertical-align:top;' . $cellPad . ' border-top:' . $b . ';';
+      $v2Style = 'text-align:left; vertical-align:top;' . $cellPad . ' border-top:' . $b . ';';
+
+      $t .= '<tr>'
+        . '<td width="38%" style="' . $labelStyle . '">' . self::h($label) . '</td>'
+        . '<td width="31%" style="' . $v1Style . '">' . $v1 . '</td>'
+        . '<td width="31%" style="' . $v2Style . '">' . $v2 . '</td>'
+        . '</tr>';
+    }
+
+    $t .= '</table>';
+
+    // Wrap in a full-width row so the matrix sits inside the section
+    $rowFullTpl = self::loadTemplate($kind, 'row_full');
+    if ($kind === 'pdf') {
+      return str_replace(
+        ['{{BGCOLOR_ATTR}}', '{{STYLE}}', '{{CONTENT}}'],
+        ['', 'padding:0;', $t],
+        $rowFullTpl
+      );
+    }
+
+    return str_replace(
+      ['{{STYLE}}', '{{CONTENT}}'],
+      ['padding:0;', $t],
+      $rowFullTpl
+    );
   }
 
   private static function renderWaitlistFourColRow(
