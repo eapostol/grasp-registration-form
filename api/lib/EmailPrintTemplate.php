@@ -262,6 +262,44 @@ class EmailPrintTemplate
         $name = self::fieldKey($field);
         if ($name === '') return true;
 
+        // Skip hidden/computed helper fields (keeps email/PDF output compact)
+        $type = isset($field['type']) ? strtolower(trim((string)$field['type'])) : '';
+        if ($type === 'hidden') {
+            return true;
+        }
+
+        // Suppress redundant name fragments when a full-name field exists
+        if (preg_match('/^child_(first_name|middle_name|last_name)$/', $name)) {
+            if (!empty($data['child_name'])) {
+                return true;
+            }
+        }
+        if (preg_match('/^parent([12])_(first_name|last_name)$/', $name, $mm)) {
+            $fullKey = 'parent' . $mm[1] . '_name';
+            if (!empty($data[$fullKey])) {
+                return true;
+            }
+        }
+
+        // Suppress computed address aggregates when component fields exist
+        if (str_ends_with($name, '_address')) {
+            $base = substr($name, 0, -strlen('_address'));
+            $components = [
+                $base . '_street',
+                $base . '_unit',
+                $base . '_city',
+                $base . '_province',
+                $base . '_postal_code',
+                $base . '_postal1',
+                $base . '_postal2',
+            ];
+            foreach ($components as $ck) {
+                if (!empty($data[$ck])) {
+                    return true;
+                }
+            }
+        }
+
         if (preg_match('/_postal1$|_postal2$/', $name)) {
             $full = preg_replace('/_postal[12]$/', '_postal_code', $name);
             if (!empty($data[$full])) {
@@ -494,6 +532,8 @@ private static function renderRows(string $kind, array $fields, array $data): st
         if ($kind === 'pdf') {
             if ($profile === 'waitlist') {
                 $sectionTplName = 'section_waitlist';
+            } elseif ($profile === 'enrollment') {
+                $sectionTplName = 'section_enrollment';
             }
         }
 
@@ -733,7 +773,7 @@ private static function renderRows(string $kind, array $fields, array $data): st
 
         // Optional: Waitlist PDF header line with GRASP contact info (must fit on one line)
         $orgBlock = '';
-        if ($kind === 'pdf' && (($meta['templateProfile'] ?? '') === 'waitlist')) {
+        if ($kind === 'pdf' && in_array(($meta['templateProfile'] ?? ''), ['waitlist','enrollment'], true)) {
             $orgBlock = '<tr>'
               . '<td style="font-size:6.8pt; color:#555; padding-bottom:5px; line-height:1.05;">'
               . '<nobr>Greenland Recreational After School Program&nbsp;*&nbsp;15 Greenland Road, Toronto, ON M3C 1N1&nbsp;*&nbsp;416-444-7427&nbsp;*&nbsp;info@greenlandrecreational.com</nobr>'
