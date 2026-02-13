@@ -841,13 +841,12 @@ private static function renderRows(string $kind, array $fields, array $data): st
         if (in_array(($meta['templateProfile'] ?? ''), ['waitlist','enrollment'], true)) {
             if ($kind === 'pdf') {
                 $orgBlock = '<tr>'
-                  . '<td style="font-size:6.8pt; color:#555; padding-bottom:0px; line-height:1.05;">'
+                  . '<td style="font-size:6.8pt; color:#555; padding-bottom:8px; line-height:1.05;">'
                   . '<nobr>Greenland Recreational After School Program&nbsp;*&nbsp;15 Greenland Road, Toronto, ON M3C 1N1&nbsp;*&nbsp;416-444-7427&nbsp;*&nbsp;info@greenlandrecreational.com</nobr>'
                   . '</td>'
-                  . '</tr>'
-                  . '<tr><td style="height:2px; font-size:1px; line-height:1px;">&nbsp;</td></tr>';
+                  . '</tr>';
             } else {
-                $orgBlock = '<div style="font-size:11px; color:#555; margin-top:2px; margin-bottom:3px; line-height:1.2;">'
+                $orgBlock = '<div style="font-size:11px; color:#555; margin-top:2px; margin-bottom:6px; line-height:1.2;">'
                   . '<nobr>Greenland Recreational After School Program&nbsp;*&nbsp;15 Greenland Road, Toronto, ON M3C 1N1&nbsp;*&nbsp;416-444-7427&nbsp;*&nbsp;info@greenlandrecreational.com</nobr>'
                   . '</div>';
             }
@@ -1022,26 +1021,29 @@ $content = self::renderSections($kind, $sections, $data, $meta);
         $labelHtml = '<nobr>' . $labelHtml . '</nobr>';
       }
 
-      $labelStyle = 'font-weight:bold; vertical-align:top;';
-      $valueStyle = 'text-align:left; vertical-align:top;';
-      if ($kind === 'email') {
-        $labelStyle .= ' width:1%; white-space:nowrap; padding-right:10px;';
-        $valueStyle = 'text-align:left; vertical-align:top; width:99%;';
-      }
-      // Ensure the middle-name label stays on one line in compact layouts.
+      // Compact layout: keep label+value close together (left aligned)
+      // by rendering them inline rather than as a 2-column table.
+      $labelStyle = 'font-weight:bold;';
+      $valueStyle = 'margin-left:6px;';
+
+      // Ensure middle label stays on one line.
       if ($name === 'child_middle_name_or_initial') {
         $labelStyle .= ($kind === 'pdf')
           ? ' font-size:8.2pt; white-space:nowrap;'
           : ' font-size:12px; white-space:nowrap;';
       }
+      // Prevent "Last Name" from wrapping in narrow cells.
+      if ($name === 'child_last_name') {
+        $labelStyle .= ($kind === 'pdf')
+          ? ' white-space:nowrap;'
+          : ' white-space:nowrap;';
+      }
 
       $tds[] = '<td style="width:' . $w . '; padding:' . $pad . '; border-top:' . $b . '; vertical-align:top;">'
-        . '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
-          . '<tr>'
-            . '<td style="' . $labelStyle . '">' . $labelHtml . '</td>'
-            . '<td style="' . $valueStyle . '">' . $valueHtml . '</td>'
-          . '</tr>'
-        . '</table>'
+        . '<div style="text-align:left;">'
+          . '<span style="' . $labelStyle . '">' . $labelHtml . '</span>'
+          . '<span style="' . $valueStyle . '">' . $valueHtml . '</span>'
+        . '</div>'
       . '</td>';
     }
 
@@ -1070,20 +1072,10 @@ $content = self::renderSections($kind, $sections, $data, $meta);
         $label = self::fieldLabelOverride($f, $opts);
         $labelHtml = self::h(trim($label));
         $valueHtml = self::displayFieldValueHtml($kind, $f, $data);
-
-        $labelStyle = 'font-weight:bold; vertical-align:top;';
-        $valueStyle = 'text-align:left; vertical-align:top;';
-        if ($kind === 'email') {
-          $labelStyle .= ' width:1%; white-space:nowrap; padding-right:10px;';
-          $valueStyle = 'text-align:left; vertical-align:top; width:99%;';
-        }
-
-        return '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
-          . '<tr>'
-            . '<td style="' . $labelStyle . '">' . $labelHtml . '</td>'
-            . '<td style="' . $valueStyle . '">' . $valueHtml . '</td>'
-          . '</tr>'
-        . '</table>';
+        return '<div style="text-align:left;">'
+          . '<span style="font-weight:bold;">' . $labelHtml . '</span>'
+          . '<span style="margin-left:6px;">' . $valueHtml . '</span>'
+        . '</div>';
       };
 
       $inner = '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
@@ -1108,20 +1100,11 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       $labelHtml = self::h(trim($label));
       $valueHtml = self::displayFieldValueHtml($kind, $f, $data);
 
-      $labelStyle = 'font-weight:bold; vertical-align:top;';
-      $valueStyle = 'text-align:left; vertical-align:top;';
-      if ($kind === 'email') {
-        $labelStyle .= ' width:1%; white-space:nowrap; padding-right:10px;';
-        $valueStyle = 'text-align:left; vertical-align:top; width:99%;';
-      }
-
       $tds[] = '<td style="width:' . $w . '; padding:' . $pad . '; border-top:' . $b . '; vertical-align:top;">'
-        . '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
-          . '<tr>'
-            . '<td style="' . $labelStyle . '">' . $labelHtml . '</td>'
-            . '<td style="' . $valueStyle . '">' . $valueHtml . '</td>'
-          . '</tr>'
-        . '</table>'
+        . '<div style="text-align:left;">'
+          . '<span style="font-weight:bold;">' . $labelHtml . '</span>'
+          . '<span style="margin-left:6px;">' . $valueHtml . '</span>'
+        . '</div>'
       . '</td>';
     }
 
