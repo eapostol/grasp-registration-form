@@ -629,6 +629,66 @@ private static function renderRows(string $kind, array $fields, array $data): st
             }
 
             // -----------------------------------------------------------------
+            // Enrollment-only layout compaction (email + PDF):
+            // Child's Primary Information
+            //
+            // Expected layout:
+            //   Row 1: First Name | Middle Name or Initial (optional) | Last Name
+            //   Row 2: Birth Date | Subsidy File #
+            //
+            // This override intentionally renders child first/last even if a
+            // derived "child_name" exists, since the original PDF expects
+            // distinct fields.
+            // -----------------------------------------------------------------
+            if ($profile === 'enrollment' && $titleTrim !== '') {
+                $normTitle = str_replace(["\u{2019}", "’"], "'", $titleTrim);
+                if ($normTitle === "Child's Primary Information") {
+                    $map = self::mapFieldsByName($fields);
+
+                    $rows = [];
+                    // Row 1: First/Middle/Last
+                    $rows[] = self::renderEnrollmentThreeColRow(
+                        $kind,
+                        $map['child_first_name'] ?? null,
+                        $map['child_middle_name_or_initial'] ?? null,
+                        $map['child_last_name'] ?? null,
+                        $data,
+                        [
+                            'labelOverrides' => [
+                                'child_first_name' => 'First Name',
+                                'child_middle_name_or_initial' => 'Middle Name or Initial (optional)',
+                                'child_last_name' => 'Last Name',
+                            ],
+                        ]
+                    );
+
+                    // Row 2: Birth Date + Subsidy File #
+                    $rows[] = self::renderEnrollmentTwoColRow(
+                        $kind,
+                        $map['child_birth_date'] ?? null,
+                        $map['subsidy_file_number'] ?? null,
+                        $data,
+                        [
+                            'labelOverrides' => [
+                                'child_birth_date' => 'Birth Date',
+                                'subsidy_file_number' => 'Subsidy File #',
+                            ],
+                        ]
+                    );
+
+                    $rowsHtml = implode("\n", array_filter($rows, function ($r) { return trim((string)$r) !== ''; }));
+                    if (trim($rowsHtml) !== '') {
+                        $out[] = str_replace(
+                            ['{{SECTION_TITLE}}', '{{ROWS}}'],
+                            [self::h("Child's Primary Information"), $rowsHtml],
+                            $sectionTpl
+                        );
+                    }
+                    continue;
+                }
+            }
+
+            // -----------------------------------------------------------------
             // Special case: Waitlist Parents/Guardians.
             // Email + PDF: render as 2 columns when both parent blocks exist.
             // -----------------------------------------------------------------
@@ -771,14 +831,20 @@ private static function renderRows(string $kind, array $fields, array $data): st
             $submittedAt .= ' * session ID: ' . $sessionId . '.';
         }
 
-        // Optional: Waitlist PDF header line with GRASP contact info (must fit on one line)
+        // Optional: GRASP contact info line under the Submitted line (must fit on one line)
         $orgBlock = '';
-        if ($kind === 'pdf' && in_array(($meta['templateProfile'] ?? ''), ['waitlist','enrollment'], true)) {
-            $orgBlock = '<tr>'
-              . '<td style="font-size:6.8pt; color:#555; padding-bottom:5px; line-height:1.05;">'
-              . '<nobr>Greenland Recreational After School Program&nbsp;*&nbsp;15 Greenland Road, Toronto, ON M3C 1N1&nbsp;*&nbsp;416-444-7427&nbsp;*&nbsp;info@greenlandrecreational.com</nobr>'
-              . '</td>'
-              . '</tr>';
+        if (in_array(($meta['templateProfile'] ?? ''), ['waitlist','enrollment'], true)) {
+            if ($kind === 'pdf') {
+                $orgBlock = '<tr>'
+                  . '<td style="font-size:6.8pt; color:#555; padding-bottom:5px; line-height:1.05;">'
+                  . '<nobr>Greenland Recreational After School Program&nbsp;*&nbsp;15 Greenland Road, Toronto, ON M3C 1N1&nbsp;*&nbsp;416-444-7427&nbsp;*&nbsp;info@greenlandrecreational.com</nobr>'
+                  . '</td>'
+                  . '</tr>';
+            } else {
+                $orgBlock = '<div style="font-size:11px; color:#555; margin-top:2px; line-height:1.2;">'
+                  . '<nobr>Greenland Recreational After School Program&nbsp;*&nbsp;15 Greenland Road, Toronto, ON M3C 1N1&nbsp;*&nbsp;416-444-7427&nbsp;*&nbsp;info@greenlandrecreational.com</nobr>'
+                  . '</div>';
+            }
         }
 
 
@@ -891,6 +957,105 @@ $content = self::renderSections($kind, $sections, $data, $meta);
 
   private static function borderTop(string $kind): string {
     return ($kind === 'pdf') ? '0.5pt solid #333' : '1px solid #333';
+  }
+
+  // ----------------------------
+  // Enrollment compact helpers
+  // ----------------------------
+
+  private static function displayFieldValueHtml(string $kind, ?array $field, array $data): string {
+    if (!$field) {
+      return self::displayValue('');
+    }
+    $name = isset($field['name']) ? (string)$field['name'] : '';
+    if ($name === '') {
+      return self::displayValue('');
+    }
+    $raw = $data[$name] ?? '';
+    $normalized = self::normalizeFieldValue($field, $raw);
+    return self::displayValue($normalized);
+  }
+
+  private static function fieldLabelOverride(?array $field, array $opts = []): string {
+    if (!$field) return '';
+    $name = isset($field['name']) ? (string)$field['name'] : '';
+    $over = $opts['labelOverrides'] ?? [];
+    if ($name !== '' && is_array($over) && isset($over[$name])) {
+      return (string)$over[$name];
+    }
+    return (string)($field['label'] ?? '');
+  }
+
+  private static function renderEnrollmentThreeColRow(
+    string $kind,
+    ?array $f1,
+    ?array $f2,
+    ?array $f3,
+    array $data,
+    array $opts = []
+  ): string {
+    $b = self::borderTop($kind);
+    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
+
+    $cells = [
+      [$f1, '33.33%'],
+      [$f2, '33.33%'],
+      [$f3, '33.34%'],
+    ];
+
+    $tds = [];
+    foreach ($cells as $pair) {
+      [$f, $w] = $pair;
+      $label = self::fieldLabelOverride($f, $opts);
+      $labelHtml = self::h(trim($label));
+      $valueHtml = self::displayFieldValueHtml($kind, $f, $data);
+
+      $tds[] = '<td style="width:' . $w . '; padding:' . $pad . '; border-top:' . $b . '; vertical-align:top;">'
+        . '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
+          . '<tr>'
+            . '<td style="font-weight:bold; vertical-align:top;">' . $labelHtml . '</td>'
+            . '<td style="text-align:right; vertical-align:top;">' . $valueHtml . '</td>'
+          . '</tr>'
+        . '</table>'
+      . '</td>';
+    }
+
+    return "<tr>\n" . implode("\n", $tds) . "\n</tr>";
+  }
+
+  private static function renderEnrollmentTwoColRow(
+    string $kind,
+    ?array $f1,
+    ?array $f2,
+    array $data,
+    array $opts = []
+  ): string {
+    $b = self::borderTop($kind);
+    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
+
+    $cells = [
+      [$f1, '50%'],
+      [$f2, '50%'],
+    ];
+
+    $tds = [];
+    foreach ($cells as $pair) {
+      [$f, $w] = $pair;
+      $label = self::fieldLabelOverride($f, $opts);
+      $labelHtml = self::h(trim($label));
+      $valueHtml = self::displayFieldValueHtml($kind, $f, $data);
+
+      $tds[] = '<td style="width:' . $w . '; padding:' . $pad . '; border-top:' . $b . '; vertical-align:top;">'
+        . '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
+          . '<tr>'
+            . '<td style="font-weight:bold; vertical-align:top;">' . $labelHtml . '</td>'
+            . '<td style="text-align:right; vertical-align:top;">' . $valueHtml . '</td>'
+          . '</tr>'
+        . '</table>'
+      . '</td>';
+    }
+
+    return "<tr>\n" . implode("\n", $tds) . "\n</tr>";
   }
 
   private static function renderWaitlistFourColRow(
