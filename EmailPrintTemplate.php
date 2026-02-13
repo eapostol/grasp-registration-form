@@ -1395,7 +1395,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       . '<span style="font-size:' . $fs . '; line-height:' . $lh . ';">'
         . '<span style="font-weight:bold;">My child attends </span>' . $u1
         . '<span style="font-weight:bold;"> day care at the current time. My child is attending </span>' . $u2
-        . '<span style="font-weight:bold;"> at the current time. My child will attend </span>' . $u3
+        . '<span style="font-weight:bold;"> at the current time. My child will be attending </span>' . $u3
         . '<span style="font-weight:bold;"> when we require care at GRASP.</span>'
       . '</span>';
 

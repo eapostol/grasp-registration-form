@@ -1536,7 +1536,7 @@ an updated immunization record must be attached to thisform. </em>
             { text: "at the current time." }
           ])}
           ${renderSentenceLineParts([
-            { text: "My child will attend", strong: true },
+            { text: "My child will be attending", strong: true },
             { value: willAttendWhen, width: 220 },
             { text: "when we require care at GRASP." }
           ])}
