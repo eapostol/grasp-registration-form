@@ -673,9 +673,11 @@ private static function renderRows(string $kind, array $fields, array $data): st
                                 'child_birth_date' => 'Birth Date',
                                 'subsidy_file_number' => 'Subsidy File #',
                             ],
-                            // Keep the horizontal divider line continuous across the
-                            // full width (under the 3rd column from the row above).
-                            'fillThirdCell' => true,
+                            // This 2-column row follows a 3-column row above.
+                            // Wrap as a full-width row so the divider line continues
+                            // under the 3rd column (email clients otherwise treat the
+                            // missing 3rd cell as an implicit blank column).
+                            'colspan3' => true,
                         ]
                     );
 
@@ -1058,21 +1060,38 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     $b = self::borderTop($kind);
     $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
 
-    // For Enrollment compact rows that follow a 3-column row, we sometimes
-    // need a third empty cell so the horizontal divider continues across the
-    // full width (under the 3rd column).
-    $fillThird = (bool)($opts['fillThirdCell'] ?? false);
+    // When a 2-column row follows a 3-column row in the same table, some email
+    // clients treat the missing 3rd cell as an implicit empty column. This
+    // causes the divider line (border-top) to stop under column 2. To keep the
+    // divider line continuous across the full width, we can wrap this as a
+    // single full-width cell (colspan=3) containing a nested 2-column table.
+    $colspan3 = (bool)($opts['colspan3'] ?? false);
 
-    $cells = $fillThird
-      ? [
-          [$f1, '33.33%'],
-          [$f2, '33.33%'],
-          [null, '33.34%'],
-        ]
-      : [
-          [$f1, '50%'],
-          [$f2, '50%'],
-        ];
+    if ($colspan3) {
+      $makeInner = function (?array $f) use ($kind, $data, $opts) : string {
+        $label = self::fieldLabelOverride($f, $opts);
+        $labelHtml = self::h(trim($label));
+        $valueHtml = self::displayFieldValueHtml($kind, $f, $data);
+        return '<div style="text-align:left;">'
+          . '<span style="font-weight:bold;">' . $labelHtml . '</span>'
+          . '<span style="margin-left:6px;">' . $valueHtml . '</span>'
+        . '</div>';
+      };
+
+      $inner = '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
+        . '<tr>'
+          . '<td style="width:50%; padding:' . $pad . '; vertical-align:top;">' . $makeInner($f1) . '</td>'
+          . '<td style="width:50%; padding:' . $pad . '; vertical-align:top;">' . $makeInner($f2) . '</td>'
+        . '</tr>'
+      . '</table>';
+
+      return "<tr>\n<td colspan=\"3\" style=\"padding:0; border-top:" . $b . "; vertical-align:top;\">" . $inner . "</td>\n</tr>";
+    }
+
+    $cells = [
+      [$f1, '50%'],
+      [$f2, '50%'],
+    ];
 
     $tds = [];
     foreach ($cells as $pair) {
@@ -1080,12 +1099,6 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       $label = self::fieldLabelOverride($f, $opts);
       $labelHtml = self::h(trim($label));
       $valueHtml = self::displayFieldValueHtml($kind, $f, $data);
-
-      // Empty filler cell (keeps the divider line continuous).
-      if (!$f) {
-        $tds[] = '<td style="width:' . $w . '; padding:0; border-top:' . $b . '; vertical-align:top;"></td>';
-        continue;
-      }
 
       $tds[] = '<td style="width:' . $w . '; padding:' . $pad . '; border-top:' . $b . '; vertical-align:top;">'
         . '<div style="text-align:left;">'
