@@ -1,6 +1,11 @@
-<table nobr="true" width="100%" cellpadding="5" cellspacing="0" style="border:0.5pt solid #333; border-collapse:collapse; margin:0 0 8px 0;">
+<!--
+  TCPDF border reliability notes:
+  - Some TCPDF builds are inconsistent with CSS-only borders on outer tables.
+  - Setting the HTML border attribute improves top/left border rendering.
+-->
+<table nobr="true" width="100%" border="1" cellpadding="5" cellspacing="0" style="border:0.5pt solid #333; border-collapse:collapse; margin:0 0 8px 0;">
   <tr>
-    <td style="background-color:#f3f3f3; font-weight:bold; border-bottom:0.5pt solid #333;">{{SECTION_TITLE}}</td>
+    <td style="background-color:#f3f3f3; font-weight:bold; border-bottom:0.5pt solid #333; border-top:0.5pt solid #333; border-left:0.5pt solid #333; border-right:0.5pt solid #333;">{{SECTION_TITLE}}</td>
   </tr>
   <tr>
     <td style="padding:0;">
