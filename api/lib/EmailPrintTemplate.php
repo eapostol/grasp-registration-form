@@ -739,6 +739,24 @@ private static function renderRows(string $kind, array $fields, array $data): st
         $formTitle = $meta['formTitle'] ?? ($cfg['title'] ?? ($cfg['formTitle'] ?? 'GRASP Form Submission'));
         $submittedAt = $meta['submittedAt'] ?? date('F j, Y, g:i a');
 
+        // Optional: append session ID to the Submitted line (used as a unique reference)
+        $sessionId = isset($meta['sessionId']) ? trim((string)$meta['sessionId']) : '';
+        if ($sessionId !== '' && stripos((string)$submittedAt, 'session ID') === false) {
+            $submittedAt = rtrim((string)$submittedAt);
+            $submittedAt .= ' * session ID: ' . $sessionId . '.';
+        }
+
+        // Optional: Waitlist PDF header line with GRASP contact info (must fit on one line)
+        $orgBlock = '';
+        if ($kind === 'pdf' && (($meta['templateProfile'] ?? '') === 'waitlist')) {
+            $orgBlock = '<tr>'
+              . '<td style="font-size:6.8pt; color:#555; padding-bottom:5px; line-height:1.05;">'
+              . '<nobr>Greenland Recreational After School Program&nbsp;*&nbsp;15 Greenland Road, Toronto, ON M3C 1N1&nbsp;*&nbsp;416-444-7427&nbsp;*&nbsp;info@greenlandrecreational.com</nobr>'
+              . '</td>'
+              . '</tr>';
+        }
+
+
         // Config schema support:
 // - Newer configs: { title, steps:[{title, groups:[{title, fields:[...]}]}] }
 // - Legacy: { sections:[{title, fields:[...]}] } or { fields:[...] }
@@ -784,8 +802,8 @@ $content = self::renderSections($kind, $sections, $data, $meta);
 
         $baseTpl = self::loadTemplate($kind, 'base');
         return str_replace(
-            ['{{FORM_TITLE}}', '{{SUBMITTED_AT}}', '{{CONTENT}}'],
-            [self::h((string)$formTitle), self::h((string)$submittedAt), $content],
+            ['{{FORM_TITLE}}', '{{SUBMITTED_AT}}', '{{ORG_BLOCK}}', '{{CONTENT}}'],
+            [self::h((string)$formTitle), self::h((string)$submittedAt), $orgBlock, $content],
             $baseTpl
         );
     }

@@ -62,6 +62,26 @@ if ($childName !== '') {
 // HTML body: server-rendered, Gmail-safe print layout (PDF-like)
 $data = (isset($payload['data']) && is_array($payload['data'])) ? $payload['data'] : [];
 
+// Meta (submittedAt + sessionId) for consistent email/PDF header output
+$meta = ['formTitle' => 'GRASP Wait List Application', 'templateProfile' => 'waitlist'];
+
+$sessionId = isset($payload['sessionId']) ? trim((string)$payload['sessionId']) : '';
+if ($sessionId !== '') {
+  $meta['sessionId'] = $sessionId;
+}
+
+$submittedAtRaw = isset($payload['submittedAt']) ? trim((string)$payload['submittedAt']) : '';
+if ($submittedAtRaw !== '') {
+  try {
+    $dt = new DateTime($submittedAtRaw);
+    $dt->setTimezone(new DateTimeZone(date_default_timezone_get()));
+    $meta['submittedAt'] = $dt->format('F j, Y, g:i a');
+  } catch (Exception $e) {
+    // fallback to default generated timestamp
+  }
+}
+
+
 // Normalize "Current Attendance" sentence fields:
 // They are treated as required on the front-end, but if left blank we store "none"
 foreach (['currently_attends_daycare', 'currently_attending_school', 'will_attend_when_require_care'] as $k) {
@@ -82,9 +102,9 @@ $configPath = realpath(__DIR__ . '/../config/waitlist-fields.json');
 $emailHtml = '';
 $pdfHtml = '';
 if ($configPath) {
-  $emailHtml = EmailPrintTemplate::renderFromConfig($configPath, $data, ['formTitle' => 'GRASP Wait List Application', 'templateProfile' => 'waitlist']);
+  $emailHtml = EmailPrintTemplate::renderFromConfig($configPath, $data, $meta);
   // PDF attachments should use the TCPDF-friendly template skin.
-  $pdfHtml = EmailPrintTemplate::renderPdfFromConfig($configPath, $data, ['formTitle' => 'GRASP Wait List Application', 'templateProfile' => 'waitlist']);
+  $pdfHtml = EmailPrintTemplate::renderPdfFromConfig($configPath, $data, $meta);
 }
 if ($emailHtml === '') {
   $emailHtml = '<h3>GRASP Wait List Application</h3><pre>' . htmlspecialchars(json_encode($data, JSON_PRETTY_PRINT)) . '</pre>';
