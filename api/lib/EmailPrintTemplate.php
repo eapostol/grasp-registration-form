@@ -975,6 +975,12 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     if ($defaultAlign !== 'left' && $defaultAlign !== 'right' && $defaultAlign !== 'center') $defaultAlign = 'left';
 
     // For long-form fields (e.g., allergies), render label and value stacked to reduce wrapping.
+
+    // Reduce font-size for a couple of very long labels in compact blocks (email + PDF).
+    $smallLabelKeys = [
+      'has_sibling_at_grasp' => true,
+      'allergies_special_needs' => true,
+    ];
     $stackKeys = (isset($opts['stackKeys']) && is_array($opts['stackKeys'])) ? $opts['stackKeys'] : [];
     $stackSet = [];
     foreach ($stackKeys as $k) {
@@ -997,7 +1003,9 @@ $content = self::renderSections($kind, $sections, $data, $meta);
 
       if (isset($stackSet[$key]) && $stackSet[$key]) {
         $rows[] = '<tr>'
-          . '<td colspan="2" style="padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . $label . '</td>'
+          . '<td colspan="2" style="padding:' . $pad . '; font-weight:bold; vertical-align:top;'
+            . (isset($smallLabelKeys[$key]) ? (' font-size:' . (($kind === 'pdf') ? '8.0pt' : '11px') . '; line-height:1.1;') : '')
+            . '">' . $label . '</td>'
           . '</tr>';
         $rows[] = '<tr>'
           . '<td colspan="2" style="padding:' . $pad . '; vertical-align:top; text-align:left;">' . $valueHtml . '</td>'
@@ -1009,7 +1017,9 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       if ($align !== 'left' && $align !== 'right' && $align !== 'center') $align = $defaultAlign;
 
       $rows[] = '<tr>'
-        . '<td style="width:' . $labelW . '%; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . $label . '</td>'
+        . '<td style="width:' . $labelW . '%; padding:' . $pad . '; font-weight:bold; vertical-align:top;'
+            . (isset($smallLabelKeys[$key]) ? (' font-size:' . (($kind === 'pdf') ? '8.0pt' : '11px') . '; line-height:1.1;') : '')
+            . '">' . $label . '</td>'
         . '<td style="width:' . $valueW . '%; padding:' . $pad . '; vertical-align:top; text-align:' . $align . ';">' . $valueHtml . '</td>'
         . '</tr>';
     }
@@ -1025,7 +1035,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     private static function renderWaitlistTwoColumnBox(string $kind, string $leftTitle, array $leftFields, string $rightTitle, array $rightFields, array $data, array $opts = []): string {
     $b = self::borderAll($kind);
     $bg = '#f3f3f3';
-    $headPad = ($kind === 'pdf') ? '6px 8px' : '8px 10px';
+    $headPad = ($kind === 'pdf') ? '7pt 8pt' : '8px 10px';
     $margin = ($kind === 'pdf') ? '0 0 6px 0' : '0 0 14px 0';
     $nobr = ($kind === 'pdf') ? ' nobr="true"' : '';
 
@@ -1035,13 +1045,15 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     $leftTable = self::renderWaitlistKeyValueTable($kind, $leftFields, $data, $opts);
     $rightTable = self::renderWaitlistKeyValueTable($kind, $rightFields, $data, $opts);
 
-    // Match section heading style; remove internal divider line; reinforce outer borders for TCPDF.
+    // Match section heading style (same as section.html).
+    // No explicit left/right borders on header cells to avoid heavy vertical lines.
     $headCommon = 'background-color:' . $bg . '; padding:' . $headPad . '; font-weight:bold; border-bottom:' . $b . ';';
-    $headLeft = $headCommon . ' border-left:' . $b . '; border-top:' . $b . ';';
-    $headRight = $headCommon . ' border-right:' . $b . '; border-top:' . $b . ';';
+    $headLeft = $headCommon;
+    $headRight = $headCommon;
 
-    // Add a small gutter between columns without drawing a divider.
-    $gutter = ($kind === 'pdf') ? '6px' : '10px';
+    // Add outer padding + a small inner gutter between columns (no divider line).
+    $outerPad = ($kind === 'pdf') ? '6pt' : '10px';
+    $innerPad = ($kind === 'pdf') ? '3pt' : '6px';
 
     return '<table' . $nobr . ' width="100%" cellpadding="0" cellspacing="0" style="border:' . $b . '; border-collapse:collapse; margin:' . $margin . ';">'
       . '<tr>'
@@ -1049,8 +1061,8 @@ $content = self::renderSections($kind, $sections, $data, $meta);
         . '<td width="50%" style="' . $headRight . '">' . self::h($rightTitle) . '</td>'
       . '</tr>'
       . '<tr>'
-        . '<td width="50%" style="vertical-align:top; padding:0 ' . $gutter . ' 0 0; border-left:' . $b . ';">' . $leftTable . '</td>'
-        . '<td width="50%" style="vertical-align:top; padding:0 0 0 ' . $gutter . '; border-right:' . $b . ';">' . $rightTable . '</td>'
+        . '<td width="50%" style="vertical-align:top; padding:0 ' . $innerPad . ' 0 ' . $outerPad . '; border-left:' . $b . ';">' . $leftTable . '</td>'
+        . '<td width="50%" style="vertical-align:top; padding:0 ' . $outerPad . ' 0 ' . $innerPad . '; border-right:' . $b . ';">' . $rightTable . '</td>'
       . '</tr>'
     . '</table>';
   }
@@ -1060,7 +1072,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     // $cols: [ ['title'=>..., 'fields'=>...], ... ] expected 3
     $b = self::borderAll($kind);
     $bg = '#f3f3f3';
-    $headPad = ($kind === 'pdf') ? '6px 8px' : '8px 10px';
+    $headPad = ($kind === 'pdf') ? '7pt 8pt' : '8px 10px';
     $margin = ($kind === 'pdf') ? '0 0 6px 0' : '0 0 14px 0';
     $nobr = ($kind === 'pdf') ? ' nobr="true"' : '';
 
@@ -1073,17 +1085,21 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       $title = $cols[$i]['title'] ?? ('Column ' . ($i+1));
       $style = $headCommon;
 
-      // Reinforce only OUTER borders (avoid internal vertical lines)
-      if ($i === 0) $style .= ' border-left:' . $b . '; border-top:' . $b . ';';
-      if ($i === 2) $style .= ' border-right:' . $b . '; border-top:' . $b . ';';
+      // No explicit left/right borders on header cells (match section header styling).
+      // The table's outer border provides the frame.
 
       $head .= '<td width="' . $w[$i] . '%" style="' . $style . '">' . self::h((string)$title) . '</td>';
     }
     $head .= '</tr>';
 
-    // Gutters between columns without dividers
-    $g = ($kind === 'pdf') ? '6px' : '10px';
-    $pads = ['0 ' . $g . ' 0 0', '0 ' . $g . ' 0 ' . $g, '0 0 0 ' . $g];
+    // Outer padding + inner gutters (no divider lines).
+    $outerPad = ($kind === 'pdf') ? '6pt' : '10px';
+    $innerPad = ($kind === 'pdf') ? '3pt' : '6px';
+    $pads = [
+      '0 ' . $innerPad . ' 0 ' . $outerPad,
+      '0 ' . $innerPad . ' 0 ' . $innerPad,
+      '0 ' . $outerPad . ' 0 ' . $innerPad
+    ];
 
     $body = '<tr>';
     for ($i = 0; $i < 3; $i++) {
