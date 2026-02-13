@@ -42,8 +42,8 @@ class FormPdfGenerator
         // Waitlist-only compaction profile: keep output to one page where possible
         $profile = isset($opts['profile']) ? (string)$opts['profile'] : '';
         if ($profile === 'waitlist') {
-            $pdf->SetMargins(10, 10, 10);
-            $pdf->SetAutoPageBreak(true, 10);
+            $pdf->SetMargins(10, 8, 10);
+            $pdf->SetAutoPageBreak(true, 8);
             $pdf->SetFont('helvetica', '', 9.5);
         } else {
             $pdf->SetMargins(12, 12, 12);
