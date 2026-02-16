@@ -57,6 +57,24 @@
     );
   }
 
+  function generateRandomTorontoPostalCode() {
+    // Toronto postal codes begin with "M" (GTA).
+    var letters = "ABCEGHJKLMNPRSTVWXYZ";
+    var digits = "0123456789";
+    var pick = function (chars) {
+      return chars.charAt(Math.floor(Math.random() * chars.length));
+    };
+    return (
+      "M" +
+      pick(digits) +
+      pick(letters) +
+      " " +
+      pick(digits) +
+      pick(letters) +
+      pick(digits)
+    );
+  }
+
   function collectAllFieldNamesFromConfig(cfg) {
     var names = new Set();
     if (!cfg || !cfg.steps) return names;
@@ -319,6 +337,24 @@
       return generateRandomCanadianPostalCode();
     }
 
+
+    // Emergency contact day-time address: one-line, full example (street, suite, city, province, postal).
+    if (name === "emergency_contact_address" || label.includes("day time address")) {
+      var pc = generateRandomTorontoPostalCode();
+      var suite = Math.floor(100 + Math.random() * 900);
+      var streetNo = Math.floor(10 + Math.random() * 990);
+      var streets = [
+        "Anywhere Street",
+        "Bloor Street W",
+        "Danforth Ave",
+        "King Street W",
+        "Queen Street W",
+        "Yonge Street",
+        "Eglinton Ave W",
+      ];
+      var street = streets[Math.floor(Math.random() * streets.length)];
+      return streetNo + " " + street + ", Suite " + suite + ", Toronto, ON " + pc;
+    }
     // Addresses
     if (label.includes("address") || name.includes("address")) {
       return "123 Anywhere Street\nToronto, Ontario\nM1M 2M2";
@@ -345,7 +381,11 @@
       return "333-444-5555";
     }
     if (label.includes("authorized") && label.includes("pickup")) {
-      return "Test Authorized Pickup";
+      return [
+        "Jane Doe, 416-111-2222, aunt",
+        "John Smith, 647-899-2323, cousin",
+        "Richard Dawson, 905-111-2222, grandparent",
+      ].join("\n");
     }
 
     // Doctors / clinics
