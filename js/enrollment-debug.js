@@ -380,7 +380,16 @@
     if (label.includes("emergency contact") && label.includes("phone")) {
       return "333-444-5555";
     }
-    if (label.includes("authorized") && label.includes("pickup")) {
+    if (
+      name === "authorized_pickups" ||
+      name.includes("authorized_pickup") ||
+      name.includes("pickup") ||
+      (label.includes("authorized") &&
+        (label.includes("pickup") ||
+          label.includes("pick up") ||
+          label.includes("pickups") ||
+          label.includes("pick ups")))
+    ) {
       return [
         "Jane Doe, 416-111-2222, aunt",
         "John Smith, 647-899-2323, cousin",
