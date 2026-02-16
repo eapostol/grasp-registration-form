@@ -835,6 +835,27 @@ private static function renderRows(string $kind, array $fields, array $data): st
                     continue;
                 }
             }
+
+            // -----------------------------------------------------------------
+            // Enrollment-only: Emergency & Authorized Pickups (compact 3-column layout)
+            if ($profile === 'enrollment' && $titleTrim === 'Emergency & Authorized Pickups') {
+              $rows = self::renderEnrollmentEmergencyAuthorizedPickupsSection(
+                $kind,
+                $fields,
+                $data,
+                (!empty($section['contentBlocks']) && is_array($section['contentBlocks'])) ? $section['contentBlocks'] : []
+              );
+
+              if (trim($rows) !== '') {
+                $out[] = str_replace(
+                  ['{{SECTION_TITLE}}', '{{ROWS}}'],
+                  [self::h((string)$title), $rows],
+                  $sectionTpl
+                );
+              }
+              continue;
+            }
+
             // -----------------------------------------------------------------
             // Special case: Waitlist Parents/Guardians.
             // Email + PDF: render as 2 columns when both parent blocks exist.
@@ -1453,6 +1474,162 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       ['padding:0;', $t],
       $rowFullTpl
     );
+  }
+
+
+  private static function renderEnrollmentEmergencyAuthorizedPickupsSection(
+    string $kind,
+    array $fields,
+    array $data,
+    array $contentBlocks = []
+  ): string {
+    $byName = self::mapFieldsByName($fields);
+    $b = self::borderTop($kind);
+    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
+
+    $rows = [];
+
+    // Content block(s): e.g., "PERSON TO CALL IN CASE OF EMERGENCY"
+    if (!empty($contentBlocks) && is_array($contentBlocks)) {
+      foreach ($contentBlocks as $block) {
+        if (!is_array($block)) continue;
+
+        $style = isset($block['style']) ? trim((string)$block['style']) : '';
+        if ($style !== '' && substr($style, -1) !== ';') {
+          $style .= ';';
+        }
+
+        $bgcolorAttr = '';
+        if ($kind === 'pdf') {
+          if (preg_match('/(?:background|background-color)\s*:\s*(#[0-9a-fA-F]{3,6})/i', $style, $mm)) {
+            $bg = strtoupper($mm[1]);
+            $bgcolorAttr = ' bgcolor="' . $bg . '"';
+          }
+        }
+
+        $html = '';
+        if (!empty($block['html'])) {
+          $html = (string)$block['html'];
+        } elseif (!empty($block['text'])) {
+          $html = nl2br(self::h(self::normalizeWhitespace((string)$block['text'])));
+        }
+
+        $html = self::replaceTokens($html, $data, $kind);
+        if (trim($html) === '') continue;
+
+        $rows[] =
+          '<tr><td colspan="3"' .
+          $bgcolorAttr .
+          ' style="padding:' .
+          $pad .
+          '; border-top:' .
+          $b .
+          '; vertical-align:top; ' .
+          self::h($style) .
+          '">' .
+          $html .
+          '</td></tr>';
+      }
+    }
+
+    $fName = $byName['emergency_contact_name'] ?? null;
+    $fRel = $byName['emergency_contact_relationship'] ?? null;
+    $fPhone = $byName['emergency_contact_day_phone'] ?? null;
+    $fAddr = $byName['emergency_contact_address'] ?? null;
+    $fAuth = $byName['authorized_pickups'] ?? null;
+
+    // Row 1: values (3 cols)
+    $rows[] =
+      '<tr>' .
+      '<td style="width:33.33%; padding:' .
+      $pad .
+      '; border-top:' .
+      $b .
+      '; vertical-align:top;">' .
+      self::displayFieldValueHtml($kind, $fName, $data) .
+      '</td>' .
+      '<td style="width:33.33%; padding:' .
+      $pad .
+      '; border-top:' .
+      $b .
+      '; vertical-align:top;">' .
+      self::displayFieldValueHtml($kind, $fRel, $data) .
+      '</td>' .
+      '<td style="width:33.34%; padding:' .
+      $pad .
+      '; border-top:' .
+      $b .
+      '; vertical-align:top;">' .
+      self::displayFieldValueHtml($kind, $fPhone, $data) .
+      '</td>' .
+      '</tr>';
+
+    // Row 2: labels (3 cols)
+    $rows[] =
+      '<tr>' .
+      '<td style="width:33.33%; padding:' .
+      $pad .
+      '; border-top:' .
+      $b .
+      '; vertical-align:top; font-weight:bold;">' .
+      self::h('Contact Name') .
+      '</td>' .
+      '<td style="width:33.33%; padding:' .
+      $pad .
+      '; border-top:' .
+      $b .
+      '; vertical-align:top; font-weight:bold;">' .
+      self::h('Relationship To Child') .
+      '</td>' .
+      '<td style="width:33.34%; padding:' .
+      $pad .
+      '; border-top:' .
+      $b .
+      '; vertical-align:top; font-weight:bold;">' .
+      self::h('Day Time Phone #') .
+      '</td>' .
+      '</tr>';
+
+    // Row 3: day-time address value (colspan=3)
+    $rows[] =
+      '<tr><td colspan="3" style="padding:' .
+      $pad .
+      '; border-top:' .
+      $b .
+      '; vertical-align:top;">' .
+      self::displayFieldValueHtml($kind, $fAddr, $data) .
+      '</td></tr>';
+
+    // Row 4: day-time address label (colspan=3)
+    $rows[] =
+      '<tr><td colspan="3" style="padding:' .
+      $pad .
+      '; border-top:' .
+      $b .
+      '; vertical-align:top; font-weight:bold;">' .
+      self::h('Day time Address (incl. postal code)') .
+      '</td></tr>';
+
+    // Row 5: other authorized pickups label + value (merge cols 2-3)
+    $rows[] =
+      '<tr>' .
+      '<td style="width:33.33%; padding:' .
+      $pad .
+      '; border-top:' .
+      $b .
+      '; vertical-align:top; font-weight:bold;">' .
+      self::h('Other Authorized Pick Ups') .
+      '</td>' .
+      '<td colspan="2" style="width:66.67%; padding:' .
+      $pad .
+      '; border-top:' .
+      $b .
+      '; vertical-align:top;">' .
+      self::displayFieldValueHtml($kind, $fAuth, $data) .
+      '</td>' .
+      '</tr>';
+
+    return implode("\n", $rows);
   }
 
 private static function renderWaitlistFourColRow(
