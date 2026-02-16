@@ -730,6 +730,111 @@ private static function renderRows(string $kind, array $fields, array $data): st
                     }
                 }
             }
+
+
+            // -----------------------------------------------------------------
+            // Enrollment-only layout compaction (email + PDF):
+            // Doctor & Allergy Information
+            //
+            // Desired layout (4 columns, 4 rows):
+            //   1) Doctor's Name | value | Doctor's Phone # | value
+            //   2) Doctor's Address | (merged 3 cols: street, unit, <br> city, province, postal)
+            //   3) Does your child have any known allergies? | value | Symptoms to look for with allergy | value
+            //   4) Treatment for allergy | value | Epipen Required? | value
+            //
+            // NOTE: Ensure the derived postal code exists (doctor_postal_code).
+            // -----------------------------------------------------------------
+            if ($profile === 'enrollment' && $titleTrim !== '') {
+                $normTitle = str_replace(["\u{2019}", "’"], "'", $titleTrim);
+
+                if ($normTitle === 'Doctor & Allergy Information') {
+                    $map = self::mapFieldsByName($fields);
+                    $eff = $data;
+
+                    // Ensure derived postal code exists (some submissions may only include postal1/postal2)
+                    if (!isset($eff['doctor_postal_code']) || trim((string)$eff['doctor_postal_code']) === '') {
+                        $p1 = trim((string)($eff['doctor_postal1'] ?? ''));
+                        $p2 = trim((string)($eff['doctor_postal2'] ?? ''));
+                        if ($p1 !== '' || $p2 !== '') {
+                            $eff['doctor_postal_code'] = trim(strtoupper(trim($p1 . ' ' . $p2)));
+                        }
+                    }
+
+                    $b = self::borderTop($kind);
+                    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
+
+                    $labelStyle = 'font-weight:bold; vertical-align:top;';
+                    $valueStyle = 'text-align:left; vertical-align:top;';
+
+                    // Row 1
+                    $doctorNameHtml = self::displayFieldValueHtml($kind, $map['doctor_name'] ?? null, $eff);
+                    $doctorPhoneHtml = self::displayFieldValueHtml($kind, $map['doctor_phone'] ?? null, $eff);
+
+                    // Row 2
+                    $streetHtml = self::displayFieldValueHtml($kind, $map['doctor_street'] ?? null, $eff);
+                    $unitHtml = self::displayFieldValueHtml($kind, $map['doctor_unit'] ?? null, $eff);
+                    $cityHtml = self::displayFieldValueHtml($kind, $map['doctor_city'] ?? null, $eff);
+                    $provHtml = self::displayFieldValueHtml($kind, $map['doctor_province'] ?? null, $eff);
+                    $postalHtml = self::displayFieldValueHtml($kind, $map['doctor_postal_code'] ?? null, $eff);
+
+                    $line1 = $streetHtml . ', ' . $unitHtml;
+                    $line2 = $cityHtml . ', ' . $provHtml . ', ' . $postalHtml;
+
+                    // Try to keep the address on a single line if it is short enough.
+                    $addrHtml = $line1 . '<br />' . $line2;
+                    $line1Text = trim(strip_tags($line1));
+                    $line2Text = trim(strip_tags($line2));
+                    $comboText = $line1Text . ', ' . $line2Text;
+                    $len = function_exists('mb_strlen') ? mb_strlen($comboText) : strlen($comboText);
+                    if ($len <= 72) {
+                        $addrHtml = $line1 . ', ' . $line2;
+                    }
+
+                    // Row 3 + 4
+                    $allergiesHtml = self::displayFieldValueHtml($kind, $map['child_allergies'] ?? null, $eff);
+                    $symptomsHtml = self::displayFieldValueHtml($kind, $map['allergy_symptoms'] ?? null, $eff);
+                    $treatmentHtml = self::displayFieldValueHtml($kind, $map['allergy_treatment'] ?? null, $eff);
+                    $epipenHtml = self::displayFieldValueHtml($kind, $map['epipen_required'] ?? null, $eff);
+
+                    $rows = [];
+
+                    $rows[] = '<tr>'
+                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h("Doctor's Name") . '</td>'
+                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $doctorNameHtml . '</td>'
+                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h("Doctor's Phone #") . '</td>'
+                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $doctorPhoneHtml . '</td>'
+                        . '</tr>';
+
+                    $rows[] = '<tr>'
+                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h("Doctor's Address") . '</td>'
+                        . '<td colspan="3" style="width:75%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $addrHtml . '</td>'
+                        . '</tr>';
+
+                    $rows[] = '<tr>'
+                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('Does your child have any known allergies?') . '</td>'
+                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $allergiesHtml . '</td>'
+                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('Symptoms to look for with allergy') . '</td>'
+                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $symptomsHtml . '</td>'
+                        . '</tr>';
+
+                    $rows[] = '<tr>'
+                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('Treatment for allergy') . '</td>'
+                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $treatmentHtml . '</td>'
+                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('Epipen Required?') . '</td>'
+                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $epipenHtml . '</td>'
+                        . '</tr>';
+
+                    $rowsHtml = implode("\n", $rows);
+                    if (trim($rowsHtml) !== '') {
+                        $out[] = str_replace(
+                            ['{{SECTION_TITLE}}', '{{ROWS}}'],
+                            [self::h('Doctor and Allergy Information'), $rowsHtml],
+                            $sectionTpl
+                        );
+                    }
+                    continue;
+                }
+            }
             // -----------------------------------------------------------------
             // Special case: Waitlist Parents/Guardians.
             // Email + PDF: render as 2 columns when both parent blocks exist.
@@ -1174,17 +1279,18 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     $eff = $data;
 
     // Ensure derived postal codes exist (some submissions may only include postal1/postal2)
-    $derivePostal = function (string $prefix) use (&$eff): void {
-      $key = $prefix . '_postal_code';
-      if (isset($eff[$key]) && trim((string)$eff[$key]) !== '') return;
-      $p1 = trim((string)($eff[$prefix . '_home_postal1'] ?? ''));
-      $p2 = trim((string)($eff[$prefix . '_home_postal2'] ?? ''));
+    $derivePostal = function (string $codeKey, string $part1Key, string $part2Key) use (&$eff): void {
+      if (isset($eff[$codeKey]) && trim((string)$eff[$codeKey]) !== '') return;
+      $p1 = trim((string)($eff[$part1Key] ?? ''));
+      $p2 = trim((string)($eff[$part2Key] ?? ''));
       if ($p1 !== '' || $p2 !== '') {
-        $eff[$key] = trim(strtoupper(trim($p1 . ' ' . $p2)));
+        $eff[$codeKey] = trim(strtoupper(trim($p1 . ' ' . $p2)));
       }
     };
-    $derivePostal('parent1');
-    $derivePostal('parent2');
+    $derivePostal('parent1_postal_code', 'parent1_home_postal1', 'parent1_home_postal2');
+    $derivePostal('parent2_postal_code', 'parent2_home_postal1', 'parent2_home_postal2');
+    $derivePostal('parent1_work_postal_code', 'parent1_work_postal1', 'parent1_work_postal2');
+    $derivePostal('parent2_work_postal_code', 'parent2_work_postal1', 'parent2_work_postal2');
 
     if (self::truthy($eff['parent2_home_same_as_parent1'] ?? '')) {
       $copy = [
@@ -1203,20 +1309,22 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       }
     }
 
-    $rowSpecs = [
-      ['E-mail Address', 'parent1_email', 'parent2_email'],
-      ['Home Address', 'parent1_home_street', 'parent2_home_street'],
-      ['Apt. / Suite / Unit', 'parent1_home_unit', 'parent2_home_unit'],
-      ['City', 'parent1_home_city', 'parent2_home_city'],
-      ['Province / Territory', 'parent1_home_province', 'parent2_home_province'],
-      ['Postal Code', 'parent1_postal_code', 'parent2_postal_code'],
-      ['Cell and Home #', 'parent1_phones', 'parent2_phones'],
-      ['Work / School Street Address', 'parent1_work_street', 'parent2_work_street'],
-      ['Parent Work/School Unit / Suite / Extra', 'parent1_work_unit', 'parent2_work_unit'],
-      ['Work/School City', 'parent1_work_city', 'parent2_work_city'],
-      ['Work/School Province/Territory', 'parent1_work_province', 'parent2_work_province'],
-      ['Work/School Phone #', 'parent1_work_phone', 'parent2_work_phone'],
-    ];
+    $combineCityProvince = function (string $cityKey, string $provKey) use (&$eff): string {
+      $city = trim((string)($eff[$cityKey] ?? ''));
+      $prov = trim((string)($eff[$provKey] ?? ''));
+      if ($city !== '' && $prov !== '') return $city . ', ' . $prov;
+      return ($city !== '') ? $city : $prov;
+    };
+
+    $makeName = function (string $prefix) use (&$eff): string {
+      $first = trim((string)($eff[$prefix . '_first_name'] ?? ''));
+      $last = trim((string)($eff[$prefix . '_last_name'] ?? ''));
+      $name = trim(trim($first . ' ' . $last));
+      if ($name === '') {
+        $name = trim((string)($eff[$prefix . '_name'] ?? ''));
+      }
+      return $name;
+    };
 
     $b = self::borderTop($kind);
     $bgAttr = ($kind === 'pdf') ? ' bgcolor="#F3F3F3"' : '';
@@ -1229,7 +1337,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
 
     $t = '<table width="100%" cellpadding="' . $tableCellpadding . '" cellspacing="0" style="border-collapse:collapse;">';
 
-    // Header row (3 columns) - NO inner vertical borders
+    // Column header row (3 columns) - NO inner vertical borders
     $hdrCommon = 'font-weight:bold; text-align:center; background:#f3f3f3;' . $cellPad . ' white-space:nowrap;';
     $t .= '<tr>'
       . '<td width="38%"' . $bgAttr . ' style="' . $hdrCommon . '"></td>'
@@ -1237,28 +1345,96 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       . '<td width="31%"' . $bgAttr . ' style="' . $hdrCommon . '">' . self::h('Parent / Guardian 2') . '</td>'
       . '</tr>';
 
-    foreach ($rowSpecs as $spec) {
-      $label = $spec[0];
-      $k1 = $spec[1];
-      $k2 = $spec[2];
+    $row = function (string $label, string $v1Html, string $v2Html, bool $useTopBorder = true, bool $labelBold = true) use ($cellPad, $b): string {
+      $bt = $useTopBorder ? ('border-top:' . $b . ';') : 'border-top:0;';
+      $labelCell = ($label === '') ? '&nbsp;' : self::h($label);
 
-      $f1 = $p1[$k1] ?? null;
-      $f2 = $p2[$k2] ?? null;
+      $labelStyle = 'text-align:left; vertical-align:top;' . $cellPad . ' ' . $bt;
+      if ($labelBold && $label !== '') {
+        $labelStyle = 'font-weight:bold; ' . $labelStyle . ' white-space:nowrap;';
+      }
 
-      $v1 = self::displayFieldValueHtml($kind, $f1, $eff);
-      $v2 = self::displayFieldValueHtml($kind, $f2, $eff);
+      $vStyle = 'text-align:left; vertical-align:top;' . $cellPad . ' ' . $bt;
 
-      // Data rows: horizontal separators only (NO inner vertical borders)
-      $labelStyle = 'font-weight:bold; text-align:left; vertical-align:top;' . $cellPad . ' white-space:nowrap; border-top:' . $b . ';';
-      $v1Style = 'text-align:left; vertical-align:top;' . $cellPad . ' border-top:' . $b . ';';
-      $v2Style = 'text-align:left; vertical-align:top;' . $cellPad . ' border-top:' . $b . ';';
-
-      $t .= '<tr>'
-        . '<td width="38%" style="' . $labelStyle . '">' . self::h($label) . '</td>'
-        . '<td width="31%" style="' . $v1Style . '">' . $v1 . '</td>'
-        . '<td width="31%" style="' . $v2Style . '">' . $v2 . '</td>'
+      return '<tr>'
+        . '<td width="38%" style="' . $labelStyle . '">' . $labelCell . '</td>'
+        . '<td width="31%" style="' . $vStyle . '">' . $v1Html . '</td>'
+        . '<td width="31%" style="' . $vStyle . '">' . $v2Html . '</td>'
         . '</tr>';
-    }
+    };
+
+    $subheader = function (string $title) use ($cellPad, $b, $bgAttr): string {
+      $style = 'font-weight:bold; text-align:left; background:#f3f3f3;' . $cellPad . ' border-top:' . $b . ';';
+      return '<tr><td colspan="3"' . $bgAttr . ' style="' . $style . '">' . self::h($title) . '</td></tr>';
+    };
+
+    // Name (First + Last) - inserted as first row (HIGH PRIORITY)
+    $t .= $row(
+      'Name',
+      self::displayValue($makeName('parent1')),
+      self::displayValue($makeName('parent2'))
+    );
+
+    // E-mail
+    $t .= $row(
+      'E-mail Address',
+      self::displayFieldValueHtml($kind, $p1['parent1_email'] ?? null, $eff),
+      self::displayFieldValueHtml($kind, $p2['parent2_email'] ?? null, $eff)
+    );
+
+
+    // Address block (single row; multiline cell contents)
+    // NOTE: TCPDF can overdraw/stack borders when simulating merged rows with border-top:0.
+    // Using a single row with <br /> lines avoids thick internal divider bars in PDF output.
+    $addr1 = implode('<br />', [
+      self::displayFieldValueHtml($kind, $p1['parent1_home_street'] ?? null, $eff),
+      self::displayFieldValueHtml($kind, $p1['parent1_home_unit'] ?? null, $eff),
+      self::displayValue($combineCityProvince('parent1_home_city', 'parent1_home_province')),
+      self::displayFieldValueHtml($kind, $p1['parent1_postal_code'] ?? null, $eff),
+    ]);
+    $addr2 = implode('<br />', [
+      self::displayFieldValueHtml($kind, $p2['parent2_home_street'] ?? null, $eff),
+      self::displayFieldValueHtml($kind, $p2['parent2_home_unit'] ?? null, $eff),
+      self::displayValue($combineCityProvince('parent2_home_city', 'parent2_home_province')),
+      self::displayFieldValueHtml($kind, $p2['parent2_postal_code'] ?? null, $eff),
+    ]);
+
+    $t .= $row('Address', $addr1, $addr2);
+
+    // Phones
+    $t .= $row(
+      'Cell and Home #',
+      self::displayFieldValueHtml($kind, $p1['parent1_phones'] ?? null, $eff),
+      self::displayFieldValueHtml($kind, $p2['parent2_phones'] ?? null, $eff)
+    );
+
+    // Work/School subsection header
+    $t .= $subheader('Parent / Guardian Work / School Information');
+
+
+    // Work/School address block (single row; multiline cell contents)
+    // Same rationale as Home Address: avoids stacked borders in TCPDF.
+    $work1 = implode('<br />', [
+      self::displayFieldValueHtml($kind, $p1['parent1_work_street'] ?? null, $eff),
+      self::displayFieldValueHtml($kind, $p1['parent1_work_unit'] ?? null, $eff),
+      self::displayValue($combineCityProvince('parent1_work_city', 'parent1_work_province')),
+      self::displayFieldValueHtml($kind, $p1['parent1_work_postal_code'] ?? null, $eff),
+    ]);
+    $work2 = implode('<br />', [
+      self::displayFieldValueHtml($kind, $p2['parent2_work_street'] ?? null, $eff),
+      self::displayFieldValueHtml($kind, $p2['parent2_work_unit'] ?? null, $eff),
+      self::displayValue($combineCityProvince('parent2_work_city', 'parent2_work_province')),
+      self::displayFieldValueHtml($kind, $p2['parent2_work_postal_code'] ?? null, $eff),
+    ]);
+
+    $t .= $row('Street Address', $work1, $work2);
+
+    // Work/School phone
+    $t .= $row(
+      'Parent Work/School phone #',
+      self::displayFieldValueHtml($kind, $p1['parent1_work_phone'] ?? null, $eff),
+      self::displayFieldValueHtml($kind, $p2['parent2_work_phone'] ?? null, $eff)
+    );
 
     $t .= '</table>';
 
@@ -1279,7 +1455,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     );
   }
 
-  private static function renderWaitlistFourColRow(
+private static function renderWaitlistFourColRow(
     string $kind,
     ?array $f1,
     ?array $f2,
