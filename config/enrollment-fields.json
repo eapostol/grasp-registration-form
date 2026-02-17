@@ -434,14 +434,16 @@
               "label": "Home Postal Code (first part: A1A)",
               "type": "text",
               "required": false,
-              "maxLength": 3
+              "maxLength": 3,
+              "placeholder": "A1A"
             },
             {
               "name": "parent2_home_postal2",
               "label": "Home Postal Code (second part: 1A1)",
               "type": "text",
               "required": false,
-              "maxLength": 3
+              "maxLength": 3,
+              "placeholder": "1A1"
             },
             {
               "name": "parent2_home_address",
@@ -545,14 +547,16 @@
               "label": "Parent Work/School postal code (first part: A1A)",
               "type": "text",
               "required": false,
-              "maxLength": 3
+              "maxLength": 3,
+              "placeholder": "A1A"
             },
             {
               "name": "parent2_work_postal2",
               "label": "Parent Work/School postal code (second part: 1A1)",
               "type": "text",
               "required": false,
-              "maxLength": 3
+              "maxLength": 3,
+              "placeholder": "1A1"
             },
             {
               "name": "parent2_work_address",
@@ -674,14 +678,16 @@
               "label": "Postal code (first part: A1A)",
               "type": "text",
               "required": false,
-              "maxLength": 3
+              "maxLength": 3,
+              "placeholder": "A1A"
             },
             {
               "name": "doctor_postal2",
               "label": "Postal code (second part: 1A1)",
               "type": "text",
               "required": false,
-              "maxLength": 3
+              "maxLength": 3,
+              "placeholder": "1A1"
             },
             {
               "name": "doctor_address",
@@ -699,25 +705,29 @@
               "name": "child_allergies",
               "label": "Does your child have any allergies?",
               "type": "textarea",
-              "required": false
+              "required": false,
+              "placeholder": "describe any allergies your child has, including food, medication, environmental, etc., or enter 'none' if no allergies"
             },
             {
               "name": "allergy_symptoms",
               "label": "Symptoms to look for with allergy",
               "type": "textarea",
-              "required": false
+              "required": false,
+              "placeholder": "describe the symptoms to look for if your child is having an allergic reaction."
             },
             {
               "name": "allergy_treatment",
               "label": "Treatment for allergy",
               "type": "textarea",
-              "required": false
+              "required": false,
+              "placeholder": "describe the treatment to be given in the case of an allergic reaction, including any medications to be administered"
             },
             {
               "name": "epipen_required",
               "label": "Epipen required?",
               "type": "radio",
-              "required": false,
+              "required": true,
+              "default": "no",
               "options": [
                 {
                   "value": "yes",
@@ -801,6 +811,7 @@
               "label": "I give permission for GRASP staff to secure emergency medical treatment for my child.",
               "type": "radio",
               "required": true,
+              "default": "agree",
               "options": [
                 {
                   "value": "agree",
@@ -841,6 +852,7 @@
               "label": "Is your child asthmatic?",
               "type": "radio",
               "required": false,
+              "default": "no",
               "options": [
                 {
                   "value": "yes",
@@ -857,6 +869,7 @@
               "label": "Is your child using a puffer?",
               "type": "radio",
               "required": false,
+              "default":"no",
               "options": [
                 {
                   "value": "yes",
@@ -919,6 +932,7 @@
               "label": "Authorization for recreational water play (splash pads, supervised pools, etc.)",
               "type": "radio",
               "required": true,
+              "default": "no",
               "options": [
                 {
                   "value": "yes",
@@ -935,6 +949,7 @@
               "label": "Authorization for the use of hand sanitizer (70–90% alcohol, as per Toronto Public Health)",
               "type": "radio",
               "required": true,
+              "default": "no",
               "options": [
                 {
                   "value": "yes",
