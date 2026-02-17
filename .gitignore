@@ -88,3 +88,5 @@ originals/
 *.provenance
 *:com.apple.*
 :Zone.Identifier
+
+whc_known_hosts.txt

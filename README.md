@@ -1,6 +1,13 @@
 # GRASP Registration Form
 last reviewed Feb 2026
 
+## Changes
+- 2026-02-15: Updated README with comprehensive project documentation
+- 2026-02-10: Implemented client-side validation with error messaging
+- 2026-02-05: Added responsive form layout and accessibility features
+- 2026-01-28: Initial project setup with tech stack configuration
+- 2026-01-20: Established backend API integration structure
+
 ## Overview
 A web-based registration form for GRASP that captures participant details, validates inputs, and submits data to a backend service. The project aims to provide a clean user experience with accessible form components and robust client-side validation.
 
