@@ -1404,21 +1404,53 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     );
 
 
-    // Address block (single row; multiline cell contents)
-    // NOTE: TCPDF can overdraw/stack borders when simulating merged rows with border-top:0.
-    // Using a single row with <br /> lines avoids thick internal divider bars in PDF output.
-    $addr1 = implode('<br />', [
-      self::displayFieldValueHtml($kind, $p1['parent1_home_street'] ?? null, $eff),
-      self::displayFieldValueHtml($kind, $p1['parent1_home_unit'] ?? null, $eff),
-      self::displayValue($combineCityProvince('parent1_home_city', 'parent1_home_province')),
-      self::displayFieldValueHtml($kind, $p1['parent1_postal_code'] ?? null, $eff),
-    ]);
-    $addr2 = implode('<br />', [
-      self::displayFieldValueHtml($kind, $p2['parent2_home_street'] ?? null, $eff),
-      self::displayFieldValueHtml($kind, $p2['parent2_home_unit'] ?? null, $eff),
-      self::displayValue($combineCityProvince('parent2_home_city', 'parent2_home_province')),
-      self::displayFieldValueHtml($kind, $p2['parent2_postal_code'] ?? null, $eff),
-    ]);
+    // Address block (single row; 2-line cell contents)
+    // - Unit/Apt/Suite: omit completely when blank (do not show "(blank)")
+    // - If unit is present, append to the street line with ", "
+    // - Postal Code: move to same line as Province with ", " (remove dedicated postal line)
+    $formatAddr = function (?array $streetField, ?array $unitField, string $cityKey, string $provKey, string $postalKey) use ($kind, &$eff): array {
+      $streetHtml = self::displayFieldValueHtml($kind, $streetField, $eff);
+
+      $unitRaw = self::getFieldValue($unitField, $eff);
+      if (trim($unitRaw) !== '') {
+        $streetHtml .= ', ' . self::displayValue($unitRaw);
+      }
+
+      $city = trim((string)($eff[$cityKey] ?? ''));
+      $prov = trim((string)($eff[$provKey] ?? ''));
+      $postal = trim((string)($eff[$postalKey] ?? ''));
+
+      $line2 = '';
+      if ($city !== '' && $prov !== '') {
+        $line2 = $city . ', ' . $prov;
+      } else {
+        $line2 = ($city !== '') ? $city : $prov;
+      }
+
+      if ($postal !== '') {
+        $line2 = ($line2 !== '') ? ($line2 . ', ' . $postal) : $postal;
+      }
+
+      return [$streetHtml, self::displayValue($line2)];
+    };
+
+    [$a1Line1, $a1Line2] = $formatAddr(
+      $p1['parent1_home_street'] ?? null,
+      $p1['parent1_home_unit'] ?? null,
+      'parent1_home_city',
+      'parent1_home_province',
+      'parent1_postal_code'
+    );
+    $addr1 = $a1Line1 . '<br />' . $a1Line2;
+
+    [$a2Line1, $a2Line2] = $formatAddr(
+      $p2['parent2_home_street'] ?? null,
+      $p2['parent2_home_unit'] ?? null,
+      'parent2_home_city',
+      'parent2_home_province',
+      'parent2_postal_code'
+    );
+    $addr2 = $a2Line1 . '<br />' . $a2Line2;
 
     $t .= $row('Address', $addr1, $addr2);
 
@@ -1433,20 +1465,25 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     $t .= $subheader('Parent / Guardian Work / School Information');
 
 
-    // Work/School address block (single row; multiline cell contents)
-    // Same rationale as Home Address: avoids stacked borders in TCPDF.
-    $work1 = implode('<br />', [
-      self::displayFieldValueHtml($kind, $p1['parent1_work_street'] ?? null, $eff),
-      self::displayFieldValueHtml($kind, $p1['parent1_work_unit'] ?? null, $eff),
-      self::displayValue($combineCityProvince('parent1_work_city', 'parent1_work_province')),
-      self::displayFieldValueHtml($kind, $p1['parent1_work_postal_code'] ?? null, $eff),
-    ]);
-    $work2 = implode('<br />', [
-      self::displayFieldValueHtml($kind, $p2['parent2_work_street'] ?? null, $eff),
-      self::displayFieldValueHtml($kind, $p2['parent2_work_unit'] ?? null, $eff),
-      self::displayValue($combineCityProvince('parent2_work_city', 'parent2_work_province')),
-      self::displayFieldValueHtml($kind, $p2['parent2_work_postal_code'] ?? null, $eff),
-    ]);
+    // Work/School address block (single row; 2-line cell contents)
+    // Same formatting rules as Home Address (Unit inline when present; Postal inline with Province)
+    [$w1Line1, $w1Line2] = $formatAddr(
+      $p1['parent1_work_street'] ?? null,
+      $p1['parent1_work_unit'] ?? null,
+      'parent1_work_city',
+      'parent1_work_province',
+      'parent1_work_postal_code'
+    );
+    $work1 = $w1Line1 . '<br />' . $w1Line2;
+
+    [$w2Line1, $w2Line2] = $formatAddr(
+      $p2['parent2_work_street'] ?? null,
+      $p2['parent2_work_unit'] ?? null,
+      'parent2_work_city',
+      'parent2_work_province',
+      'parent2_work_postal_code'
+    );
+    $work2 = $w2Line1 . '<br />' . $w2Line2;
 
     $t .= $row('Street Address', $work1, $work2);
 
