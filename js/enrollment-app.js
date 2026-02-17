@@ -748,6 +748,11 @@ function createPostalHalfControl(fieldDef) {
   input.type = fieldDef.inputType || fieldDef.type || "text";
   input.value = value;
 
+  // Optional placeholder hint (e.g., A1A / 1A1)
+  if (fieldDef.placeholder) {
+    input.placeholder = fieldDef.placeholder;
+  }
+
   // Visually and technically limit to 3 characters.
   const maxLen = fieldDef.maxLength || 3;
   input.maxLength = maxLen;
