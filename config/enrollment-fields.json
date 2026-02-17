@@ -434,14 +434,16 @@
               "label": "Home Postal Code (first part: A1A)",
               "type": "text",
               "required": false,
-              "maxLength": 3
+              "maxLength": 3,
+              "placeholder": "A1A"
             },
             {
               "name": "parent2_home_postal2",
               "label": "Home Postal Code (second part: 1A1)",
               "type": "text",
               "required": false,
-              "maxLength": 3
+              "maxLength": 3,
+              "placeholder": "1A1"
             },
             {
               "name": "parent2_home_address",
@@ -674,14 +676,16 @@
               "label": "Postal code (first part: A1A)",
               "type": "text",
               "required": false,
-              "maxLength": 3
+              "maxLength": 3,
+              "placeholder": "A1A"
             },
             {
               "name": "doctor_postal2",
               "label": "Postal code (second part: 1A1)",
               "type": "text",
               "required": false,
-              "maxLength": 3
+              "maxLength": 3,
+              "placeholder": "1A1"
             },
             {
               "name": "doctor_address",
