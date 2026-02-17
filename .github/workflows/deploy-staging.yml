@@ -12,10 +12,15 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Add WHC host key (avoid interactive prompt)
+      - name: Install WHC known_hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -p ${{ secrets.WHC_PORT }} -H ${{ secrets.WHC_HOST }} >> ~/.ssh/known_hosts
+          printf "%s\n" "${{ secrets.WHC_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Test TCP connectivity to WHC SSH
+        run: |
+          timeout 5 bash -lc 'cat < /dev/null > /dev/tcp/${{ secrets.WHC_HOST }}/${{ secrets.WHC_PORT }}'
 
       - name: SSH and deploy staging on WHC
         uses: appleboy/ssh-action@v1.0.3
