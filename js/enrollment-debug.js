@@ -312,6 +312,19 @@
     var label = (field.label || "").toLowerCase();
     var options = field.options || [];
 
+    // [GRASP-DEBUG] Explicit field overrides (must run BEFORE generic postal/phone rules).
+    if (name === "emergency_contact_address") {
+      return "123 Someplace Street, Toronto, Ontario, M1M 2M2";
+    }
+    if (name === "authorized_pickups") {
+      return [
+        "Jane Doe, aunt, 123-456-7893",
+        "John Smith, uncle, 123-345-6666",
+        "June Cleaver, cousin, 123-343-2489",
+      ].join("\n");
+    }
+
+
     // Emails
     if (label.includes("email") || name.includes("email")) {
       return "test@test.com";
@@ -337,24 +350,7 @@
       return generateRandomCanadianPostalCode();
     }
 
-
-    // Emergency contact day-time address: one-line, full example (street, suite, city, province, postal).
-    if (name === "emergency_contact_address" || label.includes("day time address")) {
-      var pc = generateRandomTorontoPostalCode();
-      var suite = Math.floor(100 + Math.random() * 900);
-      var streetNo = Math.floor(10 + Math.random() * 990);
-      var streets = [
-        "Anywhere Street",
-        "Bloor Street W",
-        "Danforth Ave",
-        "King Street W",
-        "Queen Street W",
-        "Yonge Street",
-        "Eglinton Ave W",
-      ];
-      var street = streets[Math.floor(Math.random() * streets.length)];
-      return streetNo + " " + street + ", Suite " + suite + ", Toronto, ON " + pc;
-    }
+    // Emergency contact day-time address handled above via explicit override.
     // Addresses
     if (label.includes("address") || name.includes("address")) {
       return "123 Anywhere Street\nToronto, Ontario\nM1M 2M2";
@@ -380,11 +376,11 @@
     if (label.includes("emergency contact") && label.includes("phone")) {
       return "333-444-5555";
     }
-    if (label.includes("authorized") && label.includes("pickup")) {
+    if (name === "authorized_pickups" || (label.includes("authorized") && (label.includes("pick up") || label.includes("pick ups") || label.includes("pickups") || label.includes("pickup")))) {
       return [
-        "Jane Doe, 416-111-2222, aunt",
-        "John Smith, 647-899-2323, cousin",
-        "Richard Dawson, 905-111-2222, grandparent",
+        "Jane Doe, aunt, 123-456-7893",
+        "John Smith, uncle, 123-345-6666",
+        "June Cleaver, cousin, 123-343-2489",
       ].join("\n");
     }
 
@@ -481,6 +477,22 @@
       v === null ||
       (typeof v === "string" && v.trim() === "")
     );
+  }
+
+  function isLegacyEmergencyAddressValue(v) {
+    // Legacy debug could set this field to a bare postal code because the label contains "(incl. postal code)".
+    if (typeof v !== "string") return false;
+    var t = v.trim();
+    // Canadian postal code pattern: A1A 1A1 (space optional)
+    return /^[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d$/.test(t);
+  }
+
+  function isLegacyAuthorizedPickupsValue(v) {
+    // Legacy debug could set this field to a single phone number because the label contains "phone numbers".
+    if (typeof v !== "string") return false;
+    var t = v.trim();
+    // Simple phone pattern (e.g., 111-222-3333) with optional spaces.
+    return /^\d{3}[-\s]?\d{3}[-\s]?\d{4}$/.test(t);
   }
 
   function safeCssEscape(value) {
@@ -653,7 +665,12 @@
             // If debug is enabled AND enrollment/waitlist draft exists:
             //   - Keep stored values
             //   - Fill only missing waitlist fields with debug values (do not override)
-            if (!isEmptyValue(formStateObj[name])) {
+            var existingValue = formStateObj[name];
+            var allowOverride =
+              (name === "emergency_contact_address" && isLegacyEmergencyAddressValue(existingValue)) ||
+              (name === "authorized_pickups" && isLegacyAuthorizedPickupsValue(existingValue));
+
+            if (!allowOverride && !isEmptyValue(existingValue)) {
               return;
             }
 
