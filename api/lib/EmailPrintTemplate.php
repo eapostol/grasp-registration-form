@@ -1618,7 +1618,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       '; border-top:' .
       $b .
       '; vertical-align:top; font-weight:bold;">' .
-      self::h('Other Authorized Pick Ups') .
+      self::h('Other Authorized Pickups') .
       '</td>' .
       '<td colspan="2" style="width:66.67%; padding:' .
       $pad .
