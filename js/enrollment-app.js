@@ -903,6 +903,9 @@ function createFieldRow(fieldDef) {
     control.className = "grasp-textarea";
     control.id = "field_" + fieldDef.name;
     control.value = value;
+    if (fieldDef.placeholder) {
+      control.placeholder = fieldDef.placeholder;
+    }
     control.addEventListener("input", () => {
       setFieldValue(fieldDef.name, control.value);
     });
@@ -996,6 +999,10 @@ function createFieldRow(fieldDef) {
     // [GRASP-POSTAL-UX] Honour any maxLength hint for text inputs (e.g., short 3-character fields).
     if (typeof fieldDef.maxLength === "number") {
       control.maxLength = fieldDef.maxLength;
+    }
+
+    if (fieldDef.placeholder) {
+      control.placeholder = fieldDef.placeholder;
     }
 
     control.addEventListener("input", () => {

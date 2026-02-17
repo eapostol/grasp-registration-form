@@ -18,6 +18,7 @@
               "type": "text",
               "inputType": "text",
               "required": true
+              ,"placeholder": "first name"
             },
             {
               "name": "child_middle_name_or_initial",
@@ -31,7 +32,8 @@
               "label": "Child's Last Name",
               "type": "text",
               "inputType": "text",
-              "required": true
+              "required": true,
+              "placeholder": "last name / surname"
             },
             {
               "name": "child_name",
@@ -49,7 +51,9 @@
               "name": "subsidy_file_number",
               "label": "Subsidy File #",
               "type": "text",
-              "required": false
+              "required": false,
+              "placeholder": "optional"
+
             }
           ]
         },
@@ -166,14 +170,16 @@
               "label": "Home Postal Code (first part: A1A)",
               "type": "text",
               "required": true,
-              "maxLength": 3
+              "maxLength": 3,
+              "placeholder": "A1A"
             },
             {
               "name": "parent1_home_postal2",
               "label": "Home Postal Code (second part: 1A1)",
               "type": "text",
               "required": true,
-              "maxLength": 3
+              "maxLength": 3,
+              "placeholder": "1A1"
             },
             {
               "name": "parent1_home_address",
@@ -191,7 +197,8 @@
               "name": "parent1_phones",
               "label": "Cell and home #",
               "type": "text",
-              "required": true
+              "required": true,
+              "placeholder": "i.e. 416-555-1234"
             },
             {
               "name": "parent1_work_street",
@@ -277,14 +284,16 @@
               "label": "Parent Work/School postal code (first part: A1A)",
               "type": "text",
               "required": false,
-              "maxLength": 3
+              "maxLength": 3,
+              "placeholder": "A1A"
             },
             {
               "name": "parent1_work_postal2",
               "label": "Parent Work/School postal code (second part: 1A1)",
               "type": "text",
               "required": false,
-              "maxLength": 3
+              "maxLength": 3,
+              "placeholder": "1A1"
             },
             {
               "name": "parent1_work_address",
@@ -742,20 +751,23 @@
               "name": "emergency_contact_day_phone",
               "label": "Day time phone #",
               "type": "text",
-              "required": true
+              "required": true,
+              "placeholder": "i.e. 416-555-1234"
             },
             {
               "name": "emergency_contact_address",
               "label": "Day time address (incl. postal code)",
               "type": "textarea",
-              "required": true
+              "required": true,
+              "placeholder": "i.e. 123 Main St, Toronto, ON M1M 1M1"
             },
             {
               "name": "authorized_pickups",
               "label": "Other authorized pick ups (names, relationships & phone numbers)",
               "type": "textarea",
               "required": false,
-              "helpText": "List each authorized pick up on a new line."
+              "placeholder": "i.e. Jane Smith, aunt, 416-555-1234 \n     John Smith, uncle, 416-111-2222",
+              "helpText": "List each authorized pick up on a new line in the text box below."
             }
           ],
           "contentBlocks": [
