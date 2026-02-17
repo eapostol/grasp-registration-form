@@ -1,0 +1,28 @@
+name: Deploy to WHC Staging
+
+on:
+  push:
+    branches: ["main"]
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add WHC host key (avoid interactive prompt)
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p ${{ secrets.WHC_PORT }} -H ${{ secrets.WHC_HOST }} >> ~/.ssh/known_hosts
+
+      - name: SSH and deploy staging on WHC
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.WHC_HOST }}
+          username: ${{ secrets.WHC_USER }}
+          key: ${{ secrets.WHC_SSH_KEY }}
+          port: ${{ secrets.WHC_PORT }}
+          script: |
+            bash ~/deploy/bin/grasp_deploy.sh staging
