@@ -90,3 +90,9 @@ originals/
 :Zone.Identifier
 
 whc_known_hosts.txt
+
+# Python virtualenv
+.venv/
+.venv
+./venv/**
+
