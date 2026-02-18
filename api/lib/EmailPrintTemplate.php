@@ -1385,7 +1385,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     };
 
     $subheader = function (string $title) use ($cellPad, $b, $bgAttr): string {
-      $style = 'font-weight:bold; text-align:left; background:#f3f3f3;' . $cellPad . ' border-top:' . $b . ';';
+      $style = 'font-weight:bold; text-align:left; background:#f3f3f3;' . $cellPad . ' border-top:' . $b . '; border-bottom:' . $b . ';';
       return '<tr><td colspan="3"' . $bgAttr . ' style="' . $style . '">' . self::h($title) . '</td></tr>';
     };
 
@@ -1485,7 +1485,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     );
     $work2 = $w2Line1 . '<br />' . $w2Line2;
 
-    $t .= $row('Street Address', $work1, $work2);
+    $t .= $row('Street Address', $work1, $work2, false);
 
     // Work/School phone
     $t .= $row(
@@ -1666,7 +1666,65 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       '</td>' .
       '</tr>';
 
-    return implode("\n", $rows);
+    
+
+    // Row 6-7: Signature / Date Signed / Witness (from Final Acknowledgement & Signature)
+    $parentSigRaw = trim((string)($data['parent_full_name_signature'] ?? ''));
+    if ($parentSigRaw === '') {
+      $parentSigRaw = trim((string)($data['parent_signature'] ?? ''));
+    }
+    $dateSignedRaw = trim((string)($data['signature_date'] ?? ''));
+    $witnessRaw = trim((string)($data['witness'] ?? ''));
+
+    // Create a small visual gap between the values row and the label row for readability
+    $padLabel = ($kind === 'pdf') ? '3px 6px 6px' : '3px 8px 8px';
+
+    // Row 6: values (3 cols)
+    $rows[] =
+      '<tr>' .
+      '<td style="width:33.33%; padding:' .
+      $pad .
+      '; border-top:' .
+      $b .
+      '; vertical-align:top;">' .
+      self::displayValue($parentSigRaw) .
+      '</td>' .
+      '<td style="width:33.33%; padding:' .
+      $pad .
+      '; border-top:' .
+      $b .
+      '; vertical-align:top;">' .
+      self::displayValue($dateSignedRaw) .
+      '</td>' .
+      '<td style="width:33.34%; padding:' .
+      $pad .
+      '; border-top:' .
+      $b .
+      '; vertical-align:top;">' .
+      self::displayValue($witnessRaw) .
+      '</td>' .
+      '</tr>';
+
+    // Row 7: labels (3 cols)
+    $rows[] =
+      '<tr>' .
+      '<td style="width:33.33%; padding:' .
+      $padLabel .
+      '; border-top:0; vertical-align:top; font-weight:bold;">' .
+      self::h('Parent / Guardian Signature') .
+      '</td>' .
+      '<td style="width:33.33%; padding:' .
+      $padLabel .
+      '; border-top:0; vertical-align:top; font-weight:bold;">' .
+      self::h('Date Signed') .
+      '</td>' .
+      '<td style="width:33.34%; padding:' .
+      $padLabel .
+      '; border-top:0; vertical-align:top; font-weight:bold;">' .
+      self::h('Witness') .
+      '</td>' .
+      '</tr>';
+return implode("\n", $rows);
   }
 
 private static function renderWaitlistFourColRow(

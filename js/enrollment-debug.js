@@ -163,6 +163,8 @@
         parent1Last: lastName,
         parent2First: toTitleCaseSafe(pick(FIRST_NAMES)),
         parent2Last: lastName,
+        witnessFirst: toTitleCaseSafe(pick(FIRST_NAMES)),
+        witnessLast: toTitleCaseSafe(pick(LAST_NAMES)),
       };
     }
 
@@ -194,6 +196,8 @@
         parent1Last: lastName,
         parent2First: parent2First,
         parent2Last: lastName,
+        witnessFirst: toTitleCaseSafe(pick(FIRST_NAMES)),
+        witnessLast: toTitleCaseSafe(pick(LAST_NAMES)),
       };
     } catch (e) {
       // Keep the console clean — this is debug-only.
@@ -293,6 +297,11 @@
       doctor_province: "ON",
       doctor_postal1: doctorPostal.p1,
       doctor_postal2: doctorPostal.p2,
+
+      // -------------------------
+      // Final Acknowledgement & Signature
+      // -------------------------
+      witness: names.witnessFirst + ' ' + names.witnessLast,
     };
 
     return overrides;
