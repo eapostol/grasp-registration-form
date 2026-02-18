@@ -471,6 +471,42 @@ private static function renderRows(string $kind, array $fields, array $data): st
     }
 
 
+    private static function renderRows60_40(string $kind, array $fields, array $data): string
+    {
+        $out = [];
+        foreach ($fields as $field) {
+            if (!is_array($field)) continue;
+
+            if (self::shouldSkipField($field, $data)) {
+                continue;
+            }
+
+            $key = self::fieldKey($field);
+            if ($key === '') continue;
+
+            $value = $data[$key] ?? '';
+            $value = self::normalizeFieldValue($field, $value);
+            $label = self::rowLabel($field);
+
+            if ($kind === 'pdf') {
+                $out[] =
+                    '<tr>'
+                  . '<td width="60%" style="border-top:0.5pt solid #333; font-weight:bold; vertical-align:top;">' . $label . '</td>'
+                  . '<td width="40%" style="border-top:0.5pt solid #333; vertical-align:top;">' . self::displayValue($value) . '</td>'
+                  . '</tr>';
+            } else {
+                // Email (Gmail-safe)
+                $out[] =
+                    '<tr>'
+                  . '<td style="width:60%; padding:7px 10px; border-top:1px solid #333; vertical-align:top; font-weight:bold;">' . $label . '</td>'
+                  . '<td style="width:40%; padding:7px 10px; border-top:1px solid #333; vertical-align:top;">' . self::displayValue($value) . '</td>'
+                  . '</tr>';
+            }
+        }
+        return implode("\n", $out);
+    }
+
+
     private static function renderContentBlocks(string $kind, array $blocks, array $data): string
     {
         if (!is_array($blocks) || count($blocks) === 0) return '';
@@ -507,7 +543,10 @@ private static function renderRows(string $kind, array $fields, array $data): st
             $html = self::replaceTokens($html, $data, $kind);
 
             if ($title !== '') {
-                $html = '<div style="font-weight:bold; margin:0 0 4px 0;">' . self::h($title) . '</div>' . $html;
+                $needsBreak = ($title === 'MEDICATION' || $title === '(MEDICAL RELEASE) PARENTS CONSENT FOR MEDICAL TREATMENT');
+                $html = '<div style="font-weight:bold; margin:0 0 4px 0;">' . self::h($title) . '</div>'
+                      . ($needsBreak ? '<br />' : '')
+                      . $html;
             }
 
             if (trim($html) === '') continue;
@@ -953,7 +992,31 @@ private static function renderRows(string $kind, array $fields, array $data): st
                 }
             }
 
-            // Default render path (supports contentBlocks)
+            
+            // -----------------------------------------------------------------
+            // Enrollment-only: Medical Release & Medication
+            // Email + PDF: enforce 60/40 widths for the final two rows (Medication details + consent)
+            // -----------------------------------------------------------------
+            if ($profile === 'enrollment' && $titleTrim === 'Medical Release & Medication') {
+                $contentRows = '';
+                if (!empty($section['contentBlocks']) && is_array($section['contentBlocks'])) {
+                    $contentRows = self::renderContentBlocks($kind, $section['contentBlocks'], $data);
+                }
+                $rows = trim($contentRows) === ''
+                    ? self::renderRows60_40($kind, $fields, $data)
+                    : ($contentRows . "\n" . self::renderRows60_40($kind, $fields, $data));
+
+                if (trim($rows) !== '') {
+                    $out[] = str_replace(
+                        ['{{SECTION_TITLE}}', '{{ROWS}}'],
+                        [self::h((string)$title), $rows],
+                        $sectionTpl
+                    );
+                }
+                continue;
+            }
+
+// Default render path (supports contentBlocks)
             $contentRows = '';
             if (!empty($section['contentBlocks']) && is_array($section['contentBlocks'])) {
                 $contentRows = self::renderContentBlocks($kind, $section['contentBlocks'], $data);
@@ -1555,7 +1618,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
         // Add centered note under the emergency header (same row/cell; no extra table row)
         if (stripos($html, 'PERSON TO CALL IN CASE OF EMERGENCY') !== false &&
             stripos($html, 'Centre will') === false) {
-          $note = 'Centre will <em>first</em> attempt to call parents/guardians and then emergency contact only if we can not reach parents/guardians.<br />';
+          $note = 'Centre will <em>first</em> attempt to call parents/guardians and then emergency contact only if we can not reach parents/guardians.';
           $html .= '<div style="text-align:center; font-size:75%; font-weight:normal; margin-top:2px;">' . $note . '</div>';
         }
 
