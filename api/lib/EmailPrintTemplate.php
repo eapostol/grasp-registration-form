@@ -1552,6 +1552,13 @@ $content = self::renderSections($kind, $sections, $data, $meta);
         }
 
         $html = self::replaceTokens($html, $data, $kind);
+        // Add centered note under the emergency header (same row/cell; no extra table row)
+        if (stripos($html, 'PERSON TO CALL IN CASE OF EMERGENCY') !== false &&
+            stripos($html, 'Centre will') === false) {
+          $note = 'Centre will <em>first</em> attempt to call parents/guardians and then emergency contact only if we can not reach parents/guardians.<br />';
+          $html .= '<div style="text-align:center; font-size:75%; font-weight:normal; margin-top:2px;">' . $note . '</div>';
+        }
+
         if (trim($html) === '') continue;
 
         $rows[] =
@@ -1686,21 +1693,21 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       $pad .
       '; border-top:' .
       $b .
-      '; vertical-align:top;">' .
+      '; border-bottom:0; vertical-align:top;">' .
       self::displayValue($parentSigRaw) .
       '</td>' .
       '<td style="width:33.33%; padding:' .
       $pad .
       '; border-top:' .
       $b .
-      '; vertical-align:top;">' .
+      '; border-bottom:0; vertical-align:top;">' .
       self::displayValue($dateSignedRaw) .
       '</td>' .
       '<td style="width:33.34%; padding:' .
       $pad .
       '; border-top:' .
       $b .
-      '; vertical-align:top;">' .
+      '; border-bottom:0; vertical-align:top;">' .
       self::displayValue($witnessRaw) .
       '</td>' .
       '</tr>';
@@ -1710,17 +1717,17 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       '<tr>' .
       '<td style="width:33.33%; padding:' .
       $padLabel .
-      '; border-top:0; vertical-align:top; font-weight:bold;">' .
+      '; border-top:none; vertical-align:top; font-weight:bold;">' .
       self::h('Parent / Guardian Signature') .
       '</td>' .
       '<td style="width:33.33%; padding:' .
       $padLabel .
-      '; border-top:0; vertical-align:top; font-weight:bold;">' .
+      '; border-top:none; vertical-align:top; font-weight:bold;">' .
       self::h('Date Signed') .
       '</td>' .
       '<td style="width:33.34%; padding:' .
       $padLabel .
-      '; border-top:0; vertical-align:top; font-weight:bold;">' .
+      '; border-top:none; vertical-align:top; font-weight:bold;">' .
       self::h('Witness') .
       '</td>' .
       '</tr>';
