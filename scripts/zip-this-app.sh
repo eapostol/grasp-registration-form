@@ -3,12 +3,14 @@
 # Generate timestamp for the zip file
 TIMESTAMP=$(date +%Y-%m-%d-%I%M%p)
 ZIP_FILE="../grasp-registration-form-${TIMESTAMP}.zip"
+ZIP_DIR="../"
 
 # Create zip archive excluding non-essential files and folders
 zip -r "$ZIP_FILE" . \
     -x ".git/*" ".git/**" \
     "*.log" \
     "*Zone.Identifier*" \
+    ".venv/*" ".venv/**" \
     "node_modules/*" "node_modules/**" \
     ".ddev/.db/*" ".ddev/.db/**" \
     "**/*.zip" \
@@ -21,4 +23,4 @@ zip -r "$ZIP_FILE" . \
     ".DS_Store" \
     "Thumbs.db"
 
-echo "✓ Project archived as: $ZIP_FILE"
+echo "✓ Project archived as: $ZIP_FILE in $ZIP_DIR"
