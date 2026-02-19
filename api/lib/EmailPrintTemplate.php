@@ -471,7 +471,48 @@ private static function renderRows(string $kind, array $fields, array $data): st
     }
 
 
-    private static function renderContentBlocks(string $kind, array $blocks, array $data): string
+    
+    /**
+     * Enrollment-only: render rows using a 60/40 label/value split.
+     * Intended for "Medical Release & Medication" last rows in PDF/email parity.
+     */
+    private static function renderRows60_40(string $kind, array $fields, array $data): string
+    {
+        $b = self::borderTop($kind);
+        $out = [];
+
+        foreach ($fields as $field) {
+            if (!is_array($field)) continue;
+
+            if (self::shouldSkipField($field, $data)) {
+                continue;
+            }
+
+            $key = self::fieldKey($field);
+            if ($key === '') continue;
+
+            $value = $data[$key] ?? '';
+            $value = self::normalizeFieldValue($field, $value);
+            $label = self::rowLabel($field);
+
+            if ($kind === 'pdf') {
+                $out[] = '<tr>'
+                    . '<td width="60%" style="border-top:' . $b . '; font-weight:bold; vertical-align:top;">' . $label . '</td>'
+                    . '<td width="40%" style="border-top:' . $b . '; vertical-align:top;">' . self::displayValue($value) . '</td>'
+                    . '</tr>';
+            } else {
+                $out[] = '<tr>'
+                    . '<td style="width:60%; padding:7px 10px; border-top:' . $b . '; vertical-align:top; font-weight:bold;">' . $label . '</td>'
+                    . '<td style="width:40%; padding:7px 10px; border-top:' . $b . '; vertical-align:top;">' . self::displayValue($value) . '</td>'
+                    . '</tr>';
+            }
+        }
+
+        return implode("\n", $out);
+    }
+
+
+private static function renderContentBlocks(string $kind, array $blocks, array $data): string
     {
         if (!is_array($blocks) || count($blocks) === 0) return '';
 
@@ -505,6 +546,10 @@ private static function renderRows(string $kind, array $fields, array $data): st
             }
 
             $html = self::replaceTokens($html, $data, $kind);
+
+            // Enrollment: reduce excessive blank lines after key headings (TCPDF can render multiple <br> as extra vertical space)
+            $html = preg_replace('/(<\s*(?:b|strong)\s*>\s*MEDICATION\s*<\s*\/\s*(?:b|strong)\s*>\s*<br\s*\/?>)\s*(?:<br\s*\/?>\s*)+/i', '$1', $html);
+            $html = preg_replace('/(<\s*(?:b|strong)\s*>\s*\(\s*MEDICAL\s*RELEASE\s*\)\s*PARENTS\s*CONSENT\s*FOR\s*MEDICAL\s*TREATMENT\s*<\s*\/\s*(?:b|strong)\s*>\s*<br\s*\/?>)\s*(?:<br\s*\/?>\s*)+/i', '$1', $html);
 
             if ($title !== '') {
                 $html = '<div style="font-weight:bold; margin:0 0 4px 0;">' . self::h($title) . '</div>' . $html;
@@ -854,6 +899,29 @@ private static function renderRows(string $kind, array $fields, array $data): st
                 );
               }
               continue;
+            }
+
+
+            // -----------------------------------------------------------------
+            // Enrollment-only: Medical Release & Medication (render last rows as 60/40)
+            if ($profile === 'enrollment' && $titleTrim === 'Medical Release & Medication') {
+                $contentRows = '';
+                if (!empty($section['contentBlocks']) && is_array($section['contentBlocks'])) {
+                    $contentRows = self::renderContentBlocks($kind, $section['contentBlocks'], $data);
+                }
+
+                $rows = trim($contentRows) === ''
+                    ? self::renderRows60_40($kind, $fields, $data)
+                    : ($contentRows . "\n" . self::renderRows60_40($kind, $fields, $data));
+
+                if (trim($rows) !== '') {
+                    $out[] = str_replace(
+                        ['{{SECTION_TITLE}}', '{{ROWS}}'],
+                        [self::h((string)$title), $rows],
+                        $sectionTpl
+                    );
+                }
+                continue;
             }
 
             // -----------------------------------------------------------------
@@ -1366,8 +1434,8 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       . '<td width="31%"' . $bgAttr . ' style="' . $hdrCommon . '">' . self::h('Parent / Guardian 2') . '</td>'
       . '</tr>';
 
-    $row = function (string $label, string $v1Html, string $v2Html, bool $useTopBorder = true, bool $labelBold = true) use ($cellPad, $b): string {
-      $bt = $useTopBorder ? ('border-top:' . $b . ';') : 'border-top:0;';
+    $row = function (string $label, string $v1Html, string $v2Html, bool $useTopBorder = true, bool $labelBold = true) use ($cellPad, $b, $kind): string {
+      $bt = $useTopBorder ? ('border-top:' . $b . ';') : (($kind === 'pdf') ? 'border-top:none; border-top-style:none; border-top-width:0;' : 'border-top:0;');
       $labelCell = ($label === '') ? '&nbsp;' : self::h($label);
 
       $labelStyle = 'text-align:left; vertical-align:top;' . $cellPad . ' ' . $bt;
@@ -1552,13 +1620,6 @@ $content = self::renderSections($kind, $sections, $data, $meta);
         }
 
         $html = self::replaceTokens($html, $data, $kind);
-        // Add centered note under the emergency header (same row/cell; no extra table row)
-        if (stripos($html, 'PERSON TO CALL IN CASE OF EMERGENCY') !== false &&
-            stripos($html, 'Centre will') === false) {
-          $note = 'Centre will <em>first</em> attempt to call parents/guardians and then emergency contact only if we can not reach parents/guardians.<br />';
-          $html .= '<div style="text-align:center; font-size:75%; font-weight:normal; margin-top:2px;">' . $note . '</div>';
-        }
-
         if (trim($html) === '') continue;
 
         $rows[] =
@@ -1693,21 +1754,21 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       $pad .
       '; border-top:' .
       $b .
-      '; border-bottom:0; vertical-align:top;">' .
+      '; border-bottom:none; border-bottom-style:none; border-bottom-width:0; vertical-align:top;">' .
       self::displayValue($parentSigRaw) .
       '</td>' .
       '<td style="width:33.33%; padding:' .
       $pad .
       '; border-top:' .
       $b .
-      '; border-bottom:0; vertical-align:top;">' .
+      '; border-bottom:none; border-bottom-style:none; border-bottom-width:0; vertical-align:top;">' .
       self::displayValue($dateSignedRaw) .
       '</td>' .
       '<td style="width:33.34%; padding:' .
       $pad .
       '; border-top:' .
       $b .
-      '; border-bottom:0; vertical-align:top;">' .
+      '; border-bottom:none; border-bottom-style:none; border-bottom-width:0; vertical-align:top;">' .
       self::displayValue($witnessRaw) .
       '</td>' .
       '</tr>';
@@ -1717,17 +1778,23 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       '<tr>' .
       '<td style="width:33.33%; padding:' .
       $padLabel .
-      '; border-top:none; vertical-align:top; font-weight:bold;">' .
+      '; border-top:' .
+      $b .
+      '; vertical-align:top; font-weight:bold;">' .
       self::h('Parent / Guardian Signature') .
       '</td>' .
       '<td style="width:33.33%; padding:' .
       $padLabel .
-      '; border-top:none; vertical-align:top; font-weight:bold;">' .
+      '; border-top:' .
+      $b .
+      '; vertical-align:top; font-weight:bold;">' .
       self::h('Date Signed') .
       '</td>' .
       '<td style="width:33.34%; padding:' .
       $padLabel .
-      '; border-top:none; vertical-align:top; font-weight:bold;">' .
+      '; border-top:' .
+      $b .
+      '; vertical-align:top; font-weight:bold;">' .
       self::h('Witness') .
       '</td>' .
       '</tr>';

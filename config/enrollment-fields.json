@@ -17,8 +17,8 @@
               "label": "Child's First Name",
               "type": "text",
               "inputType": "text",
-              "required": true
-              ,"placeholder": "first name"
+              "required": true,
+              "placeholder": "first name"
             },
             {
               "name": "child_middle_name_or_initial",
@@ -53,7 +53,6 @@
               "type": "text",
               "required": false,
               "placeholder": "optional"
-
             }
           ]
         },
@@ -801,14 +800,14 @@
           "fields": [
             {
               "name": "medication_notes",
-              "label": "Medication (prescription only) – details",
+              "label": "Medication details",
               "type": "textarea",
               "required": false,
               "helpText": "List any prescription medications that may need to be administered."
             },
             {
               "name": "medical_release_consent",
-              "label": "I give permission for GRASP staff to secure emergency medical treatment for my child.",
+              "label": "I acknowledge and agree for GRASP staff to secure emergency medical treatment for my child.",
               "type": "radio",
               "required": true,
               "default": "agree",
@@ -828,12 +827,12 @@
             {
               "kind": "policy",
               "title": "MEDICATION",
-              "text": "The Centre will administer only prescription medication as required. All medication must come in the original container with the prescription label. The Centre will document all medication on the appropriate consent form and parents/guardians must sign this medication form before the medication is administered to their child."
+              "html": "<div style=\"text-align: justify;\">The Centre will administer only prescription medication as required. All medication must come in the original container with the prescription label. The Centre will document all medication on the appropriate consent form and parents/guardians must sign this medication form before the medication is administered to their child.</div>"
             },
             {
               "kind": "policy",
               "title": "(MEDICAL RELEASE) PARENTS CONSENT FOR MEDICAL TREATMENT",
-              "html": "In the event that a parent/guardian cannot be reached, I, {{fill:parent_signature}}, give permission for a Greenland Recreational After School Program qualified staff member to secure any emergency medical treatment deemed necessary for my child, {{fill:child_name}}, by the attending physician. Treatment may include anesthetic and/or blood transfusion. I also consent to emergency transportation of whatever type seen fit by the staff of the child care centre at the time of the incident. Transportation will be by ambulance, taxi or on rare occasion private vehicle driven by a licensed driver. Parents will be notified that their child has been taken to the hospital and updated as often as possible thereafter. (In cases where child abuse is suspected parents will be contacted as advised by a Children Aid Society worker.) <em>A copy of an updated immunization record must be attached to this form.</em>"
+              "html": "<div style=\"text-align: justify;\">In the event that a parent/guardian cannot be reached, I give permission for a Greenland Recreational After School Program qualified staff member to secure any emergency medical treatment deemed necessary for my child by the attending physician. Treatment may include anesthetic and/or blood transfusion. I also consent to emergency transportation of whatever type seen fit by the staff of the child care centre at the time of the incident. Transportation will be by ambulance, taxi or on rare occasion private vehicle driven by a licensed driver. Parents will be notified that their child has been taken to the hospital and updated as often as possible thereafter. (In cases where child abuse is suspected parents will be contacted as advised by a Children Aid Society worker.) A copy of an updated immunization record must be sent in a separate e-mail along with the Immunization Form. The immunization form is available at <a href=\"https://greenlandrecreational.com/pdf/medical-2016.pdf\"><u>https://greenlandrecreational.com/pdf/medical-2016.pdf</u></a>. Fill out that form separately and attach it along with your child&rsquo;s immunization record.</div>"
             }
           ]
         },
@@ -869,7 +868,7 @@
               "label": "Is your child using a puffer?",
               "type": "radio",
               "required": false,
-              "default":"no",
+              "default": "no",
               "options": [
                 {
                   "value": "yes",
