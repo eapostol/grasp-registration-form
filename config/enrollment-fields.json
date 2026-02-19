@@ -782,8 +782,8 @@
           "contentBlocks": [
             {
               "kind": "heading",
-              "html": "PERSON TO CALL IN CASE OF EMERGENCY",
-              "style": "background:#fff59d; font-weight:bold; text-align:center;"
+              "html": "<strong>PERSON TO CALL IN CASE OF EMERGENCY</strong><br/><span style=\"font-size:9pt; font-weight:normal;\">Centre will <em>first</em> attempt to call parents/guardians and then emergency contact only if we can not reach parents/guardians.</span>",
+              "style": "background:#fff59d; text-align:center;"
             }
           ]
         }
