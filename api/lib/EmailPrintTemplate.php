@@ -2179,18 +2179,125 @@ private static function renderWaitlistFourColRow(
     $b = self::borderTop($kind);
     $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
 
+    // EMAIL NOTE:
+    // Many email clients calculate column widths across the *entire* table.
+    // If a single row has 4 <td> cells, the whole table is treated as 4 columns,
+    // which makes 2-cell rows render with unexpected widths and wrapping.
+    // To avoid this, the email version renders each logical row as a 1-cell
+    // wrapper row that contains its own nested table.
+    if ($kind === 'email') {
+      $rows = [];
+
+      $wrapRow = function (string $borderTop, string $innerHtml) {
+        return '<tr>'
+          . '<td style="padding:0; border-top:' . $borderTop . '; vertical-align:top;">'
+          . $innerHtml
+          . '</td>'
+          . '</tr>';
+      };
+
+      // Shared cell styles
+      $labelCellBase = 'font-weight:bold; vertical-align:top; white-space:nowrap;';
+      $valueCellBase = 'text-align:left; vertical-align:top;';
+
+      // Row 1: General health / things to be aware of (nested 2-col). No top border (prevents double line under header).
+      $ghVal = self::displayFieldValueHtml($kind, $map['general_health_notes'] ?? null, $data);
+      $inner1 = '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
+        . '<tr>'
+        . '<td width="30%" style="width:30%; padding:' . $pad . '; ' . $labelCellBase . '">' . self::h('General health / things to be aware of') . '</td>'
+        . '<td width="70%" style="width:70%; padding:' . $pad . '; ' . $valueCellBase . '">' . $ghVal . '</td>'
+        . '</tr>'
+        . '</table>';
+      $rows[] = $wrapRow('none', $inner1);
+
+      // Row 2: Is your child asthmatic? / Is your child using a puffer? (nested 4-col)
+      $asthVal = self::displayFieldValueHtml($kind, $map['child_asthmatic'] ?? null, $data);
+      $pufferVal = self::displayFieldValueHtml($kind, $map['child_uses_puffer'] ?? null, $data);
+      $inner2 = '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
+        . '<tr>'
+        . '<td width="35%" style="width:35%; padding:' . $pad . '; ' . $labelCellBase . '">' . self::h('Is your child asthmatic?') . '</td>'
+        . '<td width="15%" style="width:15%; padding:' . $pad . '; ' . $valueCellBase . '">' . $asthVal . '</td>'
+        . '<td width="35%" style="width:35%; padding:' . $pad . '; ' . $labelCellBase . '">' . self::h('Is your child using a puffer?') . '</td>'
+        . '<td width="15%" style="width:15%; padding:' . $pad . '; ' . $valueCellBase . '">' . $pufferVal . '</td>'
+        . '</tr>'
+        . '</table>';
+      $rows[] = $wrapRow($b, $inner2);
+
+      // Row 3: Date of last medical examination / Current weight (kg)
+      $examVal = self::displayFieldValueHtml($kind, $map['last_medical_exam_date'] ?? null, $data);
+      $weightVal = self::displayFieldValueHtml($kind, $map['current_weight'] ?? null, $data);
+
+      $miniPair = function (string $label, string $valueHtml) {
+        return '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
+          . '<tr>'
+          . '<td style="font-weight:bold; vertical-align:top; width:1%; white-space:nowrap; padding-right:10px;">' . self::h($label) . '</td>'
+          . '<td style="text-align:left; vertical-align:top; width:99%;">' . $valueHtml . '</td>'
+          . '</tr>'
+          . '</table>';
+      };
+
+      $inner3 = '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
+        . '<tr>'
+        . '<td width="50%" style="width:50%; padding:' . $pad . '; vertical-align:top;">' . $miniPair('Date of last medical examination', $examVal) . '</td>'
+        . '<td width="50%" style="width:50%; padding:' . $pad . '; vertical-align:top;">' . $miniPair('Current weight (kg)', $weightVal) . '</td>'
+        . '</tr>'
+        . '</table>';
+      $rows[] = $wrapRow($b, $inner3);
+
+      // Row 4: Free of communicable diseases? (keep 80/20 split, nested 2-col)
+      $freeVal = self::displayFieldValueHtml($kind, $map['free_of_disease'] ?? null, $data);
+      $inner4 = '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
+        . '<tr>'
+        . '<td width="80%" style="width:80%; padding:' . $pad . '; ' . $labelCellBase . '">' . self::h('At the present time is the child free of communicable diseases?') . '</td>'
+        . '<td width="20%" style="width:20%; padding:' . $pad . '; ' . $valueCellBase . '">' . $freeVal . '</td>'
+        . '</tr>'
+        . '</table>';
+      $rows[] = $wrapRow($b, $inner4);
+
+      // Row 5: Previous history of any communicable diseases (nested 2-col)
+      if (isset($map['disease_history'])) {
+        $histVal = self::displayFieldValueHtml($kind, $map['disease_history'], $data);
+        $inner5 = '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
+          . '<tr>'
+          . '<td width="38%" style="width:38%; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . self::h('Previous history of any communicable diseases') . '</td>'
+          . '<td width="62%" style="width:62%; padding:' . $pad . '; vertical-align:top;">' . $histVal . '</td>'
+          . '</tr>'
+          . '</table>';
+        $rows[] = $wrapRow($b, $inner5);
+      }
+
+      // Row 6: Special requirements for diet, rest or exercise (nested 2-col)
+      if (isset($map['special_requirements'])) {
+        $specVal = self::displayFieldValueHtml($kind, $map['special_requirements'], $data);
+        $inner6 = '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
+          . '<tr>'
+          . '<td width="38%" style="width:38%; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . self::h('Special requirements for diet, rest or exercise') . '</td>'
+          . '<td width="62%" style="width:62%; padding:' . $pad . '; vertical-align:top;">' . $specVal . '</td>'
+          . '</tr>'
+          . '</table>';
+        $rows[] = $wrapRow($b, $inner6);
+      }
+
+      return implode("\n", $rows);
+    }
+
     $rows = [];
 
     // Styles for label and value cells
     $labelStyle = 'font-weight:bold; vertical-align:top;';
     $valueStyle = 'text-align:left; vertical-align:top;';
+    // Prevent labels from wrapping in email; allows longer labels to stay on a single line.
+    if ($kind === 'email') {
+      $labelStyle .= ' white-space:nowrap;';
+    }
 
-    // Row 1: General health notes (60/40)
+    // Row 1: General health notes (50/50). Remove border-top when rendering email to avoid double lines under the section heading.
     $ghVal = self::displayFieldValueHtml($kind, $map['general_health_notes'] ?? null, $data);
+    $row1Border = ($kind === 'email') ? 'none' : $b;
     $rows[] =
       '<tr>'
-      . '<td style="width:60%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('General health / things to be aware of') . '</td>'
-      . '<td style="width:40%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $ghVal . '</td>'
+      . '<td style="width:50%; padding:' . $pad . '; border-top:' . $row1Border . '; ' . $labelStyle . '">' . self::h('General health / things to be aware of') . '</td>'
+      . '<td style="width:50%; padding:' . $pad . '; border-top:' . $row1Border . '; ' . $valueStyle . '">' . $ghVal . '</td>'
       . '</tr>';
 
     // Row 2: Is your child asthmatic? / Is your child using a puffer? (4 columns)
@@ -2204,16 +2311,46 @@ private static function renderWaitlistFourColRow(
       . '<td style="width:15%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $pufferVal . '</td>'
       . '</tr>';
 
-    // Row 3: Date of last medical examination / Current weight (kg) (4 columns)
+    // Row 3: Date of last medical examination / Current weight (kg)
     $examVal = self::displayFieldValueHtml($kind, $map['last_medical_exam_date'] ?? null, $data);
     $weightVal = self::displayFieldValueHtml($kind, $map['current_weight'] ?? null, $data);
-    $rows[] =
-      '<tr>'
-      . '<td style="width:40%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('Date of last medical examination') . '</td>'
-      . '<td style="width:20%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $examVal . '</td>'
-      . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('Current weight (kg)') . '</td>'
-      . '<td style="width:15%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $weightVal . '</td>'
-      . '</tr>';
+    if ($kind === 'email') {
+      // For email, wrap the two label/value pairs in their own nested tables to allow flexible widths.
+      $label1 = self::h('Date of last medical examination');
+      $label2 = self::h('Current weight (kg)');
+      $inner1 = '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
+        . '<tr>'
+        . '<td style="font-weight:bold; vertical-align:top; width:1%; white-space:nowrap; padding-right:10px;">' . $label1 . '</td>'
+        . '<td style="text-align:left; vertical-align:top; width:99%;">' . $examVal . '</td>'
+        . '</tr>'
+        . '</table>';
+      $inner2 = '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
+        . '<tr>'
+        . '<td style="font-weight:bold; vertical-align:top; width:1%; white-space:nowrap; padding-right:10px;">' . $label2 . '</td>'
+        . '<td style="text-align:left; vertical-align:top; width:99%;">' . $weightVal . '</td>'
+        . '</tr>'
+        . '</table>';
+      $rows[] =
+        '<tr>'
+        . '<td colspan="4" style="padding:0; border-top:' . $b . '; vertical-align:top;">'
+        . '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
+        . '<tr>'
+        . '<td style="width:50%; padding:' . $pad . '; vertical-align:top;">' . $inner1 . '</td>'
+        . '<td style="width:50%; padding:' . $pad . '; vertical-align:top;">' . $inner2 . '</td>'
+        . '</tr>'
+        . '</table>'
+        . '</td>'
+        . '</tr>';
+    } else {
+      // PDF: use a 4-column layout with explicit widths
+      $rows[] =
+        '<tr>'
+        . '<td style="width:40%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('Date of last medical examination') . '</td>'
+        . '<td style="width:20%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $examVal . '</td>'
+        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('Current weight (kg)') . '</td>'
+        . '<td style="width:15%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $weightVal . '</td>'
+        . '</tr>';
+    }
 
     // Row 4: Free of communicable diseases? (80/20)
     $freeVal = self::displayFieldValueHtml($kind, $map['free_of_disease'] ?? null, $data);
