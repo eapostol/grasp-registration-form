@@ -901,6 +901,20 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
               continue;
             }
 
+            // -----------------------------------------------------------------
+            // Enrollment-only: General Health (custom compact layout)
+            if ($profile === 'enrollment' && $titleTrim === 'General Health') {
+                $rows = self::renderEnrollmentGeneralHealthSection($kind, $fields, $data);
+                if (trim($rows) !== '') {
+                    $out[] = str_replace(
+                        ['{{SECTION_TITLE}}', '{{ROWS}}'],
+                        [self::h((string)$title), $rows],
+                        $sectionTpl
+                    );
+                }
+                continue;
+            }
+
 
             // -----------------------------------------------------------------
             // Enrollment-only: Medical Release & Medication (render last rows as 60/40)
@@ -2144,6 +2158,91 @@ private static function renderWaitlistFourColRow(
       . $head
       . $body
       . '</table>';
+  }
+
+  /**
+   * Enrollment-only helper to render the General Health section in a compact format.
+   * The first row uses a 60/40 split, the next two rows use 4 columns,
+   * followed by an 80/20 split row, and remaining fields rendered normally.
+   *
+   * @param string $kind     'email' or 'pdf'
+   * @param array  $fields   Array of field definitions for this section
+   * @param array  $data     Submitted enrollment data
+   * @return string          HTML rows (<tr> tags) for this section
+   */
+  private static function renderEnrollmentGeneralHealthSection(
+    string $kind,
+    array $fields,
+    array $data
+  ): string {
+    $map = self::mapFieldsByName($fields);
+    $b = self::borderTop($kind);
+    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
+
+    $rows = [];
+
+    // Styles for label and value cells
+    $labelStyle = 'font-weight:bold; vertical-align:top;';
+    $valueStyle = 'text-align:left; vertical-align:top;';
+
+    // Row 1: General health notes (60/40)
+    $ghVal = self::displayFieldValueHtml($kind, $map['general_health_notes'] ?? null, $data);
+    $rows[] =
+      '<tr>'
+      . '<td style="width:60%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('General health / things to be aware of') . '</td>'
+      . '<td style="width:40%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $ghVal . '</td>'
+      . '</tr>';
+
+    // Row 2: Is your child asthmatic? / Is your child using a puffer? (4 columns)
+    $asthVal = self::displayFieldValueHtml($kind, $map['child_asthmatic'] ?? null, $data);
+    $pufferVal = self::displayFieldValueHtml($kind, $map['child_uses_puffer'] ?? null, $data);
+    $rows[] =
+      '<tr>'
+      . '<td style="width:35%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('Is your child asthmatic?') . '</td>'
+      . '<td style="width:15%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $asthVal . '</td>'
+      . '<td style="width:35%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('Is your child using a puffer?') . '</td>'
+      . '<td style="width:15%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $pufferVal . '</td>'
+      . '</tr>';
+
+    // Row 3: Date of last medical examination / Current weight (kg) (4 columns)
+    $examVal = self::displayFieldValueHtml($kind, $map['last_medical_exam_date'] ?? null, $data);
+    $weightVal = self::displayFieldValueHtml($kind, $map['current_weight'] ?? null, $data);
+    $rows[] =
+      '<tr>'
+      . '<td style="width:40%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('Date of last medical examination') . '</td>'
+      . '<td style="width:20%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $examVal . '</td>'
+      . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('Current weight (kg)') . '</td>'
+      . '<td style="width:15%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $weightVal . '</td>'
+      . '</tr>';
+
+    // Row 4: Free of communicable diseases? (80/20)
+    $freeVal = self::displayFieldValueHtml($kind, $map['free_of_disease'] ?? null, $data);
+    $rows[] =
+      '<tr>'
+      . '<td style="width:80%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('At the present time is the child free of communicable diseases?') . '</td>'
+      . '<td style="width:20%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $freeVal . '</td>'
+      . '</tr>';
+
+    // Remaining fields: disease_history and special_requirements (if defined)
+    $remainingFields = [];
+    foreach (['disease_history', 'special_requirements'] as $fname) {
+      if (isset($map[$fname])) {
+        $remainingFields[] = $map[$fname];
+      }
+    }
+    if (!empty($remainingFields)) {
+      // Render these using the default 2-column layout
+      $rows[] = self::renderRows($kind, $remainingFields, $data);
+    }
+
+    // Combine all rows into a single HTML string
+    $htmlPieces = [];
+    foreach ($rows as $r) {
+      if (is_string($r) && trim($r) !== '') {
+        $htmlPieces[] = $r;
+      }
+    }
+    return implode("\n", $htmlPieces);
   }
 
 }

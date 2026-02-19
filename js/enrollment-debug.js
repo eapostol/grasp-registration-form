@@ -420,6 +420,13 @@
       return "3";
     }
 
+    // Specific override: for "Date of last medical examination" use today's date (YYYY-MM-DD)
+    if (label.toLowerCase().includes("date of last medical examination")) {
+      var today = new Date();
+      var mm = String(today.getMonth() + 1).padStart(2, "0");
+      var dd = String(today.getDate()).padStart(2, "0");
+      return today.getFullYear() + "-" + mm + "-" + dd;
+    }
     // Dates (other than birth date, which we explicitly handle)
     if (label.includes("date")) {
       var now = new Date();
