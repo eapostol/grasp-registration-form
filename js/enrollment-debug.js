@@ -212,6 +212,18 @@
     var testYear = now.getFullYear() - 3; // three years younger than current year
     var testBirthDate = String(testYear).padStart(4, "0") + "-12-12";
 
+    // Random ISO date within the past year (YYYY-MM-DD) for <input type="date">
+    function pad2(n) {
+      return (n < 10 ? "0" : "") + String(n);
+    }
+
+    function randomIsoDateWithinPastYear() {
+      var today = new Date();
+      var daysBack = Math.floor(Math.random() * 365);
+      var d = new Date(today.getTime() - daysBack * 24 * 60 * 60 * 1000);
+      return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+    }
+
     // Use valid-looking Canadian postal codes and split into halves.
     function splitPostal(code) {
       if (!code || code.length < 7) {
@@ -301,7 +313,15 @@
       // -------------------------
       // Final Acknowledgement & Signature
       // -------------------------
+      // Parent/Guardian full name should match Parent/Guardian 1 when DEBUG is enabled.
+      parent_full_name_signature: names.parent1First + ' ' + names.parent1Last,
       witness: names.witnessFirst + ' ' + names.witnessLast,
+
+      // -------------------------
+      // General Health
+      // -------------------------
+      // "Date of last medical examination" should be a real date in DEBUG mode.
+      last_medical_exam_date: randomIsoDateWithinPastYear(),
     };
 
     return overrides;
@@ -420,6 +440,13 @@
       return "3";
     }
 
+    // Specific override: for "Date of last medical examination" use today's date (YYYY-MM-DD)
+    if (label.toLowerCase().includes("date of last medical examination")) {
+      var today = new Date();
+      var mm = String(today.getMonth() + 1).padStart(2, "0");
+      var dd = String(today.getDate()).padStart(2, "0");
+      return today.getFullYear() + "-" + mm + "-" + dd;
+    }
     // Dates (other than birth date, which we explicitly handle)
     if (label.includes("date")) {
       var now = new Date();
