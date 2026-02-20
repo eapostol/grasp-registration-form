@@ -790,12 +790,31 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
                     $dobHtml = self::displayFieldValueHtml($kind, $map['child_birth_date'] ?? null, $data);
 
                     $rows = [];
-                    $rows[] = '<tr>'
-                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('Child Name') . '</td>'
-                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $childNameHtml . '</td>'
-                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('Date of Birth') . '</td>'
-                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $dobHtml . '</td>'
-                        . '</tr>';
+
+                    // For email: use a nested 1x4 table inside a single parent cell so we can
+                    // control column widths without fighting the parent 2-column table layout.
+                    if ($kind === 'email') {
+                        $innerTable = '<table style="width:100%; border-collapse:collapse; table-layout:fixed;">'
+                            . '<tr>'
+                            . '<td style="width:18%; padding:' . $pad . '; ' . $labelStyle . '">' . self::h('Child Name') . '</td>'
+                            . '<td style="width:32%; padding:' . $pad . '; ' . $valueStyle . '">' . $childNameHtml . '</td>'
+                            . '<td style="width:20%; padding:' . $pad . '; ' . $labelStyle . ' white-space:nowrap;">' . self::h('Date of Birth') . '</td>'
+                            . '<td style="width:30%; padding:' . $pad . '; ' . $valueStyle . ' white-space:nowrap;">' . $dobHtml . '</td>'
+                            . '</tr>'
+                            . '</table>';
+
+                        $rows[] = '<tr>'
+                            . '<td colspan="2" style="padding:0; border-top:' . $b . ';">' . $innerTable . '</td>'
+                            . '</tr>';
+                    } else {
+                        // PDF: keep the direct 4-cell row (TCPDF handles widths well here).
+                        $rows[] = '<tr>'
+                            . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('Child Name') . '</td>'
+                            . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $childNameHtml . '</td>'
+                            . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('Date of Birth') . '</td>'
+                            . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $dobHtml . '</td>'
+                            . '</tr>';
+                    }
 
                     // Render the remaining rows, excluding the fields we just placed.
                     $remaining = [];
