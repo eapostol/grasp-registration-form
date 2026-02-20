@@ -511,6 +511,34 @@ private static function renderRows(string $kind, array $fields, array $data): st
         return implode("\n", $out);
     }
 
+    /**
+     * Enrollment-only: render a single consent row using a 75/25 label/value split.
+     * Used for Water Play & Hand Sanitizer section parity.
+     */
+    private static function renderEnrollmentRow75_25(string $kind, array $field, array $data): string
+    {
+        $b = self::borderTop($kind);
+        $key = self::fieldKey($field);
+        if ($key === '') return '';
+
+        $value = $data[$key] ?? '';
+        $value = self::normalizeFieldValue($field, $value);
+        $label = self::rowLabel($field);
+
+        if ($kind === 'pdf') {
+            return '<tr>'
+                . '<td width="75%" style="border-top:' . $b . '; font-weight:bold; vertical-align:top;">' . $label . '</td>'
+                . '<td width="25%" style="border-top:' . $b . '; vertical-align:top;">' . self::displayValue($value) . '</td>'
+                . '</tr>';
+        }
+
+        return '<tr>'
+            . '<td style="width:75%; padding:7px 10px; border-top:' . $b . '; vertical-align:top; font-weight:bold;">' . $label . '</td>'
+            . '<td style="width:25%; padding:7px 10px; border-top:' . $b . '; vertical-align:top;">' . self::displayValue($value) . '</td>'
+            . '</tr>';
+    }
+
+
 
 private static function renderContentBlocks(string $kind, array $blocks, array $data): string
     {
@@ -1035,6 +1063,56 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
                 }
             }
 
+
+
+            // -----------------------------------------------------------------
+            // Enrollment-only: Water Play & Hand Sanitizer
+            //
+            // Expected layout:
+            //  - Block 1 heading + paragraph
+            //  - Water play consent row (75/25)
+            //  - Block 2 heading + paragraph
+            //  - Hand sanitizer consent row (75/25)
+            //
+            // Default renderer places ALL contentBlocks first, then ALL fields.
+            // This override interleaves blocks and their corresponding fields
+            // to match the original PDF layout.
+            // -----------------------------------------------------------------
+            if ($profile === 'enrollment' && $titleTrim === 'Water Play & Hand Sanitizer') {
+                $blocks = (!empty($section['contentBlocks']) && is_array($section['contentBlocks'])) ? $section['contentBlocks'] : [];
+                $map = self::mapFieldsByName($fields);
+
+                $rowsOut = [];
+
+                // Block 1
+                if (isset($blocks[0]) && is_array($blocks[0])) {
+                    $rowsOut[] = self::renderContentBlocks($kind, [$blocks[0]], $data);
+                }
+                // Row 1: water play consent
+                if (isset($map['water_play_consent']) && is_array($map['water_play_consent'])) {
+                    $rowsOut[] = self::renderEnrollmentRow75_25($kind, $map['water_play_consent'], $data);
+                }
+
+                // Block 2
+                if (isset($blocks[1]) && is_array($blocks[1])) {
+                    $rowsOut[] = self::renderContentBlocks($kind, [$blocks[1]], $data);
+                }
+                // Row 2: hand sanitizer consent
+                if (isset($map['hand_sanitizer_consent']) && is_array($map['hand_sanitizer_consent'])) {
+                    $rowsOut[] = self::renderEnrollmentRow75_25($kind, $map['hand_sanitizer_consent'], $data);
+                }
+
+                $rowsHtml = implode("
+", array_filter($rowsOut, function ($r) { return trim((string)$r) !== ''; }));
+                if (trim($rowsHtml) !== '') {
+                    $out[] = str_replace(
+                        ['{{SECTION_TITLE}}', '{{ROWS}}'],
+                        [self::h((string)$title), $rowsHtml],
+                        $sectionTpl
+                    );
+                }
+                continue;
+            }
             // Default render path (supports contentBlocks)
             $contentRows = '';
             if (!empty($section['contentBlocks']) && is_array($section['contentBlocks'])) {
