@@ -766,6 +766,66 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
                 }
             }
 
+            // -----------------------------------------------------------------
+            // Enrollment-only layout parity (email + PDF):
+            // Initial Parent/Guardian Interview
+            //
+            // Desired layout:
+            //   Row 1: Child Name | value | Date of Birth | value
+            //   (Remove the original standalone Date of Birth row.)
+            // -----------------------------------------------------------------
+            if ($profile === 'enrollment' && $titleTrim !== '') {
+                $normTitle = str_replace(["\u{2019}", "’"], "'", $titleTrim);
+
+                if ($normTitle === 'Initial Parent/Guardian Interview') {
+                    $map = self::mapFieldsByName($fields);
+
+                    $b = self::borderTop($kind);
+                    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
+
+                    $labelStyle = 'font-weight:bold; vertical-align:top;';
+                    $valueStyle = 'text-align:left; vertical-align:top;';
+
+                    $childNameHtml = self::displayFieldValueHtml($kind, $map['child_name'] ?? null, $data);
+                    $dobHtml = self::displayFieldValueHtml($kind, $map['child_birth_date'] ?? null, $data);
+
+                    $rows = [];
+                    $rows[] = '<tr>'
+                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('Child Name') . '</td>'
+                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $childNameHtml . '</td>'
+                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h('Date of Birth') . '</td>'
+                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $dobHtml . '</td>'
+                        . '</tr>';
+
+                    // Render the remaining rows, excluding the fields we just placed.
+                    $remaining = [];
+                    foreach ($fields as $f) {
+                        if (!is_array($f)) continue;
+                        $k = self::fieldKey($f);
+                        if ($k === 'child_name' || $k === 'child_birth_date') {
+                            continue;
+                        }
+                        $remaining[] = $f;
+                    }
+
+                    $rest = self::renderRows($kind, $remaining, $data);
+                    if (trim($rest) !== '') {
+                        $rows[] = $rest;
+                    }
+
+                    $rowsHtml = implode("\n", $rows);
+                    if (trim($rowsHtml) !== '') {
+                        $out[] = str_replace(
+                            ['{{SECTION_TITLE}}', '{{ROWS}}'],
+                            [self::h('Initial Parent/Guardian Interview'), $rowsHtml],
+                            $sectionTpl
+                        );
+                    }
+
+                    continue;
+                }
+            }
+
 
             // -----------------------------------------------------------------
             // Enrollment-only layout compaction (email + PDF):
