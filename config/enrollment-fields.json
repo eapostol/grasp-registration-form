@@ -965,12 +965,12 @@
             {
               "kind": "policy",
               "title": "AUTHORIZATION FOR RECREATIONAL WATER PLAY",
-              "html": "I, the parent/guardian of {{fill:child_name}}, hereby give my consent for my child to participate in water play such as splash pads and kids town and swimming pools under the supervision and guidance of the Centre staff."
+              "html": "I hereby give my consent for my child to participate in water play such as splash pads and kids’ town and swimming pools under the supervision and guidance of the Centre staff."
             },
             {
               "kind": "policy",
               "title": "AUTHORIZATION FOR THE USE OF HAND SANITIZER",
-              "html": "I, the parent/guardian of {{fill:child_name}}, hereby give my consent for my child to use hand sanitizer with 70% to 90% alcohol content under the supervision and guidance of the Centre staff."
+              "html": "I hereby give my consent for my child to use hand sanitizer with 70% to 90% alcohol content as per Toronto Public Health requirements under the supervision and guidance of the Centre staff. Hand sanitizer is not a replacement for washing hands. Rooms with running water should use taps, (water and soap). Portable to use sanitizer daily in lieu of lack of running in the room."
             }
           ]
         }
@@ -1263,7 +1263,6 @@
               "required": true,
               "placeholder": "contact person to verify form other than parent / guardian"
             },
-
             {
               "name": "signature_date",
               "label": "Date Signed",
