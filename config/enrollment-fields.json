@@ -1071,6 +1071,12 @@
           "title": "Arrival & Departure Procedure",
           "fields": [
             {
+              "type": "static",
+              "name": "arrival_departure_policy_text",
+              "label": "",
+              "html": "<div class=\"grasp-policy-block\"><p>I always agree to accompany my child <strong><u>to and from</u></strong> GRASP classroom and notify staff verbally <strong><u>upon arrival and departure</u></strong>. I understand that is my responsibility to inform all pick up and drop off persons of this policy and ensure they make verbal contact with the staff. In the event that my child is not accompanied into GRASP facilities by an adult, I understand GRASP has no legal responsibility for the safe arrival of my named child. Failure to inform staff of arrival and departure may result in notifying the authorities. Children’s arrival to GRASP from Greenland PS will be from the designated dismissal door of the school for each class. A GRASP staff member will await outside with all other pick up persons for children to be dismissed from school. If children are not in attendance at GRASP, parents must notify staff by 2:30 pm by email or call. I understand it is not the school responsibility to communicate with GRASP about my child’s attendance.</p></div>"
+            },
+            {
               "name": "arrival_departure_ack",
               "label": "I agree to accompany my child to and from GRASP and notify staff verbally upon arrival and departure.",
               "type": "radio",
@@ -1105,6 +1111,12 @@
           "id": "disclosure_travel_photo",
           "title": "Information Sharing, Travel & Photo/Media",
           "fields": [
+            {
+              "type": "static",
+              "name": "disclosure_info_policy_text",
+              "label": "",
+              "html": "<div class=\"grasp-policy-block\"><div class=\"grasp-policy-heading\"><u>Disclosure of Information Policy</u></div><p><em>Consent for sharing information among professionals involved in a child’s day enhances educational and family support.</em></p><p>Consent for sharing information is a necessary legal and ethical practice and must be obtained in order to share any information. To provide quality care for children, there are times when it is appropriate for the Childcare Centre, the School, Toronto Children’s Services to exchange information. The kind of information shared may include, but is not limited to, matters involving attendance, illness or transportation etc. I hereby consent to reciprocal exchange of information about my child between the Centre GRASP / School and/or Toronto Children’s Services.</p></div>"
+            },
             {
               "name": "info_sharing_consent",
               "label": "I consent to reciprocal exchange of information about my child between GRASP, the school and Toronto Children’s Services.",

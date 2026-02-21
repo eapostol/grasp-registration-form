@@ -260,3 +260,11 @@ input.grasp-input[type="date"] {
   }
 }
 
+
+
+/* --- Phase 5: display-only policy blocks (enrollment) --- */
+.grasp-policy-block { text-align: justify; }
+.grasp-policy-block p { margin: 0 0 10px 0; }
+.grasp-policy-heading { font-weight: 600; margin: 0 0 8px 0; }
+.grasp-policy-block em { font-style: italic; }
+/* --- end policy blocks --- */

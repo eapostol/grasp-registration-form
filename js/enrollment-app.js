@@ -822,6 +822,7 @@ function createPostalRow(postal1Def, postal2Def) {
     label.appendChild(req);
   }
 
+  // Postal rows are always input rows; always render the label.
   wrapper.appendChild(label);
 
   if (postal1Def.helpText) {
@@ -860,7 +861,9 @@ function createFieldRow(fieldDef) {
   // [GRASP-A11Y] For radio groups, use a non-label heading element so we
   // don't have a <label> without a corresponding control. The group is still
   // labelled via aria-labelledby on the radiogroup container.
-  const labelText = fieldDef.label || fieldDef.name;
+  const labelText = (fieldDef.type === "static" && Object.prototype.hasOwnProperty.call(fieldDef, "label") && String(fieldDef.label).trim() === "")
+    ? ""
+    : (fieldDef.label || fieldDef.name);
   let label;
 
   if (fieldDef.type === "radio" || fieldDef.type === "static") {
@@ -900,7 +903,12 @@ function createFieldRow(fieldDef) {
     control.className = "grasp-input grasp-static";
     control.id = "field_" + fieldDef.name;
     // Display-only value (derived or prefilled from earlier steps)
-    control.textContent = value;
+// If "html" is provided, render it as markup (used for policy blocks).
+if (fieldDef.html) {
+  control.innerHTML = fieldDef.html;
+} else {
+  control.textContent = value;
+}
     wrapper.appendChild(control);
   } else
   if (fieldDef.type === "textarea") {
