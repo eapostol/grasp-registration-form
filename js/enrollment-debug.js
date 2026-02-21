@@ -432,11 +432,12 @@
       return "None.";
     }
 
-    // School / grade
-    if (label.includes("school")) {
+    // School / grade (text-ish fields only). Avoid overriding radio/select values
+    // for acknowledgement questions that mention "school" in their label.
+    if (label.includes("school") && type !== "radio" && type !== "select") {
       return "Sample Elementary School";
     }
-    if (label.includes("grade")) {
+    if (label.includes("grade") && type !== "radio" && type !== "select") {
       return "3";
     }
 
