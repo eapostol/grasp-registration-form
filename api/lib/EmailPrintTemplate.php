@@ -965,6 +965,142 @@ HTML;
                     continue;
                 }
 
+
+
+                // -----------------------------------------------------------------
+                // Enrollment-only layout parity (email + PDF):
+                // Safe Arrival, Dismissal & Sun Safety
+                // -----------------------------------------------------------------
+                if ($normTitle === 'Safe Arrival, Dismissal & Sun Safety') {
+                    $map = self::mapFieldsByName($fields);
+
+                    $b = self::borderTop($kind);
+                    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
+
+                    $safeArrivalPolicyHtml = <<<'HTML'
+<div class="grasp-policy-block"><div class="grasp-policy-heading"><u>SAFE ARRIVAL AND DISMISSAL ACKNOWLEDGEMENT</u></div>
+<p>This policy and the procedures within help support the safe arrival and dismissal of children receiving care. This policy will provide staff, students and volunteers with a clear understanding of their roles and responsibilities for ensuring the safe arrival and dismissal of children receiving care, including what steps are to be taken when a child does not arrive at the child care centre as expected, as well as steps to follow to ensure the safe dismissal of children. This policy is intended to fulfill the obligations set out under <em>Ontario Regulation 137/15</em> for policies and procedures regarding the safe arrival and dismissal of children in care. Please note that this policy requires parents to call and inform the childcare by 10am if their child(ren) is going to be absent from childcare and/or school.</p>
+<p><strong>Acknowledgement for children who attend school:</strong></p></div>
+HTML;
+
+                    $sunSafetyPolicyHtml = <<<'HTML'
+<div class="grasp-policy-block"><div class="grasp-policy-heading"><u>SUN AND SAFETY POLICY</u></div>
+<p>To ensure we are providing a healthy and safe environment for our children and educators, we are requesting all sunscreens provided are cream based, rather than aerosol. The application of aerosol sunscreens can be inconsistent, providing less protection for your child with and more opportunity for uneven coverage. These sprays can also trigger respiratory irritation for those with scent sensitivities. Other health and safety issues consists of overstay, misuse and miss directed sprayers.</p>
+<p>Thank you for your ongoing support and understanding.</p>
+<p><strong>- We will be applying sunscreen prior to going outside before and after every water play time.</strong><br>
+<strong>- Staff will supervise the application of sunscreen and assist when necessary.</strong></p>
+<p>Should parents wish to provide their own sunscreen, a labeled bottle with their child’s name on it must be supplied.</p>
+<p>Their child is the only one who will be permitted to use this sunscreen. Cream only sunscreen please.</p>
+<p><strong>Shade:</strong><br>The play area has a combination of natural and artificial shade located close to the portable.</p>
+<p><strong>Smog Alerts:</strong><br>During smog alerts children will have limited outdoor play and increased indoor/air-conditioned play. Field trips may be postponed or canceled as necessary should the smog alert remain in effect for extended periods of time.</p></div>
+HTML;
+
+                    // Field defs
+                    $beforeSchoolField = $map['before_school_program_ack'] ?? null;
+                    $safeArrivalField  = $map['safe_arrival_ack'] ?? null;
+                    $sunscreenArrField = $map['sunscreen_provided_by'] ?? null;
+                    $assistField       = $map['sunscreen_assistance_consent'] ?? null;
+                    $sunAckField       = $map['sun_safety_ack'] ?? null;
+
+                    // Values
+                    $beforeSchoolVal = self::displayFieldValueHtml($kind, $beforeSchoolField, $data);
+                    $safeArrivalVal  = self::displayFieldValueHtml($kind, $safeArrivalField, $data);
+                    $sunscreenArrVal = self::displayFieldValueHtml($kind, $sunscreenArrField, $data);
+                    $assistVal       = self::displayFieldValueHtml($kind, $assistField, $data);
+                    $sunAckVal       = self::displayFieldValueHtml($kind, $sunAckField, $data);
+
+                    $rows = [];
+
+                    // Policy paragraph: Safe Arrival
+                    if ($kind === 'pdf') {
+                        $rows[] = '<tr><td width="100%" style="border-top:' . $b . '; padding:' . $pad . '; vertical-align:top; text-align:justify;">'
+                            . $safeArrivalPolicyHtml
+                            . '</td></tr>';
+                    } else {
+                        $rows[] = '<tr><td colspan="2" style="border-top:' . $b . '; padding:' . $pad . '; vertical-align:top; text-align:justify;">'
+                            . $safeArrivalPolicyHtml
+                            . '</td></tr>';
+                    }
+
+                    // Re-ordered acknowledgement rows (80/20) — no inner vertical borders
+                    $row8020 = function (string $labelHtml, string $valueHtml) use ($kind, $b, $pad) : string {
+                        if ($kind === 'pdf') {
+                            return '<tr>'
+                                . '<td width="80%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . $labelHtml . '</td>'
+                                . '<td width="20%" style="border-top:' . $b . '; padding:' . $pad . '; vertical-align:top;">' . $valueHtml . '</td>'
+                                . '</tr>';
+                        }
+
+                        $inner = '<table style="width:100%; border-collapse:collapse; table-layout:fixed;"><tr>'
+                            . '<td style="width:80%; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . $labelHtml . '</td>'
+                            . '<td style="width:20%; padding:' . $pad . '; vertical-align:top;">' . $valueHtml . '</td>'
+                            . '</tr></table>';
+
+                        return '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $inner . '</td></tr>';
+                    };
+
+                    // 1) "My child may not attend childcare..." first
+                    $rows[] = $row8020(
+                        self::h('I acknowledge that my child may not attend childcare for the before-school program on a daily basis and may be dropped off directly at school.'),
+                        $beforeSchoolVal
+                    );
+
+                    // 2) Safe arrival acknowledgement second
+                    $rows[] = $row8020(
+                        self::h('I acknowledge the Safe Arrival and Dismissal policy and agree to call the childcare by 10am if my child will be absent.'),
+                        $safeArrivalVal
+                    );
+
+                    // Policy paragraph: Sun & Safety
+                    if ($kind === 'pdf') {
+                        $rows[] = '<tr><td width="100%" style="border-top:' . $b . '; padding:' . $pad . '; vertical-align:top; text-align:justify;">'
+                            . $sunSafetyPolicyHtml
+                            . '</td></tr>';
+                    } else {
+                        $rows[] = '<tr><td colspan="2" style="border-top:' . $b . '; padding:' . $pad . '; vertical-align:top; text-align:justify;">'
+                            . $sunSafetyPolicyHtml
+                            . '</td></tr>';
+                    }
+
+                    // Sunscreen Arrangement row (50/50)
+                    if ($kind === 'pdf') {
+                        $rows[] = '<tr>'
+                            . '<td width="50%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . self::h('Sunscreen Arrangement') . '</td>'
+                            . '<td width="50%" style="border-top:' . $b . '; padding:' . $pad . '; vertical-align:top;">' . $sunscreenArrVal . '</td>'
+                            . '</tr>';
+                    } else {
+                        $inner = '<table style="width:100%; border-collapse:collapse; table-layout:fixed;"><tr>'
+                            . '<td style="width:50%; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . self::h('Sunscreen Arrangement') . '</td>'
+                            . '<td style="width:50%; padding:' . $pad . '; vertical-align:top;">' . $sunscreenArrVal . '</td>'
+                            . '</tr></table>';
+                        $rows[] = '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $inner . '</td></tr>';
+                    }
+
+                    // Assistance consent (80/20)
+                    $rows[] = $row8020(
+                        self::h('GRASP may assist my child in the application of sunscreen if necessary.'),
+                        $assistVal
+                    );
+
+                    // Water bottle + hat acknowledgement (80/20)
+                    $rows[] = $row8020(
+                        self::h('I understand I must send my child with a water bottle and hat each day during July and August.'),
+                        $sunAckVal
+                    );
+
+                    $rowsHtml = implode("
+", $rows);
+                    if (trim($rowsHtml) !== '') {
+                        $out[] = str_replace(
+                            ['{{SECTION_TITLE}}', '{{ROWS}}'],
+                            [self::h('Safe Arrival, Dismissal & Sun Safety'), $rowsHtml],
+                            $sectionTpl
+                        );
+                    }
+
+                    continue;
+                }
+
                 // -----------------------------------------------------------------
                 // Enrollment-only layout parity (email + PDF):
                 // Information Sharing, Travel & Photo / Media
@@ -979,7 +1115,7 @@ HTML;
 <div class="grasp-policy-block"><p><em>Consent for sharing information among professionals involved in a child’s day enhances educational and family support.</em></p><p>Consent for sharing information is a necessary legal and ethical practice and must be obtained in order to share any information. To provide quality care for children, there are times when it is appropriate for the Childcare Centre, the School, Toronto Children’s Services to exchange information. The kind of information shared may include, but is not limited to, matters involving attendance, illness or transportation etc.  I hereby consent to reciprocal exchange of information about my child between the Centre GRASP / School and/or Toronto Children’s Services.</p></div>
 HTML;
                     $travelHtml = <<<'HTML'
-<div class="grasp-policy-block"><p>I, the parent/guardian of ( child’s name) hereby give consent for my child to leave the premises of GRASP under the qualified staff's supervision to participate in daily outings, trips to parks, playgrounds, school and libraries that can be reached without public or other motorized transportation. This may occur from time to time with or without prior notice and shall be deemed normal daily activity. I understand that notices will be sent home with consent forms for special trips and events, which involve public or other motorized transportation, swimming off premises. I further understand, the child care center program plans age-appropriate activities in order to keep the children engaged and from time to time may engage in some age-appropriate risky play activities as promoted in childhood development. In order to fully appreciate the program and give all the children the equal opportunity to participate in the plan activities, it is expected and highly recommended all children be in care no later than 9:30 am on non-instructional days such as P.A. Day and summer camp. Any community outing or walks will not depart prior to 9:30 am. Once the group leaves the center for a walk, community outing or field trip staff is not permitted, under any circumstances, to release or accept your child. You must drop off or pick up your child before or after the outing on Greenland property. Children will only be accepted in their designated classes for ratio and safety purposes.</p></div>
+<div class="grasp-policy-block"><p>I hereby give consent for my child to leave the premises of GRASP under the qualified staff's supervision to participate in daily outings, trips to parks, playgrounds, school and libraries that can be reached without public or other motorized transportation. This may occur from time to time with or without prior notice and shall be deemed normal daily activity. I understand that notices will be sent home with consent forms for special trips and events, which involve public or other motorized transportation, swimming off premises. I further understand, the child care center program plans age-appropriate activities in order to keep the children engaged and from time to time may engage in some age-appropriate risky play activities as promoted in childhood development. In order to fully appreciate the program and give all the children the equal opportunity to participate in the plan activities, it is expected and highly recommended all children be in care no later than 9:30 am on non-instructional days such as P.A. Day and summer camp. Any community outing or walks will not depart prior to 9:30 am. Once the group leaves the center for a walk, community outing or field trip staff is not permitted, under any circumstances, to release or accept your child. You must drop off or pick up your child before or after the outing on Greenland property. Children will only be accepted in their designated classes for ratio and safety purposes.</p></div>
 HTML;
 
                     // Signature values (from final signature step)
