@@ -727,6 +727,7 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
                         $map['child_last_name'] ?? null,
                         $data,
                         [
+                            'noTopBorder' => true,
                             'labelOverrides' => [
                                 'child_first_name' => 'First Name',
                                 'child_middle_name_or_initial' => 'Middle Name / Initial',
@@ -804,7 +805,7 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
                             . '</table>';
 
                         $rows[] = '<tr>'
-                            . '<td colspan="2" style="padding:0; border-top:' . $b . ';">' . $innerTable . '</td>'
+                            . '<td colspan="2" style="padding:0; ' . $btFirst . '">' . $innerTable . '</td>'
                             . '</tr>';
                     } else {
                         // PDF: keep the direct 4-cell row (TCPDF handles widths well here).
@@ -1395,11 +1396,15 @@ HTML : '');
 
                     $rows = [];
 
+                    $btFirst = ($kind === 'pdf')
+                        ? 'border-top:none; border-top-width:0;'
+                        : 'border-top:' . $b . ';';
+
                     $rows[] = '<tr>'
-                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h("Doctor's Name") . '</td>'
-                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $doctorNameHtml . '</td>'
-                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $labelStyle . '">' . self::h("Doctor's Phone #") . '</td>'
-                        . '<td style="width:25%; padding:' . $pad . '; border-top:' . $b . '; ' . $valueStyle . '">' . $doctorPhoneHtml . '</td>'
+                        . '<td style="width:25%; padding:' . $pad . '; ' . $btFirst . ' ' . $labelStyle . '">' . self::h("Doctor's Name") . '</td>'
+                        . '<td style="width:25%; padding:' . $pad . '; ' . $btFirst . ' ' . $valueStyle . '">' . $doctorNameHtml . '</td>'
+                        . '<td style="width:25%; padding:' . $pad . '; ' . $btFirst . ' ' . $labelStyle . '">' . self::h("Doctor's Phone #") . '</td>'
+                        . '<td style="width:25%; padding:' . $pad . '; ' . $btFirst . ' ' . $valueStyle . '">' . $doctorPhoneHtml . '</td>'
                         . '</tr>';
 
                     $rows[] = '<tr>'
@@ -1647,6 +1652,15 @@ HTML : '');
                 : ($contentRows . "
 " . self::renderRows($kind, $fields, $data));
 
+            // Enrollment PDF page-1 parity: suppress the first field-row top border for key sections
+            // so the section header divider remains the single top rule.
+            if ($profile === 'enrollment' && $kind === 'pdf') {
+                $tNorm = str_replace(["\u{2019}", "’"], "'", $titleTrim);
+                if ($tNorm === "Child's Primary Information") {
+                    $rows = self::suppressFirstRowTopBorderPdf($rows);
+                }
+            }
+
             if (trim($rows) === '') continue;
 
             $out[] = str_replace(
@@ -1812,6 +1826,25 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     return ($kind === 'pdf') ? '0.5pt solid #333' : '1px solid #333';
   }
 
+  /**
+   * Enrollment PDF: the section heading already renders its own divider line.
+   * For parity with the original form, suppress the top border on the first rendered field row
+   * to avoid stacked/double rules in TCPDF.
+   */
+  private static function suppressFirstRowTopBorderPdf(string $rowsHtml): string {
+    $rowsHtml = (string)$rowsHtml;
+    if (trim($rowsHtml) === '') return $rowsHtml;
+
+    // Only touch the very first <tr>...</tr> block.
+    if (!preg_match('/<tr\b[\s\S]*?<\/tr>/i', $rowsHtml, $m)) return $rowsHtml;
+    $firstTr = $m[0];
+
+    // Replace the first row's border-top rule(s) with none.
+    $firstTr2 = str_replace('border-top:0.5pt solid #333;', 'border-top:none; border-top-width:0;', $firstTr);
+
+    return preg_replace('/<tr\b[\s\S]*?<\/tr>/i', addcslashes($firstTr2, '\\$'), $rowsHtml, 1);
+  }
+
   // ----------------------------
   // Enrollment compact helpers
   // ----------------------------
@@ -1848,6 +1881,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     array $opts = []
   ): string {
     $b = self::borderTop($kind);
+    if (!empty($opts['noTopBorder'])) { $b = ($kind === 'pdf') ? 'none' : '0'; }
     $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
 
     $cells = [
@@ -1903,6 +1937,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     array $opts = []
   ): string {
     $b = self::borderTop($kind);
+    if (!empty($opts['noTopBorder'])) { $b = ($kind === 'pdf') ? 'none' : '0'; }
     $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
 
     // When a 2-column row follows a 3-column row in the same table, some email
@@ -2037,13 +2072,13 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     // Match default section typography/padding:
     // - PDF: use table cellpadding=5 (same as section_enrollment inner table)
     // - Email: use padding 7px 10px (same as email row template)
-    $tableCellpadding = ($kind === 'pdf') ? '5' : '0';
-    $cellPad = ($kind === 'pdf') ? '' : ' padding:7px 10px;';
+    $tableCellpadding = ($kind === 'pdf') ? '0' : '0';
+    $cellPad = ($kind === 'pdf') ? ' padding:5px 6px;' : ' padding:7px 10px;';
 
     $t = '<table width="100%" cellpadding="' . $tableCellpadding . '" cellspacing="0" style="border-collapse:collapse;">';
 
     // Column header row (3 columns) - NO inner vertical borders
-    $hdrCommon = 'font-weight:bold; text-align:center; background:#f3f3f3;' . $cellPad . ' white-space:nowrap;';
+    $hdrCommon = 'font-weight:bold; text-align:center; background:#f3f3f3;' . $cellPad . ' white-space:nowrap; border-bottom:' . $b . ';';
     $t .= '<tr>'
       . '<td width="38%"' . $bgAttr . ' style="' . $hdrCommon . '"></td>'
       . '<td width="31%"' . $bgAttr . ' style="' . $hdrCommon . '">' . self::h('Parent / Guardian 1') . '</td>'
@@ -2077,7 +2112,8 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     $t .= $row(
       'Name',
       self::displayValue($makeName('parent1')),
-      self::displayValue($makeName('parent2'))
+      self::displayValue($makeName('parent2')),
+      false
     );
 
     // E-mail
@@ -2180,21 +2216,19 @@ $content = self::renderSections($kind, $sections, $data, $meta);
 
     $t .= '</table>';
 
-    // Wrap in a full-width row so the matrix sits inside the section
-    $rowFullTpl = self::loadTemplate($kind, 'row_full');
+    // PDF: bypass row_full wrapper to avoid injected padding/borders (prevents stacked rules + indentation)
     if ($kind === 'pdf') {
-      return str_replace(
-        ['{{BGCOLOR_ATTR}}', '{{STYLE}}', '{{CONTENT}}'],
-        ['', 'padding:0;', $t],
-        $rowFullTpl
-      );
+      return '<tr><td style="padding:0; border-top:none; border-top-style:none; border-top-width:0;">' . $t . '</td></tr>';
     }
 
+    // Email: keep the shared wrapper for consistent spacing in email clients
+    $rowFullTpl = self::loadTemplate($kind, 'row_full');
     return str_replace(
       ['{{STYLE}}', '{{CONTENT}}'],
       ['padding:0;', $t],
       $rowFullTpl
     );
+
   }
 
 
