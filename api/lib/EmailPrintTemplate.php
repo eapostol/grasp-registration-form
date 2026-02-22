@@ -2242,6 +2242,14 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     $b = self::borderTop($kind);
     $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
 
+    // First row sits directly under the section header; avoid a double line by suppressing the first top border.
+    $firstRow = true;
+    $rowTop = function () use (&$firstRow, $b): string {
+      $bt = $firstRow ? 'none' : $b;
+      $firstRow = false;
+      return $bt;
+    };
+
     $rows = [];
 
     // Content block(s): e.g., "PERSON TO CALL IN CASE OF EMERGENCY"
@@ -2272,13 +2280,15 @@ $content = self::renderSections($kind, $sections, $data, $meta);
         $html = self::replaceTokens($html, $data, $kind);
         if (trim($html) === '') continue;
 
+        $bt = $rowTop();
+
         $rows[] =
           '<tr><td colspan="3"' .
           $bgcolorAttr .
           ' style="padding:' .
           $pad .
           '; border-top:' .
-          $b .
+          $bt .
           '; vertical-align:top; ' .
           self::h($style) .
           '">' .
@@ -2294,91 +2304,101 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     $fAuth = $byName['authorized_pickups'] ?? null;
 
     // Row 1: values (3 cols)
+    $bt = $rowTop();
+
     $rows[] =
       '<tr>' .
       '<td style="width:33.33%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
+      $bt .
       '; vertical-align:top;">' .
       self::displayFieldValueHtml($kind, $fName, $data) .
       '</td>' .
       '<td style="width:33.33%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
+      $bt .
       '; vertical-align:top;">' .
       self::displayFieldValueHtml($kind, $fRel, $data) .
       '</td>' .
       '<td style="width:33.34%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
+      $bt .
       '; vertical-align:top;">' .
       self::displayFieldValueHtml($kind, $fPhone, $data) .
       '</td>' .
       '</tr>';
 
     // Row 2: labels (3 cols)
+    $bt = $rowTop();
+
     $rows[] =
       '<tr>' .
       '<td style="width:33.33%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
+      $bt .
       '; vertical-align:top; font-weight:bold;">' .
       self::h('Contact Name') .
       '</td>' .
       '<td style="width:33.33%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
+      $bt .
       '; vertical-align:top; font-weight:bold;">' .
       self::h('Relationship To Child') .
       '</td>' .
       '<td style="width:33.34%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
+      $bt .
       '; vertical-align:top; font-weight:bold;">' .
       self::h('Day Time Phone #') .
       '</td>' .
       '</tr>';
 
     // Row 3: day-time address value (colspan=3)
+    $bt = $rowTop();
+
     $rows[] =
       '<tr><td colspan="3" style="padding:' .
       $pad .
       '; border-top:' .
-      $b .
+      $bt .
       '; vertical-align:top;">' .
       self::displayFieldValueHtml($kind, $fAddr, $data) .
       '</td></tr>';
 
     // Row 4: day-time address label (colspan=3)
+    $bt = $rowTop();
+
     $rows[] =
       '<tr><td colspan="3" style="padding:' .
       $pad .
       '; border-top:' .
-      $b .
+      $bt .
       '; vertical-align:top; font-weight:bold;">' .
       self::h('Day time Address (incl. postal code)') .
       '</td></tr>';
 
     // Row 5: other authorized pickups label + value (merge cols 2-3)
+    $bt = $rowTop();
+
     $rows[] =
       '<tr>' .
       '<td style="width:33.33%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
+      $bt .
       '; vertical-align:top; font-weight:bold;">' .
       self::h('Other Authorized Pickups') .
       '</td>' .
       '<td colspan="2" style="width:66.67%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
+      $bt .
       '; vertical-align:top;">' .
       self::displayFieldValueHtml($kind, $fAuth, $data) .
       '</td>' .
@@ -2398,52 +2418,56 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     $padLabel = ($kind === 'pdf') ? '3px 6px 6px' : '3px 8px 8px';
 
     // Row 6: values (3 cols)
+    $bt = $rowTop();
+
     $rows[] =
       '<tr>' .
       '<td style="width:33.33%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
+      $bt .
       '; border-bottom:none; border-bottom-style:none; border-bottom-width:0; vertical-align:top;">' .
       self::displayValue($parentSigRaw) .
       '</td>' .
       '<td style="width:33.33%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
+      $bt .
       '; border-bottom:none; border-bottom-style:none; border-bottom-width:0; vertical-align:top;">' .
       self::displayValue($dateSignedRaw) .
       '</td>' .
       '<td style="width:33.34%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
+      $bt .
       '; border-bottom:none; border-bottom-style:none; border-bottom-width:0; vertical-align:top;">' .
       self::displayValue($witnessRaw) .
       '</td>' .
       '</tr>';
 
     // Row 7: labels (3 cols)
+    $bt = $rowTop();
+
     $rows[] =
       '<tr>' .
       '<td style="width:33.33%; padding:' .
       $padLabel .
       '; border-top:' .
-      $b .
+      $bt .
       '; vertical-align:top; font-weight:bold;">' .
       self::h('Parent / Guardian Signature') .
       '</td>' .
       '<td style="width:33.33%; padding:' .
       $padLabel .
       '; border-top:' .
-      $b .
+      $bt .
       '; vertical-align:top; font-weight:bold;">' .
       self::h('Date Signed') .
       '</td>' .
       '<td style="width:33.34%; padding:' .
       $padLabel .
       '; border-top:' .
-      $b .
+      $bt .
       '; vertical-align:top; font-weight:bold;">' .
       self::h('Witness') .
       '</td>' .
