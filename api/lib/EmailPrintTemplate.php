@@ -579,34 +579,74 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
             $html = preg_replace('/(<\s*(?:b|strong)\s*>\s*MEDICATION\s*<\s*\/\s*(?:b|strong)\s*>\s*<br\s*\/?>)\s*(?:<br\s*\/?>\s*)+/i', '$1', $html);
             $html = preg_replace('/(<\s*(?:b|strong)\s*>\s*\(\s*MEDICAL\s*RELEASE\s*\)\s*PARENTS\s*CONSENT\s*FOR\s*MEDICAL\s*TREATMENT\s*<\s*\/\s*(?:b|strong)\s*>\s*<br\s*\/?>)\s*(?:<br\s*\/?>\s*)+/i', '$1', $html);
 
-            // Enrollment: reduce excessive blank lines after key headings (TCPDF can render multiple <br> as extra vertical space)
-            $html = preg_replace('/(<\s*(?:b|strong)\s*>\s*MEDICATION\s*<\s*\/\s*(?:b|strong)\s*>\s*<br\s*\/?>)\s*(?:<br\s*\/?>\s*)+/i', '$1', $html);
-            $html = preg_replace('/(<\s*(?:b|strong)\s*>\s*\(\s*MEDICAL\s*RELEASE\s*\)\s*PARENTS\s*CONSENT\s*FOR\s*MEDICAL\s*TREATMENT\s*<\s*\/\s*(?:b|strong)\s*>\s*<br\s*\/?>)\s*(?:<br\s*\/?>\s*)+/i', '$1', $html);
-
-            // Enrollment PDF-only: tighten spacing + borders for Medical Release & Medication content blocks
-            $titleDivStyle = 'font-weight:bold; margin:0 0 4px 0;';
+            // Enrollment PDF: Medical Release & Medication micro-compaction and alignment fixes
             if ($kind === 'pdf') {
-                if ($title === 'MEDICATION') {
-                    // Remove the divider line above MEDICATION and reduce vertical padding.
-                    $style .= 'border-top:0; padding:3px 10px;';
-                    $titleDivStyle = 'font-weight:bold; margin:0 0 2px 0; line-height:1.0;';
-                } elseif ($title === '(MEDICAL RELEASE) PARENTS CONSENT FOR MEDICAL TREATMENT') {
-                    // Reduce whitespace above/below the Medical Release heading by tightening padding + heading margin.
-                    $style .= 'padding:3px 10px;';
-                    $titleDivStyle = 'font-weight:bold; margin:0 0 2px 0; line-height:1.0;';
+                // Tighten spacing for MEDICATION and (MEDICAL RELEASE) headings.
+// TCPDF tends to inflate vertical whitespace when there are multiple <br> around bold-only headings.
+if (preg_match('/\bMEDICATION\b/i', $html)) {
+    // Remove any horizontal rule or leading blank lines immediately before the MEDICATION heading.
+    $html = preg_replace('/(?:<hr\b[^>]*>\s*)*(?:<br\s*\/?>\s*)+/i', '', $html, 1);
 
-                    // Make the final "Immunization Form ..." lines left-aligned while keeping the main paragraph justified.
-                    // TCPDF justification can look awkward on short trailing lines, so we split the tail into its own left-aligned block.
-                    $html = preg_replace(
-                        '~<div[^>]*text-align:\s*justify;?[^>]*>(.*?)(Immunization\s+Form\..*)</div>~is',
-                        '<div style="text-align: justify;">$1</div><div style="text-align: left;">$2</div>',
-                        $html
-                    );
+    // Render the heading as part of the flow with a single tight break after it.
+    $html = preg_replace(
+        '/(<\s*(?:b|strong)\s*>\s*MEDICATION\s*<\s*\/\s*(?:b|strong)\s*>)\s*(?:<br\s*\/?>\s*)+/i',
+        '$1<br style="line-height:0.6;" />',
+        $html,
+        1
+    );
+
+    // Micro-compact the row padding for this block.
+    $style .= 'padding-top:0px; padding-bottom:0px; border-top:none; line-height:1.0;';
+}
+
+if (preg_match('/\(\s*MEDICAL\s*RELEASE\s*\)\s*PARENTS\s*CONSENT\s*FOR\s*MEDICAL\s*TREATMENT/i', $html)) {
+    // Remove extra blank lines immediately before the heading.
+    $html = preg_replace('/(?:<br\s*\/?>\s*){2,}(<\s*(?:b|strong)\s*>\s*\(\s*MEDICAL\s*RELEASE\s*\)\s*PARENTS\s*CONSENT\s*FOR\s*MEDICAL\s*TREATMENT\s*<\s*\/\s*(?:b|strong)\s*>)/i', '$1', $html, 1);
+
+    // Render the heading as part of the flow with a single tight break after it.
+    $html = preg_replace(
+        '/(<\s*(?:b|strong)\s*>\s*\(\s*MEDICAL\s*RELEASE\s*\)\s*PARENTS\s*CONSENT\s*FOR\s*MEDICAL\s*TREATMENT\s*<\s*\/\s*(?:b|strong)\s*>)\s*(?:<br\s*\/?>\s*)+/i',
+        '$1<br style="line-height:0.6;" />',
+        $html,
+        1
+    );
+
+    $style .= 'padding-top:0px; padding-bottom:0px; line-height:1.0;';
+}
+// Medical Release: keep the paragraph flow continuous, then left-align the Immunization tail
+// without introducing a large blank gap. Split at the sentence boundary after "Immunization Form."
+$pos = stripos($html, 'Immunization Form.');
+if ($pos !== false) {
+    $split = $pos + strlen('Immunization Form.');
+    $head = rtrim(substr($html, 0, $split));
+    $tail = ltrim(substr($html, $split));
+
+    // Trim stray breaks at the boundary to avoid vertical gaps in TCPDF.
+    $head = preg_replace('/(<br\s*\/?>\s*)+$/i', '', $head);
+    $tail = preg_replace('/^\s*(<br\s*\/?>\s*)+/i', '', $tail);
+
+    // Render the URL at normal size to avoid TCPDF line-merging artifacts.
+    // Ensure a single trailing period (avoid double "..").
+    $tail = preg_replace(
+        '/https?:\/\/greenlandrecreational\.com\/pdf\/medical-2016\.pdf\.?/i',
+        '<a href="https://greenlandrecreational.com/pdf/medical-2016.pdf">https://greenlandrecreational.com/pdf/medical-2016.pdf</a>.',
+        $tail
+    );
+    $tail = preg_replace('/(<\/a>)\.\./i', '$1.', $tail);
+
+    // Keep a single flow container; the tail becomes a block with left alignment.
+    $html = '<div style="margin:0; padding:0; text-align:justify; line-height:1.0;">'
+          . $head
+          . '<br />'
+          . '<div style="text-align:left; margin:0; padding:0; line-height:1.0;">'
+          . $tail
+          . '</div></div>';
+}
+
                 }
-            }
 
             if ($title !== '') {
-                $html = '<div style="' . $titleDivStyle . '">' . self::h($title) . '</div>' . $html;
+                $html = '<div style="font-weight:bold; margin:0 0 4px 0;">' . self::h($title) . '</div>' . $html;
             }
 
             if (trim($html) === '') continue;
@@ -649,6 +689,13 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
             if (!is_array($fields) || count($fields) === 0) continue;
 
             $titleTrim = is_string($title) ? trim($title) : '';
+
+            // Enrollment PDF pagination: force clean section starts at top of page
+            if ($kind === 'pdf' && $profile === 'enrollment' && $titleTrim !== '') {
+                if ($titleTrim === 'Medical Release & Medication' || $titleTrim === 'Water Play & Hand Sanitizer') {
+                    $out[] = '<br pagebreak="true" />';
+                }
+            }
 
             // -----------------------------------------------------------------
             // Waitlist-only layout compaction (email + PDF):
@@ -808,7 +855,7 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
                     $map = self::mapFieldsByName($fields);
 
                     $b = self::borderTop($kind);
-                    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
+                    $pad = ($kind === 'pdf') ? '3px 6px' : '7px 8px';
 
                     $labelStyle = 'font-weight:bold; vertical-align:top;';
                     $valueStyle = 'text-align:left; vertical-align:top;';
@@ -2360,56 +2407,61 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     // Row 2: labels (3 cols)
     $bt = $rowTop();
 
+    $labelStyle = ($kind === 'pdf')
+      ? 'font-weight:bold; font-size:80%;'
+      : 'font-weight:bold;';
+
     $rows[] =
       '<tr>' .
       '<td style="width:33.33%; padding:' .
       $pad .
       '; border-top:' .
       $bt .
-      '; vertical-align:top; font-weight:bold;">' .
+      '; vertical-align:top; ' . $labelStyle . '">' .
       self::h('Contact Name') .
       '</td>' .
       '<td style="width:33.33%; padding:' .
       $pad .
       '; border-top:' .
       $bt .
-      '; vertical-align:top; font-weight:bold;">' .
+      '; vertical-align:top; ' . $labelStyle . '">' .
       self::h('Relationship To Child') .
       '</td>' .
       '<td style="width:33.34%; padding:' .
       $pad .
       '; border-top:' .
       $bt .
-      '; vertical-align:top; font-weight:bold;">' .
+      '; vertical-align:top; ' . $labelStyle . '">' .
       self::h('Day Time Phone #') .
       '</td>' .
       '</tr>';
 
-    // Row 3: day-time address value (colspan=3)
+    // Row 3: day-time address (label + value on one row)
     $bt = $rowTop();
 
+    $addrLabel = self::h('Day time Address (incl. postal code)');
+    $addrVal = self::displayFieldValueHtml($kind, $fAddr, $data);
+
     $rows[] =
-      '<tr><td colspan="3" style="padding:' .
+      '<tr>' .
+      '<td style="width:40%; padding:' .
+      $pad .
+      '; border-top:' .
+      $bt .
+      '; vertical-align:top; ' . $labelStyle . '">' .
+      $addrLabel .
+      '</td>' .
+      '<td colspan="2" style="width:60%; padding:' .
       $pad .
       '; border-top:' .
       $bt .
       '; vertical-align:top;">' .
-      self::displayFieldValueHtml($kind, $fAddr, $data) .
-      '</td></tr>';
-
-    // Row 4: day-time address label (colspan=3)
-    $bt = $rowTop();
-
-    $rows[] =
-      '<tr><td colspan="3" style="padding:' .
-      $pad .
-      '; border-top:' .
-      $bt .
-      '; vertical-align:top; font-weight:bold;">' .
-      self::h('Day time Address (incl. postal code)') .
-      '</td></tr>';
+      $addrVal .
+      '</td>' .
+      '</tr>';
 
     // Row 5: other authorized pickups label + value (merge cols 2-3)
+
     $bt = $rowTop();
 
     $rows[] =
@@ -2426,7 +2478,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       '; border-top:' .
       $bt .
       '; vertical-align:top;">' .
-      self::displayFieldValueHtml($kind, $fAuth, $data) .
+      (( $kind === 'pdf') ? '<span style="font-size:80%; line-height:1.15;">' . self::displayFieldValueHtml($kind, $fAuth, $data) . '</span>' : self::displayFieldValueHtml($kind, $fAuth, $data)) .
       '</td>' .
       '</tr>';
 
@@ -2441,7 +2493,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     $witnessRaw = trim((string)($data['witness'] ?? ''));
 
     // Create a small visual gap between the values row and the label row for readability
-    $padLabel = ($kind === 'pdf') ? '3px 6px 6px' : '3px 8px 8px';
+    $padLabel = ($kind === 'pdf') ? '2px 6px 4px' : '3px 8px 8px';
 
     // Row 6: values (3 cols)
     $bt = $rowTop();
@@ -2480,21 +2532,21 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       $padLabel .
       '; border-top:' .
       $bt .
-      '; vertical-align:top; font-weight:bold;">' .
+      '; vertical-align:top; ' . $labelStyle . '">' .
       self::h('Parent / Guardian Signature') .
       '</td>' .
       '<td style="width:33.33%; padding:' .
       $padLabel .
       '; border-top:' .
       $bt .
-      '; vertical-align:top; font-weight:bold;">' .
+      '; vertical-align:top; ' . $labelStyle . '">' .
       self::h('Date Signed') .
       '</td>' .
       '<td style="width:33.34%; padding:' .
       $padLabel .
       '; border-top:' .
       $bt .
-      '; vertical-align:top; font-weight:bold;">' .
+      '; vertical-align:top; ' . $labelStyle . '">' .
       self::h('Witness') .
       '</td>' .
       '</tr>';
