@@ -598,10 +598,11 @@ if ($kind === 'pdf' && stripos($html, 'Immunization Form.') !== false && stripos
         // Normalize accidental double period after the URL if present.
         $p2 = str_replace('medical-2016.pdf..', 'medical-2016.pdf.', $p2);
 
-        // TCPDF respects explicit <p> blocks more reliably than nested divs when mixing justify + left.
-        $html = '<p style="text-align:justify; margin:0; padding:0;">' . $p1 . '</p>'
-              . '<br />'
-              . '<p style="text-align:left; margin:0; padding:0;">' . $p2 . '</p>';
+        // TCPDF can inflate vertical spacing with <p>; use tight <div> blocks + a controlled spacer.
+        // Keep paragraph 1 justified and paragraph 2 left-aligned.
+        $html = '<div style="text-align:justify; margin:0; padding:0; line-height:1.15;">' . $p1 . '</div>'
+              . '<div style="height:4px; line-height:4px;">&nbsp;</div>'
+              . '<div style="text-align:left; margin:0; padding:0; line-height:1.15;">' . $p2 . '</div>';
     }
 }
 
@@ -629,10 +630,12 @@ if ($kind === 'pdf' && stripos($html, 'Immunization Form.') !== false && stripos
 
             if ($title !== '') {
                 if ($isPdf && ($isMedicationTitle || $isMedicalReleaseTitle)) {
-                    // Use inline heading + single <br> to avoid TCPDF's extra block spacing.
+                    // Use inline heading + controlled spacer to avoid TCPDF's extra line-break inflation.
+                    // (TCPDF can treat <br> + leading block elements as multiple line-heights.)
                     $html = '<span style="font-weight:bold; line-height:1.0; text-decoration:none;">'
                          . self::h($title)
-                         . '</span><br />'
+                         . '</span>'
+                         . '<div style="height:4px; line-height:4px;">&nbsp;</div>'
                          . $html;
                 } else {
                     $titleStyle = 'font-weight:bold; margin:0 0 4px 0;';
@@ -660,7 +663,7 @@ if ($kind === 'pdf' && stripos($html, 'Immunization Form.') !== false && stripos
 
                 if ($isMedicationHeading) {
                     // Tighten MEDICATION block padding (PDF-only) without affecting global row_full.
-                    $row = str_replace('padding:7px 10px;', 'padding:1px 10px 3px 10px;', $row);
+                    $row = str_replace('padding:7px 10px;', 'padding:1px 10px 1px 10px;', $row);
                 } elseif ($isMedicalReleaseHeading) {
                     // Tighten Medical Release block padding (PDF-only) and reduce extra gap after immunization paragraph.
                     $row = str_replace('padding:7px 10px;', 'padding:1px 10px 1px 10px;', $row);
