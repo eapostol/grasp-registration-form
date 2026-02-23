@@ -595,13 +595,17 @@ if ($kind === 'pdf' && stripos($html, 'Immunization Form.') !== false && stripos
         $p1 = trim($parts[0]);
         $p2 = trim($parts[1] . $parts[2]);
 
+        // TCPDF can treat trailing <br> at the end of the first paragraph as extra vertical whitespace.
+        // Trim them so the paragraph-to-paragraph gap stays tight and predictable.
+        $p1 = preg_replace('/(?:\s*<br\s*\/?>(?:\s|&nbsp;)*?)+\s*$/i', '', $p1);
+
         // Normalize accidental double period after the URL if present.
         $p2 = str_replace('medical-2016.pdf..', 'medical-2016.pdf.', $p2);
 
         // TCPDF can inflate vertical spacing with <p>; use tight <div> blocks + a controlled spacer.
         // Keep paragraph 1 justified and paragraph 2 left-aligned.
         $html = '<div style="text-align:justify; margin:0; padding:0; line-height:1.15;">' . $p1 . '</div>'
-              . '<div style="height:4px; line-height:4px;">&nbsp;</div>'
+              . '<div style="height:1px; line-height:1px;">&nbsp;</div>'
               . '<div style="text-align:left; margin:0; padding:0; line-height:1.15;">' . $p2 . '</div>';
     }
 }
