@@ -579,6 +579,72 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
             $html = preg_replace('/(<\s*(?:b|strong)\s*>\s*MEDICATION\s*<\s*\/\s*(?:b|strong)\s*>\s*<br\s*\/?>)\s*(?:<br\s*\/?>\s*)+/i', '$1', $html);
             $html = preg_replace('/(<\s*(?:b|strong)\s*>\s*\(\s*MEDICAL\s*RELEASE\s*\)\s*PARENTS\s*CONSENT\s*FOR\s*MEDICAL\s*TREATMENT\s*<\s*\/\s*(?:b|strong)\s*>\s*<br\s*\/?>)\s*(?:<br\s*\/?>\s*)+/i', '$1', $html);
 
+            // Enrollment PDF: Medical Release & Medication micro-compaction and alignment fixes
+            if ($kind === 'pdf') {
+                // Tighten spacing for MEDICATION and (MEDICAL RELEASE) headings.
+// TCPDF tends to inflate vertical whitespace when there are multiple <br> around bold-only headings.
+if (preg_match('/\bMEDICATION\b/i', $html)) {
+    // Remove any horizontal rule or leading blank lines immediately before the MEDICATION heading.
+    $html = preg_replace('/(?:<hr\b[^>]*>\s*)*(?:<br\s*\/?>\s*)+/i', '', $html, 1);
+
+    // Render the heading as part of the flow with a single tight break after it.
+    $html = preg_replace(
+        '/(<\s*(?:b|strong)\s*>\s*MEDICATION\s*<\s*\/\s*(?:b|strong)\s*>)\s*(?:<br\s*\/?>\s*)+/i',
+        '$1<br style="line-height:0.6;" />',
+        $html,
+        1
+    );
+
+    // Micro-compact the row padding for this block.
+    $style .= 'padding-top:0px; padding-bottom:0px; border-top:none; line-height:1.0;';
+}
+
+if (preg_match('/\(\s*MEDICAL\s*RELEASE\s*\)\s*PARENTS\s*CONSENT\s*FOR\s*MEDICAL\s*TREATMENT/i', $html)) {
+    // Remove extra blank lines immediately before the heading.
+    $html = preg_replace('/(?:<br\s*\/?>\s*){2,}(<\s*(?:b|strong)\s*>\s*\(\s*MEDICAL\s*RELEASE\s*\)\s*PARENTS\s*CONSENT\s*FOR\s*MEDICAL\s*TREATMENT\s*<\s*\/\s*(?:b|strong)\s*>)/i', '$1', $html, 1);
+
+    // Render the heading as part of the flow with a single tight break after it.
+    $html = preg_replace(
+        '/(<\s*(?:b|strong)\s*>\s*\(\s*MEDICAL\s*RELEASE\s*\)\s*PARENTS\s*CONSENT\s*FOR\s*MEDICAL\s*TREATMENT\s*<\s*\/\s*(?:b|strong)\s*>)\s*(?:<br\s*\/?>\s*)+/i',
+        '$1<br style="line-height:0.6;" />',
+        $html,
+        1
+    );
+
+    $style .= 'padding-top:0px; padding-bottom:0px; line-height:1.0;';
+}
+// Medical Release: keep the paragraph flow continuous, then left-align the Immunization tail
+// without introducing a large blank gap. Split at the sentence boundary after "Immunization Form."
+$pos = stripos($html, 'Immunization Form.');
+if ($pos !== false) {
+    $split = $pos + strlen('Immunization Form.');
+    $head = rtrim(substr($html, 0, $split));
+    $tail = ltrim(substr($html, $split));
+
+    // Trim stray breaks at the boundary to avoid vertical gaps in TCPDF.
+    $head = preg_replace('/(<br\s*\/?>\s*)+$/i', '', $head);
+    $tail = preg_replace('/^\s*(<br\s*\/?>\s*)+/i', '', $tail);
+
+    // Render the URL at normal size to avoid TCPDF line-merging artifacts.
+    // Ensure a single trailing period (avoid double "..").
+    $tail = preg_replace(
+        '/https?:\/\/greenlandrecreational\.com\/pdf\/medical-2016\.pdf\.?/i',
+        '<a href="https://greenlandrecreational.com/pdf/medical-2016.pdf">https://greenlandrecreational.com/pdf/medical-2016.pdf</a>.',
+        $tail
+    );
+    $tail = preg_replace('/(<\/a>)\.\./i', '$1.', $tail);
+
+    // Keep a single flow container; the tail becomes a block with left alignment.
+    $html = '<div style="margin:0; padding:0; text-align:justify; line-height:1.0;">'
+          . $head
+          . '<br />'
+          . '<div style="text-align:left; margin:0; padding:0; line-height:1.0;">'
+          . $tail
+          . '</div></div>';
+}
+
+                }
+
             if ($title !== '') {
                 $html = '<div style="font-weight:bold; margin:0 0 4px 0;">' . self::h($title) . '</div>' . $html;
             }
@@ -624,8 +690,7 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
 
             $titleTrim = is_string($title) ? trim($title) : '';
 
-
-            // Enrollment PDF: enforce clean section starts on specific pages (do not split sections).
+            // Enrollment PDF pagination: force clean section starts at top of page
             if ($kind === 'pdf' && $profile === 'enrollment' && $titleTrim !== '') {
                 if ($titleTrim === 'Medical Release & Medication' || $titleTrim === 'Water Play & Hand Sanitizer') {
                     $out[] = '<br pagebreak="true" />';
@@ -790,7 +855,7 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
                     $map = self::mapFieldsByName($fields);
 
                     $b = self::borderTop($kind);
-                    $pad = ($kind === 'pdf') ? '3px 4px' : '7px 8px';
+                    $pad = ($kind === 'pdf') ? '3px 6px' : '7px 8px';
 
                     $labelStyle = 'font-weight:bold; vertical-align:top;';
                     $valueStyle = 'text-align:left; vertical-align:top;';
@@ -867,7 +932,7 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
                     $map = self::mapFieldsByName($fields);
 
                     $b = self::borderTop($kind);
-                    $pad = ($kind === 'pdf') ? '3px 4px' : '7px 8px';
+                    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
 
                     // Static policy paragraph (matches online form display)
                     $arrivalPolicyHtml = <<<'HTML'
@@ -984,7 +1049,7 @@ HTML;
                     $map = self::mapFieldsByName($fields);
 
                     $b = self::borderTop($kind);
-                    $pad = ($kind === 'pdf') ? '3px 4px' : '7px 8px';
+                    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
 
                     $safeArrivalPolicyHtml = <<<'HTML'
 <div class="grasp-policy-block"><div class="grasp-policy-heading"><u>SAFE ARRIVAL AND DISMISSAL ACKNOWLEDGEMENT</u></div>
@@ -1118,7 +1183,7 @@ HTML;
                     $map = self::mapFieldsByName($fields);
 
                     $b = self::borderTop($kind);
-                    $pad = ($kind === 'pdf') ? '3px 4px' : '7px 8px';
+                    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
 
                     $disclosureHtml = <<<'HTML'
 <div class="grasp-policy-block"><p><em>Consent for sharing information among professionals involved in a child’s day enhances educational and family support.</em></p><p>Consent for sharing information is a necessary legal and ethical practice and must be obtained in order to share any information. To provide quality care for children, there are times when it is appropriate for the Childcare Centre, the School, Toronto Children’s Services to exchange information. The kind of information shared may include, but is not limited to, matters involving attendance, illness or transportation etc.  I hereby consent to reciprocal exchange of information about my child between the Centre GRASP / School and/or Toronto Children’s Services.</p></div>
@@ -1367,7 +1432,7 @@ HTML : '');
                     }
 
                     $b = self::borderTop($kind);
-                    $pad = ($kind === 'pdf') ? '3px 4px' : '7px 8px';
+                    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
 
                     $labelStyle = 'font-weight:bold; vertical-align:top;';
                     $valueStyle = 'text-align:left; vertical-align:top;';
@@ -1890,7 +1955,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
   ): string {
     $b = self::borderTop($kind);
     if (!empty($opts['noTopBorder'])) { $b = ($kind === 'pdf') ? 'none' : '0'; }
-    $pad = ($kind === 'pdf') ? '3px 4px' : '7px 8px';
+    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
 
     $cells = [
       [$f1, '33.33%'],
@@ -1946,7 +2011,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
   ): string {
     $b = self::borderTop($kind);
     if (!empty($opts['noTopBorder'])) { $b = ($kind === 'pdf') ? 'none' : '0'; }
-    $pad = ($kind === 'pdf') ? '3px 4px' : '7px 8px';
+    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
 
     // When a 2-column row follows a 3-column row in the same table, some email
     // clients treat the missing 3rd cell as an implicit empty column. This
@@ -2248,12 +2313,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
   ): string {
     $byName = self::mapFieldsByName($fields);
     $b = self::borderTop($kind);
-    $pad = ($kind === 'pdf') ? '3px 4px' : '7px 8px';
-
-    // First row
-    $valueStyle = ($kind === 'pdf') ? 'line-height:1.15;' : '';
-
-    $labelStyle = ($kind === 'pdf') ? 'font-weight:bold; font-size:75%; line-height:1.1;' : 'font-weight:bold;';
+    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
 
     // First row sits directly under the section header; avoid a double line by suppressing the first top border.
     $firstRow = true;
@@ -2325,27 +2385,31 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       $pad .
       '; border-top:' .
       $bt .
-      '; vertical-align:top; ' . $valueStyle . '">' .
+      '; vertical-align:top;">' .
       self::displayFieldValueHtml($kind, $fName, $data) .
       '</td>' .
       '<td style="width:33.33%; padding:' .
       $pad .
       '; border-top:' .
       $bt .
-      '; vertical-align:top; ' . $valueStyle . '">' .
+      '; vertical-align:top;">' .
       self::displayFieldValueHtml($kind, $fRel, $data) .
       '</td>' .
       '<td style="width:33.34%; padding:' .
       $pad .
       '; border-top:' .
       $bt .
-      '; vertical-align:top; ' . $valueStyle . '">' .
+      '; vertical-align:top;">' .
       self::displayFieldValueHtml($kind, $fPhone, $data) .
       '</td>' .
       '</tr>';
 
     // Row 2: labels (3 cols)
     $bt = $rowTop();
+
+    $labelStyle = ($kind === 'pdf')
+      ? 'font-weight:bold; font-size:80%;'
+      : 'font-weight:bold;';
 
     $rows[] =
       '<tr>' .
@@ -2372,31 +2436,32 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       '</td>' .
       '</tr>';
 
-    // Row 3: day-time address value (colspan=3)
+    // Row 3: day-time address (label + value on one row)
     $bt = $rowTop();
 
-    $rows[] =
-      '<tr><td colspan="3" style="padding:' .
-      $pad .
-      '; border-top:' .
-      $bt .
-      '; vertical-align:top; ' . $valueStyle . '">' .
-      self::displayFieldValueHtml($kind, $fAddr, $data) .
-      '</td></tr>';
-
-    // Row 4: day-time address label (colspan=3)
-    $bt = $rowTop();
+    $addrLabel = self::h('Day time Address (incl. postal code)');
+    $addrVal = self::displayFieldValueHtml($kind, $fAddr, $data);
 
     $rows[] =
-      '<tr><td colspan="3" style="padding:' .
+      '<tr>' .
+      '<td style="width:40%; padding:' .
       $pad .
       '; border-top:' .
       $bt .
       '; vertical-align:top; ' . $labelStyle . '">' .
-      self::h('Day time Address (incl. postal code)') .
-      '</td></tr>';
+      $addrLabel .
+      '</td>' .
+      '<td colspan="2" style="width:60%; padding:' .
+      $pad .
+      '; border-top:' .
+      $bt .
+      '; vertical-align:top;">' .
+      $addrVal .
+      '</td>' .
+      '</tr>';
 
     // Row 5: other authorized pickups label + value (merge cols 2-3)
+
     $bt = $rowTop();
 
     $rows[] =
@@ -2405,19 +2470,15 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       $pad .
       '; border-top:' .
       $bt .
-      '; vertical-align:top; ' . $labelStyle . '">' .
+      '; vertical-align:top; font-weight:bold;">' .
       self::h('Other Authorized Pickups') .
       '</td>' .
       '<td colspan="2" style="width:66.67%; padding:' .
       $pad .
       '; border-top:' .
       $bt .
-      '; vertical-align:top; ' . $valueStyle . '">' .
-      (
-      $kind === 'pdf'
-        ? '<div style="line-height:1.15;">' . self::displayFieldValueHtml($kind, $fAuth, $data) . '</div>'
-        : self::displayFieldValueHtml($kind, $fAuth, $data)
-    ) .
+      '; vertical-align:top;">' .
+      (( $kind === 'pdf') ? '<span style="font-size:80%; line-height:1.15;">' . self::displayFieldValueHtml($kind, $fAuth, $data) . '</span>' : self::displayFieldValueHtml($kind, $fAuth, $data)) .
       '</td>' .
       '</tr>';
 
@@ -2432,7 +2493,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     $witnessRaw = trim((string)($data['witness'] ?? ''));
 
     // Create a small visual gap between the values row and the label row for readability
-    $padLabel = ($kind === 'pdf') ? '2px 4px 4px' : '3px 8px 8px';
+    $padLabel = ($kind === 'pdf') ? '2px 6px 4px' : '3px 8px 8px';
 
     // Row 6: values (3 cols)
     $bt = $rowTop();
@@ -2443,21 +2504,21 @@ $content = self::renderSections($kind, $sections, $data, $meta);
       $pad .
       '; border-top:' .
       $bt .
-      '; border-bottom:none; border-bottom-style:none; border-bottom-width:0; vertical-align:top; ' . $valueStyle . '">' .
+      '; border-bottom:none; border-bottom-style:none; border-bottom-width:0; vertical-align:top;">' .
       self::displayValue($parentSigRaw) .
       '</td>' .
       '<td style="width:33.33%; padding:' .
       $pad .
       '; border-top:' .
       $bt .
-      '; border-bottom:none; border-bottom-style:none; border-bottom-width:0; vertical-align:top; ' . $valueStyle . '">' .
+      '; border-bottom:none; border-bottom-style:none; border-bottom-width:0; vertical-align:top;">' .
       self::displayValue($dateSignedRaw) .
       '</td>' .
       '<td style="width:33.34%; padding:' .
       $pad .
       '; border-top:' .
       $bt .
-      '; border-bottom:none; border-bottom-style:none; border-bottom-width:0; vertical-align:top; ' . $valueStyle . '">' .
+      '; border-bottom:none; border-bottom-style:none; border-bottom-width:0; vertical-align:top;">' .
       self::displayValue($witnessRaw) .
       '</td>' .
       '</tr>';
@@ -2854,7 +2915,7 @@ private static function renderWaitlistFourColRow(
   ): string {
     $map = self::mapFieldsByName($fields);
     $b = self::borderTop($kind);
-    $pad = ($kind === 'pdf') ? '3px 4px' : '7px 8px';
+    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
 
     // EMAIL NOTE:
     // Many email clients calculate column widths across the *entire* table.
