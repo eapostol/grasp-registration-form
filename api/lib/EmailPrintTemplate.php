@@ -581,13 +581,14 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
 
             // Enrollment: render the Immunization tail as its own left-aligned paragraph (without introducing large gaps)
             // Keep the main paragraph justified; move the "The immunization form is available at..." sentence(s) to a new left-aligned block.
+            // Use an explicit blank line (<br /><br />) so TCPDF renders a clean paragraph break.
             if ($kind === 'pdf' && stripos($html, 'Immunization Form.') !== false && stripos($html, 'The immunization form is available at') !== false) {
                 $didWrap = false;
                 $html = preg_replace_callback(
                     '/Immunization\s+Form\.(?:\s*<br\s*\/?>\s*)+(The\s+immunization\s+form\s+is\s+available\s+at)/i',
                     function ($m) use (&$didWrap) {
                         $didWrap = true;
-                        return 'Immunization Form.<br /><div style="text-align:left; margin:0; padding:0;">' . $m[1];
+                        return 'Immunization Form.<br /><br /><div style="text-align:left; margin:0; padding:0;">' . $m[1];
                     },
                     $html,
                     1
@@ -600,8 +601,22 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
                 }
             }
 
+            // Enrollment PDF: tighten vertical rhythm around specific Medical section headings only
+            // (MEDICATION and (MEDICAL RELEASE)...) without impacting global row_full rendering.
+            // TCPDF can add extra vertical space around block elements; for these two headings, render inline + single <br />.
+            $isTightMedicalHeading = false;
+            if ($kind === 'pdf' && $title !== '') {
+                $t = strtoupper(trim($title));
+                $isTightMedicalHeading = ($t === 'MEDICATION' || (strpos($t, '(MEDICAL RELEASE)') === 0));
+            }
+
             if ($title !== '') {
-                $html = '<div style="font-weight:bold; margin:0 0 4px 0;">' . self::h($title) . '</div>' . $html;
+                if ($isTightMedicalHeading) {
+                    $html = '<span style="font-weight:bold; line-height:1.0;">' . self::h($title) . '</span><br />' . $html;
+                } else {
+                    $titleStyle = 'font-weight:bold; margin:0 0 4px 0;';
+                    $html = '<div style="' . $titleStyle . '">' . self::h($title) . '</div>' . $html;
+                }
             }
 
             if (trim($html) === '') continue;
@@ -612,15 +627,22 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
                 $rowTpl
             );
 
-            // PDF-only: tighten the row_full container padding for specific Enrollment headings where TCPDF
-            // appears to clamp/ignore later padding overrides (prevents "two line-height" gaps).
+            // PDF-only: tighten vertical spacing around specific Medical section headings only.
+            // Do NOT change global row_full rendering; only override padding for these specific blocks.
             if ($kind === 'pdf') {
-                $isMedicalBlock = (bool)preg_match('/<\s*(?:b|strong)\s*>\s*MEDICATION\s*<\s*\/\s*(?:b|strong)\s*>/i', $html)
+                $t = strtoupper(trim((string)$title));
+                $isMedicationHeading = ($t === 'MEDICATION')
+                    || (bool)preg_match('/<\s*(?:b|strong)\s*>\s*MEDICATION\s*<\s*\/\s*(?:b|strong)\s*>/i', $html);
+
+                $isMedicalReleaseHeading = (strpos($t, '(MEDICAL RELEASE)') === 0)
                     || (bool)preg_match('/\(\s*MEDICAL\s*RELEASE\s*\)\s*PARENTS\s*CONSENT\s*FOR\s*MEDICAL\s*TREATMENT/i', $html);
 
-                if ($isMedicalBlock) {
-                    // row_full.html hard-codes padding:7px 10px; replace it for these blocks only.
-                    $row = str_replace('padding:7px 10px;', 'padding:0px 10px;', $row);
+                if ($isMedicationHeading) {
+                    // Reduce perceived "double line-height" gap above the MEDICATION heading.
+                    $row = str_replace('padding:7px 10px;', 'padding:1px 10px 3px 10px;', $row);
+                } elseif ($isMedicalReleaseHeading) {
+                    // Tighten above/below the Medical Release heading and reduce excess space after the immunization paragraph.
+                    $row = str_replace('padding:7px 10px;', 'padding:1px 10px 1px 10px;', $row);
                 }
             }
 
