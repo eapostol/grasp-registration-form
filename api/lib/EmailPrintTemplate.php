@@ -579,40 +579,68 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
             $html = preg_replace('/(<\s*(?:b|strong)\s*>\s*MEDICATION\s*<\s*\/\s*(?:b|strong)\s*>\s*<br\s*\/?>)\s*(?:<br\s*\/?>\s*)+/i', '$1', $html);
             $html = preg_replace('/(<\s*(?:b|strong)\s*>\s*\(\s*MEDICAL\s*RELEASE\s*\)\s*PARENTS\s*CONSENT\s*FOR\s*MEDICAL\s*TREATMENT\s*<\s*\/\s*(?:b|strong)\s*>\s*<br\s*\/?>)\s*(?:<br\s*\/?>\s*)+/i', '$1', $html);
 
-            // Enrollment: render the Immunization tail as its own left-aligned paragraph (without introducing large gaps)
-            // Keep the main paragraph justified; move the "The immunization form is available at..." sentence(s) to a new left-aligned block.
-            // Use an explicit blank line (<br /><br />) so TCPDF renders a clean paragraph break.
-            if ($kind === 'pdf' && stripos($html, 'Immunization Form.') !== false && stripos($html, 'The immunization form is available at') !== false) {
-                $didWrap = false;
-                $html = preg_replace_callback(
-                    '/Immunization\s+Form\.(?:\s*<br\s*\/?>\s*)+(The\s+immunization\s+form\s+is\s+available\s+at)/i',
-                    function ($m) use (&$didWrap) {
-                        $didWrap = true;
-                        return 'Immunization Form.<br /><br /><div style="text-align:left; margin:0; padding:0;">' . $m[1];
-                    },
-                    $html,
-                    1
-                );
+            // Enrollment: render the Immunization tail as its own left-aligned paragraph (TCPDF-friendly)
+// Keep the main paragraph justified; move the "The immunization form is available at..." sentence(s)
+// to a new left-aligned paragraph with exactly one clean line of separation.
+if ($kind === 'pdf' && stripos($html, 'Immunization Form.') !== false && stripos($html, 'The immunization form is available at') !== false) {
+    // Remove a single outer wrapper if the block HTML is wrapped in one <div> (common in config HTML).
+    $inner = $html;
+    if (preg_match('/^\s*<div\b[^>]*>(.*)<\/div>\s*$/is', $inner, $mm)) {
+        $inner = $mm[1];
+    }
 
-                if ($didWrap) {
-                    // Normalize accidental double period after the URL if present.
-                    $html = str_replace('medical-2016.pdf..', 'medical-2016.pdf.', $html);
-                    $html .= '</div>';
-                }
-            }
+    // Split into two paragraphs at the start of the immunization link sentence.
+    $parts = preg_split('/(The\s+immunization\s+form\s+is\s+available\s+at)/i', $inner, 2, PREG_SPLIT_DELIM_CAPTURE);
+    if (is_array($parts) && count($parts) >= 3) {
+        $p1 = trim($parts[0]);
+        $p2 = trim($parts[1] . $parts[2]);
+
+        // TCPDF can treat trailing <br> at the end of the first paragraph as extra vertical whitespace.
+        // Trim them so the paragraph-to-paragraph gap stays tight and predictable.
+        $p1 = preg_replace('/(?:\s*<br\s*\/?>(?:\s|&nbsp;)*?)+\s*$/i', '', $p1);
+
+        // Normalize accidental double period after the URL if present.
+        $p2 = str_replace('medical-2016.pdf..', 'medical-2016.pdf.', $p2);
+
+        // TCPDF can inflate vertical spacing with <p>; use tight <div> blocks + a controlled spacer.
+        // Keep paragraph 1 justified and paragraph 2 left-aligned.
+        $html = '<div style="text-align:justify; margin:0; padding:0; line-height:1.15;">' . $p1 . '</div>'
+              . '<div style="height:1px; line-height:1px;">&nbsp;</div>'
+              . '<div style="text-align:left; margin:0; padding:0; line-height:1.15;">' . $p2 . '</div>';
+    }
+}
 
             // Enrollment PDF: tighten vertical rhythm around specific Medical section headings only
             // (MEDICATION and (MEDICAL RELEASE)...) without impacting global row_full rendering.
-            // TCPDF can add extra vertical space around block elements; for these two headings, render inline + single <br />.
-            $isTightMedicalHeading = false;
-            if ($kind === 'pdf' && $title !== '') {
-                $t = strtoupper(trim($title));
-                $isTightMedicalHeading = ($t === 'MEDICATION' || (strpos($t, '(MEDICAL RELEASE)') === 0));
+            $isPdf = ($kind === 'pdf');
+            $t = strtoupper(trim($title));
+            $isMedicationTitle = ($t === 'MEDICATION');
+            $isMedicalReleaseTitle = (strpos($t, '(MEDICAL RELEASE)') === 0);
+
+            // For the Medical Release policy block, ensure the row container is left-aligned so TCPDF does not keep justification flowing.
+            // Paragraph 1 remains explicitly justified in the content HTML.
+            if ($isPdf && $isMedicalReleaseTitle) {
+                $style = preg_replace('/text-align\s*:\s*justify\s*;?/i', '', $style);
+                if (stripos($style, 'text-align') === false) {
+                    $style .= 'text-align:left;';
+                }
+            }
+
+            // TCPDF can treat leading <br> in content as extra vertical space (often looks like "double line-height" below headings).
+            // For these medical headings only, strip leading <br> tags before we prepend the title.
+            if ($isPdf && ($isMedicationTitle || $isMedicalReleaseTitle)) {
+                $html = preg_replace('/^(?:\s*<br\s*\/?>\s*)+/i', '', $html);
             }
 
             if ($title !== '') {
-                if ($isTightMedicalHeading) {
-                    $html = '<span style="font-weight:bold; line-height:1.0;">' . self::h($title) . '</span><br />' . $html;
+                if ($isPdf && ($isMedicationTitle || $isMedicalReleaseTitle)) {
+                    // Use inline heading + controlled spacer to avoid TCPDF's extra line-break inflation.
+                    // (TCPDF can treat <br> + leading block elements as multiple line-heights.)
+                    $html = '<span style="font-weight:bold; line-height:1.0; text-decoration:none;">'
+                         . self::h($title)
+                         . '</span>'
+                         . '<div style="height:4px; line-height:4px;">&nbsp;</div>'
+                         . $html;
                 } else {
                     $titleStyle = 'font-weight:bold; margin:0 0 4px 0;';
                     $html = '<div style="' . $titleStyle . '">' . self::h($title) . '</div>' . $html;
@@ -638,10 +666,10 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
                     || (bool)preg_match('/\(\s*MEDICAL\s*RELEASE\s*\)\s*PARENTS\s*CONSENT\s*FOR\s*MEDICAL\s*TREATMENT/i', $html);
 
                 if ($isMedicationHeading) {
-                    // Reduce perceived "double line-height" gap above the MEDICATION heading.
-                    $row = str_replace('padding:7px 10px;', 'padding:1px 10px 3px 10px;', $row);
+                    // Tighten MEDICATION block padding (PDF-only) without affecting global row_full.
+                    $row = str_replace('padding:7px 10px;', 'padding:1px 10px 1px 10px;', $row);
                 } elseif ($isMedicalReleaseHeading) {
-                    // Tighten above/below the Medical Release heading and reduce excess space after the immunization paragraph.
+                    // Tighten Medical Release block padding (PDF-only) and reduce extra gap after immunization paragraph.
                     $row = str_replace('padding:7px 10px;', 'padding:1px 10px 1px 10px;', $row);
                 }
             }
