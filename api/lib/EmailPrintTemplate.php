@@ -624,6 +624,14 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
 
             $titleTrim = is_string($title) ? trim($title) : '';
 
+
+            // Enrollment PDF: enforce clean section starts on specific pages (do not split sections).
+            if ($kind === 'pdf' && $profile === 'enrollment' && $titleTrim !== '') {
+                if ($titleTrim === 'Medical Release & Medication' || $titleTrim === 'Water Play & Hand Sanitizer') {
+                    $out[] = '<br pagebreak="true" />';
+                }
+            }
+
             // -----------------------------------------------------------------
             // Waitlist-only layout compaction (email + PDF):
             // 1) Child Information + Address -> single 2-column block
@@ -782,7 +790,7 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
                     $map = self::mapFieldsByName($fields);
 
                     $b = self::borderTop($kind);
-                    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
+                    $pad = ($kind === 'pdf') ? '3px 4px' : '7px 8px';
 
                     $labelStyle = 'font-weight:bold; vertical-align:top;';
                     $valueStyle = 'text-align:left; vertical-align:top;';
@@ -859,7 +867,7 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
                     $map = self::mapFieldsByName($fields);
 
                     $b = self::borderTop($kind);
-                    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
+                    $pad = ($kind === 'pdf') ? '3px 4px' : '7px 8px';
 
                     // Static policy paragraph (matches online form display)
                     $arrivalPolicyHtml = <<<'HTML'
@@ -976,7 +984,7 @@ HTML;
                     $map = self::mapFieldsByName($fields);
 
                     $b = self::borderTop($kind);
-                    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
+                    $pad = ($kind === 'pdf') ? '3px 4px' : '7px 8px';
 
                     $safeArrivalPolicyHtml = <<<'HTML'
 <div class="grasp-policy-block"><div class="grasp-policy-heading"><u>SAFE ARRIVAL AND DISMISSAL ACKNOWLEDGEMENT</u></div>
@@ -1110,7 +1118,7 @@ HTML;
                     $map = self::mapFieldsByName($fields);
 
                     $b = self::borderTop($kind);
-                    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
+                    $pad = ($kind === 'pdf') ? '3px 4px' : '7px 8px';
 
                     $disclosureHtml = <<<'HTML'
 <div class="grasp-policy-block"><p><em>Consent for sharing information among professionals involved in a child’s day enhances educational and family support.</em></p><p>Consent for sharing information is a necessary legal and ethical practice and must be obtained in order to share any information. To provide quality care for children, there are times when it is appropriate for the Childcare Centre, the School, Toronto Children’s Services to exchange information. The kind of information shared may include, but is not limited to, matters involving attendance, illness or transportation etc.  I hereby consent to reciprocal exchange of information about my child between the Centre GRASP / School and/or Toronto Children’s Services.</p></div>
@@ -1359,7 +1367,7 @@ HTML : '');
                     }
 
                     $b = self::borderTop($kind);
-                    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
+                    $pad = ($kind === 'pdf') ? '3px 4px' : '7px 8px';
 
                     $labelStyle = 'font-weight:bold; vertical-align:top;';
                     $valueStyle = 'text-align:left; vertical-align:top;';
@@ -1882,7 +1890,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
   ): string {
     $b = self::borderTop($kind);
     if (!empty($opts['noTopBorder'])) { $b = ($kind === 'pdf') ? 'none' : '0'; }
-    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
+    $pad = ($kind === 'pdf') ? '3px 4px' : '7px 8px';
 
     $cells = [
       [$f1, '33.33%'],
@@ -1938,7 +1946,7 @@ $content = self::renderSections($kind, $sections, $data, $meta);
   ): string {
     $b = self::borderTop($kind);
     if (!empty($opts['noTopBorder'])) { $b = ($kind === 'pdf') ? 'none' : '0'; }
-    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
+    $pad = ($kind === 'pdf') ? '3px 4px' : '7px 8px';
 
     // When a 2-column row follows a 3-column row in the same table, some email
     // clients treat the missing 3rd cell as an implicit empty column. This
@@ -2240,7 +2248,20 @@ $content = self::renderSections($kind, $sections, $data, $meta);
   ): string {
     $byName = self::mapFieldsByName($fields);
     $b = self::borderTop($kind);
-    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
+    $pad = ($kind === 'pdf') ? '3px 4px' : '7px 8px';
+
+    // First row
+    $valueStyle = ($kind === 'pdf') ? 'line-height:1.15;' : '';
+
+    $labelStyle = ($kind === 'pdf') ? 'font-weight:bold; font-size:75%; line-height:1.1;' : 'font-weight:bold;';
+
+    // First row sits directly under the section header; avoid a double line by suppressing the first top border.
+    $firstRow = true;
+    $rowTop = function () use (&$firstRow, $b): string {
+      $bt = $firstRow ? 'none' : $b;
+      $firstRow = false;
+      return $bt;
+    };
 
     $rows = [];
 
@@ -2272,13 +2293,15 @@ $content = self::renderSections($kind, $sections, $data, $meta);
         $html = self::replaceTokens($html, $data, $kind);
         if (trim($html) === '') continue;
 
+        $bt = $rowTop();
+
         $rows[] =
           '<tr><td colspan="3"' .
           $bgcolorAttr .
           ' style="padding:' .
           $pad .
           '; border-top:' .
-          $b .
+          $bt .
           '; vertical-align:top; ' .
           self::h($style) .
           '">' .
@@ -2294,93 +2317,107 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     $fAuth = $byName['authorized_pickups'] ?? null;
 
     // Row 1: values (3 cols)
+    $bt = $rowTop();
+
     $rows[] =
       '<tr>' .
       '<td style="width:33.33%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
-      '; vertical-align:top;">' .
+      $bt .
+      '; vertical-align:top; ' . $valueStyle . '">' .
       self::displayFieldValueHtml($kind, $fName, $data) .
       '</td>' .
       '<td style="width:33.33%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
-      '; vertical-align:top;">' .
+      $bt .
+      '; vertical-align:top; ' . $valueStyle . '">' .
       self::displayFieldValueHtml($kind, $fRel, $data) .
       '</td>' .
       '<td style="width:33.34%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
-      '; vertical-align:top;">' .
+      $bt .
+      '; vertical-align:top; ' . $valueStyle . '">' .
       self::displayFieldValueHtml($kind, $fPhone, $data) .
       '</td>' .
       '</tr>';
 
     // Row 2: labels (3 cols)
+    $bt = $rowTop();
+
     $rows[] =
       '<tr>' .
       '<td style="width:33.33%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
-      '; vertical-align:top; font-weight:bold;">' .
+      $bt .
+      '; vertical-align:top; ' . $labelStyle . '">' .
       self::h('Contact Name') .
       '</td>' .
       '<td style="width:33.33%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
-      '; vertical-align:top; font-weight:bold;">' .
+      $bt .
+      '; vertical-align:top; ' . $labelStyle . '">' .
       self::h('Relationship To Child') .
       '</td>' .
       '<td style="width:33.34%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
-      '; vertical-align:top; font-weight:bold;">' .
+      $bt .
+      '; vertical-align:top; ' . $labelStyle . '">' .
       self::h('Day Time Phone #') .
       '</td>' .
       '</tr>';
 
     // Row 3: day-time address value (colspan=3)
+    $bt = $rowTop();
+
     $rows[] =
       '<tr><td colspan="3" style="padding:' .
       $pad .
       '; border-top:' .
-      $b .
-      '; vertical-align:top;">' .
+      $bt .
+      '; vertical-align:top; ' . $valueStyle . '">' .
       self::displayFieldValueHtml($kind, $fAddr, $data) .
       '</td></tr>';
 
     // Row 4: day-time address label (colspan=3)
+    $bt = $rowTop();
+
     $rows[] =
       '<tr><td colspan="3" style="padding:' .
       $pad .
       '; border-top:' .
-      $b .
-      '; vertical-align:top; font-weight:bold;">' .
+      $bt .
+      '; vertical-align:top; ' . $labelStyle . '">' .
       self::h('Day time Address (incl. postal code)') .
       '</td></tr>';
 
     // Row 5: other authorized pickups label + value (merge cols 2-3)
+    $bt = $rowTop();
+
     $rows[] =
       '<tr>' .
       '<td style="width:33.33%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
-      '; vertical-align:top; font-weight:bold;">' .
+      $bt .
+      '; vertical-align:top; ' . $labelStyle . '">' .
       self::h('Other Authorized Pickups') .
       '</td>' .
       '<td colspan="2" style="width:66.67%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
-      '; vertical-align:top;">' .
-      self::displayFieldValueHtml($kind, $fAuth, $data) .
+      $bt .
+      '; vertical-align:top; ' . $valueStyle . '">' .
+      (
+      $kind === 'pdf'
+        ? '<div style="line-height:1.15;">' . self::displayFieldValueHtml($kind, $fAuth, $data) . '</div>'
+        : self::displayFieldValueHtml($kind, $fAuth, $data)
+    ) .
       '</td>' .
       '</tr>';
 
@@ -2395,56 +2432,60 @@ $content = self::renderSections($kind, $sections, $data, $meta);
     $witnessRaw = trim((string)($data['witness'] ?? ''));
 
     // Create a small visual gap between the values row and the label row for readability
-    $padLabel = ($kind === 'pdf') ? '3px 6px 6px' : '3px 8px 8px';
+    $padLabel = ($kind === 'pdf') ? '2px 4px 4px' : '3px 8px 8px';
 
     // Row 6: values (3 cols)
+    $bt = $rowTop();
+
     $rows[] =
       '<tr>' .
       '<td style="width:33.33%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
-      '; border-bottom:none; border-bottom-style:none; border-bottom-width:0; vertical-align:top;">' .
+      $bt .
+      '; border-bottom:none; border-bottom-style:none; border-bottom-width:0; vertical-align:top; ' . $valueStyle . '">' .
       self::displayValue($parentSigRaw) .
       '</td>' .
       '<td style="width:33.33%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
-      '; border-bottom:none; border-bottom-style:none; border-bottom-width:0; vertical-align:top;">' .
+      $bt .
+      '; border-bottom:none; border-bottom-style:none; border-bottom-width:0; vertical-align:top; ' . $valueStyle . '">' .
       self::displayValue($dateSignedRaw) .
       '</td>' .
       '<td style="width:33.34%; padding:' .
       $pad .
       '; border-top:' .
-      $b .
-      '; border-bottom:none; border-bottom-style:none; border-bottom-width:0; vertical-align:top;">' .
+      $bt .
+      '; border-bottom:none; border-bottom-style:none; border-bottom-width:0; vertical-align:top; ' . $valueStyle . '">' .
       self::displayValue($witnessRaw) .
       '</td>' .
       '</tr>';
 
     // Row 7: labels (3 cols)
+    $bt = $rowTop();
+
     $rows[] =
       '<tr>' .
       '<td style="width:33.33%; padding:' .
       $padLabel .
       '; border-top:' .
-      $b .
-      '; vertical-align:top; font-weight:bold;">' .
+      $bt .
+      '; vertical-align:top; ' . $labelStyle . '">' .
       self::h('Parent / Guardian Signature') .
       '</td>' .
       '<td style="width:33.33%; padding:' .
       $padLabel .
       '; border-top:' .
-      $b .
-      '; vertical-align:top; font-weight:bold;">' .
+      $bt .
+      '; vertical-align:top; ' . $labelStyle . '">' .
       self::h('Date Signed') .
       '</td>' .
       '<td style="width:33.34%; padding:' .
       $padLabel .
       '; border-top:' .
-      $b .
-      '; vertical-align:top; font-weight:bold;">' .
+      $bt .
+      '; vertical-align:top; ' . $labelStyle . '">' .
       self::h('Witness') .
       '</td>' .
       '</tr>';
@@ -2813,7 +2854,7 @@ private static function renderWaitlistFourColRow(
   ): string {
     $map = self::mapFieldsByName($fields);
     $b = self::borderTop($kind);
-    $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
+    $pad = ($kind === 'pdf') ? '3px 4px' : '7px 8px';
 
     // EMAIL NOTE:
     // Many email clients calculate column widths across the *entire* table.
