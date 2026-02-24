@@ -986,6 +986,15 @@ if ($kind === 'pdf' && stripos($html, 'Immunization Form.') !== false && stripos
 <div class="grasp-policy-block"><p>I always agree to accompany my child <strong><u>to and from</u></strong> GRASP classroom and notify staff verbally  <strong><u>upon arrival and departure</u></strong>. I understand that is my responsibility to inform all pick up and drop off persons of this policy and ensure they make verbal contact with the staff. In the event that my child is not accompanied into GRASP facilities by an adult, I understand GRASP has no legal responsibility for the safe arrival of my named child. Failure to inform staff of arrival and departure may result in notifying the authorities. Children’s arrival to GRASP from Greenland PS will be from the designated dismissal door of the school for each class. A GRASP staff member will await outside with all other pick up persons for children to be dismissed from school. If children are not in attendance at GRASP, parents must notify staff by 2:30 pm by email or call. I understand it is not the school responsibility to communicate with GRASP about my child’s attendance.</p></div>
 HTML;
 
+                    if ($kind === 'pdf') {
+                        $arrivalPolicyHtml = str_replace(
+                            ['<div class="grasp-policy-block"><p>', '</p></div>'],
+                            ['<div class="grasp-policy-block" style="margin:0; padding:0;"><div style="margin:0; padding:0; line-height:1.15;">', '</div></div>'],
+                            $arrivalPolicyHtml
+                        );
+                    }
+
+
                     // Field defs
                     $ackField = $map['arrival_departure_ack'] ?? null;
                     $notesField = $map['arrival_departure_notes'] ?? null;
@@ -1035,12 +1044,12 @@ HTML;
                     $notesLabel = self::h('Additional notes regarding arrival & departure (optional)');
                     if ($kind === 'pdf') {
                         $rows[] = '<tr>'
-                            . '<td width="50%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . $notesLabel . '</td>'
+                            . '<td width="50%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . '<span style="font-size:75%; white-space:nowrap;">' . $notesLabel . '</span>' . '</td>'
                             . '<td width="50%" style="border-top:' . $b . '; padding:' . $pad . '; vertical-align:top;">' . $notesVal . '</td>'
                             . '</tr>';
                     } else {
                         $inner = '<table style="width:100%; border-collapse:collapse; table-layout:fixed;"><tr>'
-                            . '<td style="width:50%; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . $notesLabel . '</td>'
+                            . '<td style="width:50%; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . '<span style="font-size:75%; white-space:nowrap;">' . $notesLabel . '</span>' . '</td>'
                             . '<td style="width:50%; padding:' . $pad . '; vertical-align:top;">' . $notesVal . '</td>'
                             . '</tr></table>';
                         $rows[] = '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $inner . '</td></tr>';

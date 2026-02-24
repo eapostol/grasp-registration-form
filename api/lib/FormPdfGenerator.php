@@ -60,7 +60,114 @@ class FormPdfGenerator
         }
 
         // writeHTML handles simple tables + inline styles well
-        $pdf->writeHTML($html, true, false, true, false, '');
+        // -----------------------------------------------------------------
+        // Phase 8: PDF keep-together blocks (localized, PDF-only)
+        //
+        // Some sections contain long policy paragraphs. If a section header or the
+        // first content block lands at the end of a page, TCPDF can split the block
+        // awkwardly. We support explicit keep-together markers in the HTML:
+        //
+        //   <!--GRASP_KEEP_TOGETHER_START--> ... <!--GRASP_KEEP_TOGETHER_END-->
+        //
+        // For marked blocks, we render within a TCPDF transaction. If the block
+        // would overflow onto a new page, we roll back, add a page, and re-render
+        // the block so it starts cleanly on the next page.
+        // -----------------------------------------------------------------
+        $keepStart = '<!--GRASP_KEEP_TOGETHER_START-->';
+        $keepEnd   = '<!--GRASP_KEEP_TOGETHER_END-->';
+        
+        // If no markers exist, keep existing behavior.
+        if (strpos($html, $keepStart) === false || strpos($html, $keepEnd) === false) {
+            $pdf->writeHTML($html, true, false, true, false, '');
+        } else {
+            // Split into: prefix (<html>..<body>), body, suffix (</body>..</html>)
+            $prefix = '';
+            $body   = $html;
+            $suffix = '';
+            if (preg_match('/\A(.*?<body\b[^>]*>)(.*?)(<\/body>.*)\z/is', $html, $m)) {
+                $prefix = $m[1];
+                $body   = $m[2];
+                $suffix = $m[3];
+            }
+        
+            $segments = [];
+            $cursor = 0;
+            $len = strlen($body);
+        
+            while ($cursor < $len) {
+                $startPos = strpos($body, $keepStart, $cursor);
+                if ($startPos === false) {
+                    // remainder is normal
+                    $segments[] = ['keep' => false, 'html' => substr($body, $cursor)];
+                    break;
+                }
+        
+                // normal chunk before keep block
+                if ($startPos > $cursor) {
+                    $segments[] = ['keep' => false, 'html' => substr($body, $cursor, $startPos - $cursor)];
+                }
+        
+                $endPos = strpos($body, $keepEnd, $startPos + strlen($keepStart));
+                if ($endPos === false) {
+                    // malformed; treat the rest as normal
+                    $segments[] = ['keep' => false, 'html' => substr($body, $startPos)];
+                    break;
+                }
+        
+                $innerStart = $startPos + strlen($keepStart);
+                $innerLen   = $endPos - $innerStart;
+                $keepHtml   = substr($body, $innerStart, $innerLen);
+        
+                $segments[] = ['keep' => true, 'html' => $keepHtml];
+        
+                $cursor = $endPos + strlen($keepEnd);
+            }
+        
+            // Render segments
+            foreach ($segments as $seg) {
+                $segHtml = (string)($seg['html'] ?? '');
+                if (trim($segHtml) === '') continue;
+        
+                $doc = ($prefix !== '' || $suffix !== '')
+                    ? ($prefix . $segHtml . $suffix)
+                    : $segHtml;
+        
+                if (!empty($seg['keep'])) {
+                    // Use transactions only if available.
+                    if (method_exists($pdf, 'startTransaction') && method_exists($pdf, 'rollbackTransaction')) {
+                        $startPage = $pdf->getPage();
+                        $startY    = $pdf->GetY();
+        
+                        $pdf->startTransaction();
+                        $pdf->writeHTML($doc, true, false, true, false, '');
+        
+                        $endPage = $pdf->getPage();
+                        if ($endPage > $startPage) {
+                            // It overflowed -> roll back and re-render from a fresh page.
+                            $pdf->rollbackTransaction(true);
+        
+                            // If we're already near the top, avoid adding a blank page.
+                            if ($startY > 15) {
+                                $pdf->AddPage();
+                            }
+                            $pdf->writeHTML($doc, true, false, true, false, '');
+                        } else {
+                            // Keep the rendered content.
+                            if (method_exists($pdf, 'commitTransaction')) {
+                                $pdf->commitTransaction();
+                            }
+                        }
+                    } else {
+                        // Fallback: render without keep-together.
+                        $pdf->writeHTML($doc, true, false, true, false, '');
+                    }
+                } else {
+                    $pdf->writeHTML($doc, true, false, true, false, '');
+                }
+            }
+        }
+        
+
 
         $safeBase = preg_replace('/[^A-Za-z0-9._-]+/', '-', $filenameBase);
         $safeBase = trim($safeBase, '-');
