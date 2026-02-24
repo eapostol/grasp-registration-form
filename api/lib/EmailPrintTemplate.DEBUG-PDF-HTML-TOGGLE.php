@@ -1893,7 +1893,6 @@ $content = self::renderSections($kind, $sections, $data, $meta);
                     [self::h((string)$formTitle), self::h((string)$submittedAt), $orgBlock, $content],
                     $baseTpl
                 );
-                $html = self::pdfFixWaterPlayCellpadding($html);
 
                 $ts = date('Ymd_His');
                 $p1 = __DIR__ . '/__debug_pdf_output.html';
@@ -1906,71 +1905,13 @@ $content = self::renderSections($kind, $sections, $data, $meta);
                 return $html;
             }
         }
-        $html = str_replace(
+
+        return str_replace(
             ['{{FORM_TITLE}}', '{{SUBMITTED_AT}}', '{{ORG_BLOCK}}', '{{CONTENT}}'],
             [self::h((string)$formTitle), self::h((string)$submittedAt), $orgBlock, $content],
             $baseTpl
         );
-
-        if ($kind === 'pdf') {
-            $html = self::pdfFixWaterPlayCellpadding($html);
-        }
-
-        return $html;
     }
-
-    /**
- * PDF-only, localized: tighten Water Play & Hand Sanitizer section heading spacing.
- *
- * Root cause (observed in __debug_pdf_output.html): the section table uses cellpadding="5",
- * which TCPDF applies as extra top padding even when the inner <td> sets padding-top:0.
- *
- * Fix: for this section only, change the OUTER wrapper table opening tag from cellpadding="5" to cellpadding="0".
- * This does NOT affect column widths or the 75/25 consent rows (they already use explicit padding).
- *
- * Note: We intentionally locate the wrapper table immediately preceding the section header cell, and only
- * patch it if the opening tag includes both cellpadding="5" and the standard section-table margin style.
- */
-private static function pdfFixWaterPlayCellpadding(string $html): string
-{
-    $needle = '>Water Play &amp; Hand Sanitizer<';
-    $pos = strpos($html, $needle);
-    if ($pos === false) {
-        return $html;
-    }
-
-    // Walk backwards to find the correct section wrapper table opening tag.
-    $searchFrom = $pos;
-    while (true) {
-        $before = substr($html, 0, $searchFrom);
-        $start = strrpos($before, '<table nobr="true"');
-        if ($start === false) {
-            return $html;
-        }
-
-        $gt = strpos($html, '>', $start);
-        if ($gt === false) {
-            return $html;
-        }
-
-        $openTag = substr($html, $start, $gt - $start + 1);
-
-        // This section wrapper table is expected to have cellpadding="5" and the standard bottom margin.
-        if (strpos($openTag, 'cellpadding="5"') !== false && strpos($openTag, 'margin:0 0 8px 0;') !== false) {
-            $openTagFixed = preg_replace('/\bcellpadding="5"\b/', 'cellpadding="0"', $openTag, 1);
-            if (!$openTagFixed || $openTagFixed === $openTag) {
-                return $html;
-            }
-
-            return substr($html, 0, $start) . $openTagFixed . substr($html, $gt + 1);
-        }
-
-        // Keep searching earlier in the document (in case we landed on an inner nobr table).
-        $searchFrom = $start - 1;
-    }
-}
-
-
 
     // Public API
 
