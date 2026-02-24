@@ -835,7 +835,10 @@ if ($kind === 'pdf' && stripos($html, 'Immunization Form.') !== false && stripos
                 if ($normTitle === "Child's Primary Information") {
                     $map = self::mapFieldsByName($fields);
 
-                    $rows = [];
+                    // Phase 8: Split this section so that the Travel consent subsection
+                    // starts at the top of the next PDF page.
+                    $rowsA = []; // Disclosure + signature + consent row
+                    $rowsB = []; // Travel + photo + final signature
                     // Row 1: First/Middle/Last
                     $rows[] = self::renderEnrollmentThreeColRow(
                         $kind,
@@ -986,15 +989,6 @@ if ($kind === 'pdf' && stripos($html, 'Immunization Form.') !== false && stripos
 <div class="grasp-policy-block"><p>I always agree to accompany my child <strong><u>to and from</u></strong> GRASP classroom and notify staff verbally  <strong><u>upon arrival and departure</u></strong>. I understand that is my responsibility to inform all pick up and drop off persons of this policy and ensure they make verbal contact with the staff. In the event that my child is not accompanied into GRASP facilities by an adult, I understand GRASP has no legal responsibility for the safe arrival of my named child. Failure to inform staff of arrival and departure may result in notifying the authorities. Children’s arrival to GRASP from Greenland PS will be from the designated dismissal door of the school for each class. A GRASP staff member will await outside with all other pick up persons for children to be dismissed from school. If children are not in attendance at GRASP, parents must notify staff by 2:30 pm by email or call. I understand it is not the school responsibility to communicate with GRASP about my child’s attendance.</p></div>
 HTML;
 
-                    if ($kind === 'pdf') {
-                        $arrivalPolicyHtml = str_replace(
-                            ['<div class="grasp-policy-block"><p>', '</p></div>'],
-                            ['<div class="grasp-policy-block" style="margin:0; padding:0;"><div style="margin:0; padding:0; line-height:1.15;">', '</div></div>'],
-                            $arrivalPolicyHtml
-                        );
-                    }
-
-
                     // Field defs
                     $ackField = $map['arrival_departure_ack'] ?? null;
                     $notesField = $map['arrival_departure_notes'] ?? null;
@@ -1044,12 +1038,12 @@ HTML;
                     $notesLabel = self::h('Additional notes regarding arrival & departure (optional)');
                     if ($kind === 'pdf') {
                         $rows[] = '<tr>'
-                            . '<td width="50%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . '<span style="font-size:75%; white-space:nowrap;">' . $notesLabel . '</span>' . '</td>'
+                            . '<td width="50%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . $notesLabel . '</td>'
                             . '<td width="50%" style="border-top:' . $b . '; padding:' . $pad . '; vertical-align:top;">' . $notesVal . '</td>'
                             . '</tr>';
                     } else {
                         $inner = '<table style="width:100%; border-collapse:collapse; table-layout:fixed;"><tr>'
-                            . '<td style="width:50%; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . '<span style="font-size:75%; white-space:nowrap;">' . $notesLabel . '</span>' . '</td>'
+                            . '<td style="width:50%; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . $notesLabel . '</td>'
                             . '<td style="width:50%; padding:' . $pad . '; vertical-align:top;">' . $notesVal . '</td>'
                             . '</tr></table>';
                         $rows[] = '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $inner . '</td></tr>';
@@ -1221,6 +1215,11 @@ HTML;
                     $rowsHtml = implode("
 ", $rows);
                     if (trim($rowsHtml) !== '') {
+                        // Phase 8: Ensure this section starts at the top of a fresh PDF page
+                        // after the preceding Travel consent content.
+                        if ($kind === 'pdf') {
+                            $out[] = '<!--GRASP_PAGEBREAK-->';
+                        }
                         $out[] = str_replace(
                             ['{{SECTION_TITLE}}', '{{ROWS}}'],
                             [self::h('Safe Arrival, Dismissal & Sun Safety'), $rowsHtml],
@@ -1241,25 +1240,12 @@ HTML;
                     $b = self::borderTop($kind);
                     $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
 
-                    $disclosureHtmlEmail = <<<'HTML'
+                    $disclosureHtml = <<<'HTML'
 <div class="grasp-policy-block"><p><em>Consent for sharing information among professionals involved in a child’s day enhances educational and family support.</em></p><p>Consent for sharing information is a necessary legal and ethical practice and must be obtained in order to share any information. To provide quality care for children, there are times when it is appropriate for the Childcare Centre, the School, Toronto Children’s Services to exchange information. The kind of information shared may include, but is not limited to, matters involving attendance, illness or transportation etc.  I hereby consent to reciprocal exchange of information about my child between the Centre GRASP / School and/or Toronto Children’s Services.</p></div>
 HTML;
-                    $travelHtmlEmail = <<<'HTML'
+                    $travelHtml = <<<'HTML'
 <div class="grasp-policy-block"><p>I hereby give consent for my child to leave the premises of GRASP under the qualified staff's supervision to participate in daily outings, trips to parks, playgrounds, school and libraries that can be reached without public or other motorized transportation. This may occur from time to time with or without prior notice and shall be deemed normal daily activity. I understand that notices will be sent home with consent forms for special trips and events, which involve public or other motorized transportation, swimming off premises. I further understand, the child care center program plans age-appropriate activities in order to keep the children engaged and from time to time may engage in some age-appropriate risky play activities as promoted in childhood development. In order to fully appreciate the program and give all the children the equal opportunity to participate in the plan activities, it is expected and highly recommended all children be in care no later than 9:30 am on non-instructional days such as P.A. Day and summer camp. Any community outing or walks will not depart prior to 9:30 am. Once the group leaves the center for a walk, community outing or field trip staff is not permitted, under any circumstances, to release or accept your child. You must drop off or pick up your child before or after the outing on Greenland property. Children will only be accepted in their designated classes for ratio and safety purposes.</p></div>
 HTML;
-
-                    // PDF-only: TCPDF applies extra whitespace around <p>. Use div-only blocks with tight margins.
-                    if ($kind === 'pdf') {
-                        $disclosureHtml = <<<'HTML'
-<div class="grasp-policy-block" style="margin:0; padding:0;"><div style="margin:2px 0; padding:0; line-height:1.15;"><em>Consent for sharing information among professionals involved in a child’s day enhances educational and family support.</em></div><div style="margin:2px 0; padding:0; line-height:1.15;">Consent for sharing information is a necessary legal and ethical practice and must be obtained in order to share any information. To provide quality care for children, there are times when it is appropriate for the Childcare Centre, the School, Toronto Children’s Services to exchange information. The kind of information shared may include, but is not limited to, matters involving attendance, illness or transportation etc.  I hereby consent to reciprocal exchange of information about my child between the Centre GRASP / School and/or Toronto Children’s Services.</div></div>
-HTML;
-                        $travelHtml = <<<'HTML'
-<div class="grasp-policy-block" style="margin:0; padding:0;"><div style="margin:2px 0; padding:0; line-height:1.15;">I hereby give consent for my child to leave the premises of GRASP under the qualified staff's supervision to participate in daily outings, trips to parks, playgrounds, school and libraries that can be reached without public or other motorized transportation. This may occur from time to time with or without prior notice and shall be deemed normal daily activity. I understand that notices will be sent home with consent forms for special trips and events, which involve public or other motorized transportation, swimming off premises. I further understand, the child care center program plans age-appropriate activities in order to keep the children engaged and from time to time may engage in some age-appropriate risky play activities as promoted in childhood development. In order to fully appreciate the program and give all the children the equal opportunity to participate in the plan activities, it is expected and highly recommended all children be in care no later than 9:30 am on non-instructional days such as P.A. Day and summer camp. Any community outing or walks will not depart prior to 9:30 am. Once the group leaves the center for a walk, community outing or field trip staff is not permitted, under any circumstances, to release or accept your child. You must drop off or pick up your child before or after the outing on Greenland property. Children will only be accepted in their designated classes for ratio and safety purposes.</div></div>
-HTML;
-                    } else {
-                        $disclosureHtml = $disclosureHtmlEmail;
-                        $travelHtml = $travelHtmlEmail;
-                    }
 
                     // Signature values (from final signature step)
                     $sigNameField = ['name' => 'parent_full_name_signature', 'type' => 'text', 'label' => 'Parent / Guardian Signature'];
@@ -1293,21 +1279,21 @@ HTML : '');
                     // Sub-heading + disclosure paragraph
                     $subHead = self::h('Disclosure Of Information Policy');
                     if ($kind === 'pdf') {
-                        $rows[] = '<tr><td width="100%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . $subHead . '</td></tr>';
-                        $rows[] = '<tr><td width="100%" style="border-top:' . $b . '; padding:' . $pad . '; vertical-align:top; text-align:justify;">' . $disclosureHtml . '</td></tr>';
+                        $rowsA[] = '<tr><td width="100%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . $subHead . '</td></tr>';
+                        $rowsA[] = '<tr><td width="100%" style="border-top:' . $b . '; padding:' . $pad . '; vertical-align:top; text-align:justify;">' . $disclosureHtml . '</td></tr>';
                     } else {
-                        $rows[] = '<tr><td colspan="2" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . $subHead . '</td></tr>';
-                        $rows[] = '<tr><td colspan="2" style="border-top:' . $b . '; padding:' . $pad . '; vertical-align:top; text-align:justify;">' . $disclosureHtml . '</td></tr>';
+                        $rowsA[] = '<tr><td colspan="2" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . $subHead . '</td></tr>';
+                        $rowsA[] = '<tr><td colspan="2" style="border-top:' . $b . '; padding:' . $pad . '; vertical-align:top; text-align:justify;">' . $disclosureHtml . '</td></tr>';
                     }
 
                     // Signature block under disclosure
                     if ($kind === 'pdf') {
-                        $rows[] = '<tr>'
+                        $rowsA[] = '<tr>'
                             . '<td width="33.33%" style="border-top:' . $b . '; padding:' . $pad . ';">' . $sigVal . '</td>'
                             . '<td width="33.33%" style="border-top:' . $b . '; padding:' . $pad . ';">' . $witVal . '</td>'
                             . '<td width="33.33%" style="border-top:' . $b . '; padding:' . $pad . ';">' . $dateVal . '</td>'
                             . '</tr>';
-                        $rows[] = '<tr>'
+                        $rowsA[] = '<tr>'
                             . '<td width="33.33%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; font-size:80%;">' . self::h('Parent / Guardian Signature') . '</td>'
                             . '<td width="33.33%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; font-size:80%;">' . self::h('Witness') . '</td>'
                             . '<td width="33.33%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; font-size:80%;">' . self::h('Date') . '</td>'
@@ -1318,21 +1304,21 @@ HTML : '');
                             . '<td style="width:33.33%; padding:' . $pad . ';">' . $witVal . '</td>'
                             . '<td style="width:33.33%; padding:' . $pad . ';">' . $dateVal . '</td>'
                             . '</tr></table>';
-                        $rows[] = '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $innerVals . '</td></tr>';
+                        $rowsA[] = '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $innerVals . '</td></tr>';
 
                         $innerLabs = '<table style="width:100%; border-collapse:collapse; table-layout:fixed;"><tr>'
                             . '<td style="width:33.33%; padding:' . $pad . '; font-weight:bold; font-size:80%;">' . self::h('Parent / Guardian Signature') . '</td>'
                             . '<td style="width:33.33%; padding:' . $pad . '; font-weight:bold; font-size:80%;">' . self::h('Witness') . '</td>'
                             . '<td style="width:33.33%; padding:' . $pad . '; font-weight:bold; font-size:80%;">' . self::h('Date') . '</td>'
                             . '</tr></table>';
-                        $rows[] = '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $innerLabs . '</td></tr>';
+                        $rowsA[] = '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $innerLabs . '</td></tr>';
                     }
 
                     // Info sharing consent row
                     $infoLabel = self::h('I consent to reciprocal exchange of information about my child between GRASP, the school and Toronto Children’s Services.');
                     $infoValHtml = self::displayValue($infoDisplay);
                     if ($kind === 'pdf') {
-                        $rows[] = '<tr>'
+                        $rowsA[] = '<tr>'
                             . '<td width="65%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . $infoLabel . '</td>'
                             . '<td width="35%" style="border-top:' . $b . '; padding:' . $pad . '; vertical-align:top;">' . $infoValHtml . '</td>'
                             . '</tr>';
@@ -1341,24 +1327,24 @@ HTML : '');
                             . '<td style="width:65%; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . $infoLabel . '</td>'
                             . '<td style="width:35%; padding:' . $pad . '; vertical-align:top;">' . $infoValHtml . '</td>'
                             . '</tr></table>';
-                        $rows[] = '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $inner . '</td></tr>';
+                        $rowsA[] = '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $inner . '</td></tr>';
                     }
 
                     // Travel heading + paragraph
                     $travelHead = self::h('Travel Consent Parents Authorization');
                     if ($kind === 'pdf') {
-                        $rows[] = '<tr><td width="100%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold;">' . $travelHead . '</td></tr>';
-                        $rows[] = '<tr><td width="100%" style="border-top:' . $b . '; padding:' . $pad . '; text-align:justify;">' . $travelHtml . '</td></tr>';
+                        $rowsB[] = '<tr><td width="100%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold;">' . $travelHead . '</td></tr>';
+                        $rowsB[] = '<tr><td width="100%" style="border-top:' . $b . '; padding:' . $pad . '; text-align:justify;">' . $travelHtml . '</td></tr>';
                     } else {
-                        $rows[] = '<tr><td colspan="2" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold;">' . $travelHead . '</td></tr>';
-                        $rows[] = '<tr><td colspan="2" style="border-top:' . $b . '; padding:' . $pad . '; text-align:justify;">' . $travelHtml . '</td></tr>';
+                        $rowsB[] = '<tr><td colspan="2" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold;">' . $travelHead . '</td></tr>';
+                        $rowsB[] = '<tr><td colspan="2" style="border-top:' . $b . '; padding:' . $pad . '; text-align:justify;">' . $travelHtml . '</td></tr>';
                     }
 
                     // Travel consent row (50/50)
                     $travelLabel = self::h('I give consent for my child to leave GRASP premises for local outings with qualified staff.');
                     $travelValHtml = self::displayValue($travelDisplay);
                     if ($kind === 'pdf') {
-                        $rows[] = '<tr>'
+                        $rowsB[] = '<tr>'
                             . '<td width="50%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . $travelLabel . '</td>'
                             . '<td width="50%" style="border-top:' . $b . '; padding:' . $pad . '; vertical-align:top;">' . $travelValHtml . '</td>'
                             . '</tr>';
@@ -1367,22 +1353,22 @@ HTML : '');
                             . '<td style="width:50%; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . $travelLabel . '</td>'
                             . '<td style="width:50%; padding:' . $pad . '; vertical-align:top;">' . $travelValHtml . '</td>'
                             . '</tr></table>';
-                        $rows[] = '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $inner . '</td></tr>';
+                        $rowsB[] = '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $inner . '</td></tr>';
                     }
 
                     // Photo heading
                     $photoHead = self::h('Photo / Media Release');
                     if ($kind === 'pdf') {
-                        $rows[] = '<tr><td width="100%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold;">' . $photoHead . '</td></tr>';
+                        $rowsB[] = '<tr><td width="100%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold;">' . $photoHead . '</td></tr>';
                     } else {
-                        $rows[] = '<tr><td colspan="2" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold;">' . $photoHead . '</td></tr>';
+                        $rowsB[] = '<tr><td colspan="2" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold;">' . $photoHead . '</td></tr>';
                     }
 
                     // Photo/media row (50/50)
                     $photoLabel = self::h('Photo / media release for GRASP activities and promotional materials (see handbook for full wording).');
                     $photoValHtml = is_string($photoDisplay) ? self::displayValue($photoDisplay) : $photoDisplay;
                     if ($kind === 'pdf') {
-                        $rows[] = '<tr>'
+                        $rowsB[] = '<tr>'
                             . '<td width="50%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . $photoLabel . '</td>'
                             . '<td width="50%" style="border-top:' . $b . '; padding:' . $pad . '; vertical-align:top;">' . $photoValHtml . '</td>'
                             . '</tr>';
@@ -1391,17 +1377,17 @@ HTML : '');
                             . '<td style="width:50%; padding:' . $pad . '; font-weight:bold; vertical-align:top;">' . $photoLabel . '</td>'
                             . '<td style="width:50%; padding:' . $pad . '; vertical-align:top;">' . $photoValHtml . '</td>'
                             . '</tr></table>';
-                        $rows[] = '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $inner . '</td></tr>';
+                        $rowsB[] = '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $inner . '</td></tr>';
                     }
 
                     // Final signature block
                     if ($kind === 'pdf') {
-                        $rows[] = '<tr>'
+                        $rowsB[] = '<tr>'
                             . '<td width="33.33%" style="border-top:' . $b . '; padding:' . $pad . ';">' . $sigVal . '</td>'
                             . '<td width="33.33%" style="border-top:' . $b . '; padding:' . $pad . ';">' . $witVal . '</td>'
                             . '<td width="33.33%" style="border-top:' . $b . '; padding:' . $pad . ';">' . $dateVal . '</td>'
                             . '</tr>';
-                        $rows[] = '<tr>'
+                        $rowsB[] = '<tr>'
                             . '<td width="33.33%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; font-size:80%;">' . self::h('Parent / Guardian Signature') . '</td>'
                             . '<td width="33.33%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; font-size:80%;">' . self::h('Witness') . '</td>'
                             . '<td width="33.33%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; font-size:80%;">' . self::h('Date') . '</td>'
@@ -1412,23 +1398,48 @@ HTML : '');
                             . '<td style="width:33.33%; padding:' . $pad . ';">' . $witVal . '</td>'
                             . '<td style="width:33.33%; padding:' . $pad . ';">' . $dateVal . '</td>'
                             . '</tr></table>';
-                        $rows[] = '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $innerVals . '</td></tr>';
+                        $rowsB[] = '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $innerVals . '</td></tr>';
 
                         $innerLabs = '<table style="width:100%; border-collapse:collapse; table-layout:fixed;"><tr>'
                             . '<td style="width:33.33%; padding:' . $pad . '; font-weight:bold; font-size:80%;">' . self::h('Parent / Guardian Signature') . '</td>'
                             . '<td style="width:33.33%; padding:' . $pad . '; font-weight:bold; font-size:80%;">' . self::h('Witness') . '</td>'
                             . '<td style="width:33.33%; padding:' . $pad . '; font-weight:bold; font-size:80%;">' . self::h('Date') . '</td>'
                             . '</tr></table>';
-                        $rows[] = '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $innerLabs . '</td></tr>';
+                        $rowsB[] = '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $innerLabs . '</td></tr>';
                     }
 
-                    $rowsHtml = implode("\n", $rows);
-                    if (trim($rowsHtml) !== '') {
-                        $out[] = str_replace(
-                            ['{{SECTION_TITLE}}', '{{ROWS}}'],
-                            [self::h('Information Sharing, Travel & Photo / Media'), $rowsHtml],
-                            $sectionTpl
-                        );
+                    if ($kind === 'pdf') {
+                        // Emit Disclosure block (page 1) then force Travel block to start on next PDF page.
+                        $rowsHtmlA = implode("\n", $rowsA);
+                        if (trim($rowsHtmlA) !== '') {
+                            $out[] = str_replace(
+                                ['{{SECTION_TITLE}}', '{{ROWS}}'],
+                                [self::h('Information Sharing, Travel & Photo / Media'), $rowsHtmlA],
+                                $sectionTpl
+                            );
+                        }
+
+                        $out[] = '<!--GRASP_PAGEBREAK-->';
+
+                        $rowsHtmlB = implode("\n", $rowsB);
+                        if (trim($rowsHtmlB) !== '') {
+                            $out[] = str_replace(
+                                ['{{SECTION_TITLE}}', '{{ROWS}}'],
+                                [self::h('Information Sharing, Travel & Photo / Media'), $rowsHtmlB],
+                                $sectionTpl
+                            );
+                        }
+                    } else {
+                        // Email output remains unchanged: render as one continuous section.
+                        $rowsAll = array_merge($rowsA, $rowsB);
+                        $rowsHtmlAll = implode("\n", $rowsAll);
+                        if (trim($rowsHtmlAll) !== '') {
+                            $out[] = str_replace(
+                                ['{{SECTION_TITLE}}', '{{ROWS}}'],
+                                [self::h('Information Sharing, Travel & Photo / Media'), $rowsHtmlAll],
+                                $sectionTpl
+                            );
+                        }
                     }
 
                     continue;
