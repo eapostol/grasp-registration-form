@@ -96,3 +96,12 @@ whc_known_hosts.txt
 .venv
 ./venv/**
 
+# GRASP local PDF debugging (TCPDF HTML dumps)
+# - Enable locally by creating: .debug_pdf_html
+# - Dumps are written under api/lib/__debug_pdf_output*.html
+.debug_pdf_html
+api/lib/__debug_pdf_output*.html
+gitignore.updated
+test-results/
+
+
