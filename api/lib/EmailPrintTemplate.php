@@ -989,6 +989,13 @@ if ($kind === 'pdf' && stripos($html, 'Immunization Form.') !== false && stripos
 <div class="grasp-policy-block"><p>I always agree to accompany my child <strong><u>to and from</u></strong> GRASP classroom and notify staff verbally  <strong><u>upon arrival and departure</u></strong>. I understand that is my responsibility to inform all pick up and drop off persons of this policy and ensure they make verbal contact with the staff. In the event that my child is not accompanied into GRASP facilities by an adult, I understand GRASP has no legal responsibility for the safe arrival of my named child. Failure to inform staff of arrival and departure may result in notifying the authorities. Children’s arrival to GRASP from Greenland PS will be from the designated dismissal door of the school for each class. A GRASP staff member will await outside with all other pick up persons for children to be dismissed from school. If children are not in attendance at GRASP, parents must notify staff by 2:30 pm by email or call. I understand it is not the school responsibility to communicate with GRASP about my child’s attendance.</p></div>
 HTML;
 
+                    // PDF-only: tighten policy block spacing without affecting email layout
+                    $arrivalPolicyHtmlPdf = <<<'HTML'
+<div class="grasp-policy-block" style="margin:0; padding:0; line-height:1.05;">
+  <p style="margin:0; padding:0; line-height:1.05;">I always agree to accompany my child <strong><u>to and from</u></strong> GRASP classroom and notify staff verbally  <strong><u>upon arrival and departure</u></strong>. I understand that is my responsibility to inform all pick up and drop off persons of this policy and ensure they make verbal contact with the staff. In the event that my child is not accompanied into GRASP facilities by an adult, I understand GRASP has no legal responsibility for the safe arrival of my named child. Failure to inform staff of arrival and departure may result in notifying the authorities. Children’s arrival to GRASP from Greenland PS will be from the designated dismissal door of the school for each class. A GRASP staff member will await outside with all other pick up persons for children to be dismissed from school. If children are not in attendance at GRASP, parents must notify staff by 2:30 pm by email or call. I understand it is not the school responsibility to communicate with GRASP about my child’s attendance.</p>
+</div>
+HTML;
+
                     // Field defs
                     $ackField = $map['arrival_departure_ack'] ?? null;
                     $notesField = $map['arrival_departure_notes'] ?? null;
@@ -1010,8 +1017,9 @@ HTML;
 
                     // Paragraph row (full width)
                     if ($kind === 'pdf') {
-                        $rows[] = '<tr><td width="100%" style="border-top:' . $b . '; padding:' . $pad . '; vertical-align:top; text-align:justify;">'
-                            . $arrivalPolicyHtml
+                        $policyPad = '0px 6px';
+                        $rows[] = '<tr><td width="100%" style="border-top:' . $b . '; padding:' . $policyPad . '; vertical-align:top; text-align:justify;">'
+                            . $arrivalPolicyHtmlPdf
                             . '</td></tr>';
                     } else {
                         $rows[] = '<tr><td colspan="2" style="border-top:' . $b . '; padding:' . $pad . '; vertical-align:top; text-align:justify;">'
