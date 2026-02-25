@@ -6,7 +6,7 @@ echo "Scanning for .identifier files..."
 echo ""
 
 # Find all .identifier files
-identifier_files=$(find . -type f -name "*.identifier" 2>/dev/null)
+identifier_files=$(find . -type f -name "*:Zone.Identifier" 2>/dev/null)
 
 if [ -z "$identifier_files" ]; then
     echo "No .identifier files found."
