@@ -1111,7 +1111,7 @@ HTML;
                         $safeArrivalPolicyHtml = <<<'HTML'
 <div class="grasp-policy-block"><div class="grasp-policy-heading"><u>SAFE ARRIVAL AND DISMISSAL ACKNOWLEDGEMENT</u></div>
 <span>This policy and the procedures within help support the safe arrival and dismissal of children receiving care. This policy will provide staff, students and volunteers with a clear understanding of their roles and responsibilities for ensuring the safe arrival and dismissal of children receiving care, including what steps are to be taken when a child does not arrive at the child care centre as expected, as well as steps to follow to ensure the safe dismissal of children. This policy is intended to fulfill the obligations set out under <em>Ontario Regulation 137/15</em> for policies and procedures regarding the safe arrival and dismissal of children in care. Please note that this policy requires parents to call and inform the childcare by 10am if their child(ren) is going to be absent from childcare and/or school.</span><br>
-<p><strong>Acknowledgement for children who attend school:</strong></p></div>
+<span><strong>Acknowledgement for children who attend school:</strong></span><br></div>
 HTML;
                     } else {
                         $safeArrivalPolicyHtml = <<<'HTML'
