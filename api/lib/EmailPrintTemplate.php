@@ -1132,9 +1132,11 @@ HTML;
 <div style="margin:0; padding:0; line-height:1.05;"><strong>- We will be applying sunscreen prior to going outside before and after every water play time.</strong><br/><strong>- Staff will supervise the application of sunscreen and assist when necessary.</strong></div>
 <div style="height:6pt; line-height:6pt;">&nbsp;</div>
 <span>Should parents wish to provide their own sunscreen, a labeled bottle with their child’s name on it must be supplied.</span><br>
-<p>Their child is the only one who will be permitted to use this sunscreen. Cream only sunscreen please.</p>
+<span>Their child is the only one who will be permitted to use this sunscreen. Cream only sunscreen please.</span><br>
 <p><strong>Shade:</strong><br>The play area has a combination of natural and artificial shade located close to the portable.</p>
-<p><strong>Smog Alerts:</strong><br>During smog alerts children will have limited outdoor play and increased indoor/air-conditioned play. Field trips may be postponed or canceled as necessary should the smog alert remain in effect for extended periods of time.</p></div>
+<span><strong>Smog Alerts:</strong></span><br>
+<span>During smog alerts children will have limited outdoor play and increased indoor/air-conditioned play. Field trips may be postponed or canceled as necessary should the smog alert remain in effect for extended periods of time.</span>
+<div style="height:6pt; line-height:6pt;">&nbsp;</div></div>
 HTML;
                     } else {
                     $sunSafetyPolicyHtml = <<<'HTML'
