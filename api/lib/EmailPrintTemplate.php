@@ -1105,15 +1105,44 @@ HTML;
                     $b = self::borderTop($kind);
                     $pad = ($kind === 'pdf') ? '5px 6px' : '7px 8px';
 
-                    $safeArrivalPolicyHtml = <<<'HTML'
+                    // PDF-only tightening: TCPDF adds extra vertical whitespace around <p>.
+                    // Keep the email HTML unchanged; only adjust the PDF rendering.
+                    if ($kind === 'pdf') {
+                        $safeArrivalPolicyHtml = <<<'HTML'
+<div class="grasp-policy-block"><div class="grasp-policy-heading"><u>SAFE ARRIVAL AND DISMISSAL ACKNOWLEDGEMENT</u></div>
+<span>This policy and the procedures within help support the safe arrival and dismissal of children receiving care. This policy will provide staff, students and volunteers with a clear understanding of their roles and responsibilities for ensuring the safe arrival and dismissal of children receiving care, including what steps are to be taken when a child does not arrive at the child care centre as expected, as well as steps to follow to ensure the safe dismissal of children. This policy is intended to fulfill the obligations set out under <em>Ontario Regulation 137/15</em> for policies and procedures regarding the safe arrival and dismissal of children in care. Please note that this policy requires parents to call and inform the childcare by 10am if their child(ren) is going to be absent from childcare and/or school.</span><br>
+<span><strong>Acknowledgement for children who attend school:</strong></span><br></div>
+HTML;
+                    } else {
+                        $safeArrivalPolicyHtml = <<<'HTML'
 <div class="grasp-policy-block"><div class="grasp-policy-heading"><u>SAFE ARRIVAL AND DISMISSAL ACKNOWLEDGEMENT</u></div>
 <p>This policy and the procedures within help support the safe arrival and dismissal of children receiving care. This policy will provide staff, students and volunteers with a clear understanding of their roles and responsibilities for ensuring the safe arrival and dismissal of children receiving care, including what steps are to be taken when a child does not arrive at the child care centre as expected, as well as steps to follow to ensure the safe dismissal of children. This policy is intended to fulfill the obligations set out under <em>Ontario Regulation 137/15</em> for policies and procedures regarding the safe arrival and dismissal of children in care. Please note that this policy requires parents to call and inform the childcare by 10am if their child(ren) is going to be absent from childcare and/or school.</p>
 <p><strong>Acknowledgement for children who attend school:</strong></p></div>
 HTML;
+                    }
 
+                    // PDF-only tightening: reduce extra gap below the 'SUN AND SAFETY POLICY' heading.
+                    if ($kind === 'pdf') {
                     $sunSafetyPolicyHtml = <<<'HTML'
 <div class="grasp-policy-block"><div class="grasp-policy-heading"><u>SUN AND SAFETY POLICY</u></div>
-<p>To ensure we are providing a healthy and safe environment for our children and educators, we are requesting all sunscreens provided are cream based, rather than aerosol. The application of aerosol sunscreens can be inconsistent, providing less protection for your child with and more opportunity for uneven coverage. These sprays can also trigger respiratory irritation for those with scent sensitivities. Other health and safety issues consists of overstay, misuse and miss directed sprayers.</p>
+<span>To ensure we are providing a healthy and safe environment for our children and educators, we are requesting all sunscreens provided are cream based, rather than aerosol. The application of aerosol sunscreens can be inconsistent, providing less protection for your child with and more opportunity for uneven coverage. These sprays can also trigger respiratory irritation for those with scent sensitivities. Other health and safety issues consists of overstay, misuse and misdirected sprayers.</span>
+<div style="height:7pt; line-height:7pt;">&nbsp;</div>
+<span><strong>Thank you for your ongoing support and understanding.</strong></span>
+<div style="height:6pt; line-height:6pt;">&nbsp;</div>
+<div style="margin:0; padding:0; line-height:1.05;"><strong>- We will be applying sunscreen prior to going outside before and after every water play time.</strong><br/><strong>- Staff will supervise the application of sunscreen and assist when necessary.</strong></div>
+<div style="height:6pt; line-height:6pt;">&nbsp;</div>
+<span>Should parents wish to provide their own sunscreen, a labeled bottle with their child’s name on it must be supplied.</span><br>
+<span>Their child is the only one who will be permitted to use this sunscreen. Cream only sunscreen please.</span><br>
+<span><strong>Shade:</strong></span><br>
+<span>The play area has a combination of natural and artificial shade located close to the portable.</span><br>
+<span><strong>Smog Alerts:</strong></span><br>
+<span>During smog alerts children will have limited outdoor play and increased indoor/air-conditioned play. Field trips may be postponed or canceled as necessary should the smog alert remain in effect for extended periods of time.</span>
+<div style="height:6pt; line-height:6pt;">&nbsp;</div></div>
+HTML;
+                    } else {
+                    $sunSafetyPolicyHtml = <<<'HTML'
+<div class="grasp-policy-block"><div class="grasp-policy-heading"><u>SUN AND SAFETY POLICY</u></div>
+<p>To ensure we are providing a healthy and safe environment for our children and educators, we are requesting all sunscreens provided are cream based, rather than aerosol. The application of aerosol sunscreens can be inconsistent, providing less protection for your child with and more opportunity for uneven coverage. These sprays can also trigger respiratory irritation for those with scent sensitivities. Other health and safety issues consists of overstay, misuse and misdirected sprayers.</p>
 <p>Thank you for your ongoing support and understanding.</p>
 <p><strong>- We will be applying sunscreen prior to going outside before and after every water play time.</strong><br>
 <strong>- Staff will supervise the application of sunscreen and assist when necessary.</strong></p>
@@ -1122,6 +1151,7 @@ HTML;
 <p><strong>Shade:</strong><br>The play area has a combination of natural and artificial shade located close to the portable.</p>
 <p><strong>Smog Alerts:</strong><br>During smog alerts children will have limited outdoor play and increased indoor/air-conditioned play. Field trips may be postponed or canceled as necessary should the smog alert remain in effect for extended periods of time.</p></div>
 HTML;
+                    }
 
                     // Field defs
                     $beforeSchoolField = $map['before_school_program_ack'] ?? null;
