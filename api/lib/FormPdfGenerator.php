@@ -60,7 +60,111 @@ class FormPdfGenerator
         }
 
         // writeHTML handles simple tables + inline styles well
-        $pdf->writeHTML($html, true, false, true, false, '');
+        // -----------------------------------------------------------------
+        // Phase 8: localized PDF pagination helpers
+        //
+        // We support two explicit HTML markers:
+        //
+        // 1) Forced page break:
+        //    <!--GRASP_PAGEBREAK-->
+        //
+        // 2) Keep-together blocks (rendered inside a TCPDF transaction):
+        //    <!--GRASP_KEEP_TOGETHER_START--> ... <!--GRASP_KEEP_TOGETHER_END-->
+        //
+        // These markers are intended for PDF-only output in EmailPrintTemplate.
+        // They avoid global layout changes and help keep sections readable.
+        // -----------------------------------------------------------------
+        $pageBreak = '<!--GRASP_PAGEBREAK-->';
+        $keepStart = '<!--GRASP_KEEP_TOGETHER_START-->';
+        $keepEnd   = '<!--GRASP_KEEP_TOGETHER_END-->';
+
+        // Split into: prefix (<html>..<body>), body, suffix (</body>..</html>)
+        $prefix = '';
+        $body   = $html;
+        $suffix = '';
+        if (preg_match('/\A(.*?<body\b[^>]*>)(.*?)(<\/body>.*)\z/is', $html, $m)) {
+            $prefix = $m[1];
+            $body   = $m[2];
+            $suffix = $m[3];
+        }
+
+        $writeChunk = function (string $chunkHtml) use ($pdf, $keepStart, $keepEnd) : void {
+            // If no keep markers exist, render as-is.
+            if (strpos($chunkHtml, $keepStart) === false || strpos($chunkHtml, $keepEnd) === false) {
+                $pdf->writeHTML($chunkHtml, true, false, true, false, '');
+                return;
+            }
+
+            // Render chunk in parts, applying transaction-based keep-together.
+            $parts = [];
+            $cursor = 0;
+            $len = strlen($chunkHtml);
+            while ($cursor < $len) {
+                $s = strpos($chunkHtml, $keepStart, $cursor);
+                if ($s === false) {
+                    $parts[] = ['type' => 'normal', 'html' => substr($chunkHtml, $cursor)];
+                    break;
+                }
+
+                if ($s > $cursor) {
+                    $parts[] = ['type' => 'normal', 'html' => substr($chunkHtml, $cursor, $s - $cursor)];
+                }
+
+                $e = strpos($chunkHtml, $keepEnd, $s);
+                if ($e === false) {
+                    // Unbalanced marker: render remainder normally.
+                    $parts[] = ['type' => 'normal', 'html' => substr($chunkHtml, $s)];
+                    break;
+                }
+
+                $block = substr($chunkHtml, $s + strlen($keepStart), $e - ($s + strlen($keepStart)));
+                $parts[] = ['type' => 'keep', 'html' => $block];
+                $cursor = $e + strlen($keepEnd);
+            }
+
+            foreach ($parts as $p) {
+                if ($p['type'] === 'normal') {
+                    if (trim($p['html']) !== '') {
+                        $pdf->writeHTML($p['html'], true, false, true, false, '');
+                    }
+                    continue;
+                }
+
+                // Keep-together render in a transaction.
+                $pdf->startTransaction();
+                $startPage = $pdf->getPage();
+                $startY = $pdf->GetY();
+
+                $pdf->writeHTML($p['html'], true, false, true, false, '');
+
+                $endPage = $pdf->getPage();
+                if ($endPage > $startPage) {
+                    // It overflowed; rollback and re-render on a new page.
+                    $pdf->rollbackTransaction(true);
+                    if ($pdf->getPage() !== $startPage) {
+                        $pdf->setPage($startPage);
+                    }
+                    $pdf->SetY($startY);
+                    $pdf->AddPage();
+                    $pdf->writeHTML($p['html'], true, false, true, false, '');
+                } else {
+                    $pdf->commitTransaction();
+                }
+            }
+        };
+
+        // Render body, honoring page break markers between complete HTML segments.
+        $chunks = explode($pageBreak, $body);
+        $chunkCount = count($chunks);
+        for ($i = 0; $i < $chunkCount; $i++) {
+            $chunk = $chunks[$i];
+            if (trim($chunk) !== '') {
+                $writeChunk($prefix . $chunk . $suffix);
+            }
+            if ($i < $chunkCount - 1) {
+                $pdf->AddPage();
+            }
+        }
 
         $safeBase = preg_replace('/[^A-Za-z0-9._-]+/', '-', $filenameBase);
         $safeBase = trim($safeBase, '-');
