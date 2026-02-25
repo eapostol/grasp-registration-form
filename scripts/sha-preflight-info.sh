@@ -4,11 +4,13 @@ echo "the commands - "
 echo "git rev-parse HEAD"
 echo "git status --porcelain"
 echo "sha1sum of api/lib/EmailPrintTemplate.php - "
-echo "return :"
-git rev-parse HEAD
+echo "returns :"
+echo "the results of git rev-parse HEAD: $(git rev-parse HEAD)"
+
 if [ -n "$(git status --porcelain)" ]; then
-    git status --porcelain
+    echo "git status --porcelain returns: $(git status --porcelain)"
 else
-    echo ""
+    echo "git status --porcelain returns nothing"
 fi
-sha1sum api/lib/EmailPrintTemplate.php
+
+echo "the value returned from sha1sum api/lib/EmailPrintTemplate.php is : $(sha1sum api/lib/EmailPrintTemplate.php)"
