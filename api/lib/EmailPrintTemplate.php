@@ -1121,6 +1121,20 @@ HTML;
 HTML;
                     }
 
+                    // PDF-only tightening: reduce extra gap below the 'SUN AND SAFETY POLICY' heading.
+                    if ($kind === 'pdf') {
+                    $sunSafetyPolicyHtml = <<<'HTML'
+<div class="grasp-policy-block"><div class="grasp-policy-heading"><u>SUN AND SAFETY POLICY</u></div>
+<span>To ensure we are providing a healthy and safe environment for our children and educators, we are requesting all sunscreens provided are cream based, rather than aerosol. The application of aerosol sunscreens can be inconsistent, providing less protection for your child with and more opportunity for uneven coverage. These sprays can also trigger respiratory irritation for those with scent sensitivities. Other health and safety issues consists of overstay, misuse and miss directed sprayers.</span><br>
+<p>Thank you for your ongoing support and understanding.</p>
+<p><strong>- We will be applying sunscreen prior to going outside before and after every water play time.</strong><br>
+<strong>- Staff will supervise the application of sunscreen and assist when necessary.</strong></p>
+<p>Should parents wish to provide their own sunscreen, a labeled bottle with their child’s name on it must be supplied.</p>
+<p>Their child is the only one who will be permitted to use this sunscreen. Cream only sunscreen please.</p>
+<p><strong>Shade:</strong><br>The play area has a combination of natural and artificial shade located close to the portable.</p>
+<p><strong>Smog Alerts:</strong><br>During smog alerts children will have limited outdoor play and increased indoor/air-conditioned play. Field trips may be postponed or canceled as necessary should the smog alert remain in effect for extended periods of time.</p></div>
+HTML;
+                    } else {
                     $sunSafetyPolicyHtml = <<<'HTML'
 <div class="grasp-policy-block"><div class="grasp-policy-heading"><u>SUN AND SAFETY POLICY</u></div>
 <p>To ensure we are providing a healthy and safe environment for our children and educators, we are requesting all sunscreens provided are cream based, rather than aerosol. The application of aerosol sunscreens can be inconsistent, providing less protection for your child with and more opportunity for uneven coverage. These sprays can also trigger respiratory irritation for those with scent sensitivities. Other health and safety issues consists of overstay, misuse and miss directed sprayers.</p>
@@ -1132,6 +1146,7 @@ HTML;
 <p><strong>Shade:</strong><br>The play area has a combination of natural and artificial shade located close to the portable.</p>
 <p><strong>Smog Alerts:</strong><br>During smog alerts children will have limited outdoor play and increased indoor/air-conditioned play. Field trips may be postponed or canceled as necessary should the smog alert remain in effect for extended periods of time.</p></div>
 HTML;
+                    }
 
                     // Field defs
                     $beforeSchoolField = $map['before_school_program_ack'] ?? null;
