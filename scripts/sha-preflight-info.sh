@@ -6,5 +6,9 @@ echo "git status --porcelain"
 echo "sha1sum of api/lib/EmailPrintTemplate.php - "
 echo "return :"
 git rev-parse HEAD
-git status --porcelain
+if [ -n "$(git status --porcelain)" ]; then
+    git status --porcelain
+else
+    echo ""
+fi
 sha1sum api/lib/EmailPrintTemplate.php
