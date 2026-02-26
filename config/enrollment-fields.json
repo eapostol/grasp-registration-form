@@ -1126,13 +1126,19 @@
               "options": [
                 {
                   "value": "yes",
-                  "label": "I consent"
+                  "label": "I consent and agree"
                 },
                 {
                   "value": "no",
                   "label": "I do not consent"
                 }
               ]
+            },
+            {
+              "type": "static",
+              "name": "travel_consent_policy_text",
+              "label": "",
+              "html": "<div class=\"grasp-policy-block\"><div class=\"grasp-policy-heading\"><u>TRAVEL CONSENT PARENTS AUTHORIZATION</u></div><p>I, the parent/guardian, hereby give consent for my child to leave the premises of GRASP under the qualified staff's supervision to participate in daily outings, trips to parks, playgrounds, school and libraries that can be reached without public or other motorized transportation. This may occur from time to time with or without prior notice and shall be deemed normal daily activity. I understand that notices will be sent home with consent forms for special trips and events, which involve public or other motorized transportation, swimming off premises.</p><p>I further understand, the child care center program plans age appropriate activities in order to keep the children engaged and from time to time may engage in some age appropriate risky play activities as promoted in childhood development.</p><p>In order to fully appreciate the program and give all the children the equal opportunity to participate in the plan activities, it is expected and highly recommended all children be in care no later than 9:30 am on non-instructional days such as PA day and summer camp. Any community outing or walks will not depart prior to 9:30 am. Once the group leaves the center for a walk, community outing or field trip staff is not permitted, under any circumstances, to release or accept your child. You must drop off or pick up your child before or after the outing on Greenland property. Children will only be accepted in their designated classes for ratio and safety purposes.</p></div>"
             },
             {
               "name": "travel_consent",
@@ -1142,11 +1148,11 @@
               "options": [
                 {
                   "value": "yes",
-                  "label": "I consent"
+                  "label": "I acknowledge and agree"
                 },
                 {
                   "value": "no",
-                  "label": "I do not consent"
+                  "label": "I do not agree"
                 }
               ]
             },
