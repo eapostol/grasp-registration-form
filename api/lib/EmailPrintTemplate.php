@@ -64,7 +64,7 @@ class EmailPrintTemplate
         $value = self::normalizeWhitespace((string)$value);
         $value = self::formatIsoDate($value);
         if ($value === '') {
-            return '<span style="color:#888;">(blank)</span>';
+            return '';
         }
         // Preserve newlines in long text fields
         return nl2br(self::h($value));
@@ -2687,7 +2687,7 @@ $rows[] =
       $pad .
       '; border-top:' .
       $bt .
-      '; vertical-align:top; font-weight:bold;">' .
+      '; vertical-align:top; font-weight:bold; font-size:80%;">' .
       self::h('Other Authorized Pickups') .
       '</td>' .
       '<td colspan="2" style="width:66.67%; padding:' .
@@ -2802,7 +2802,6 @@ private static function renderWaitlistFourColRow(
 
       $label = $labelOverride ?? ($f['label'] ?? '');
       $value = self::getFieldValue($f, $data);
-      if (trim($value) === '') $value = '(blank)';
 
       $labelHtml = self::h((string)$label);
       $valueHtml = self::h($value);
@@ -2826,7 +2825,6 @@ private static function renderWaitlistFourColRow(
     $b = self::borderTop($kind);
     $label = $field['label'] ?? 'Home Phone #';
     $value = self::getFieldValue($field, $data);
-    if (trim($value) === '') $value = '(blank)';
 
     $labelHtml = self::h((string)$label);
     $valueHtml = self::h($value);
