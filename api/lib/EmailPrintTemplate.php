@@ -1424,6 +1424,34 @@ HTML : '');
                             . '<td style="width:50%; padding:' . $pad . '; vertical-align:top;">' . $travelValHtml . '</td>'
                             . '</tr></table>';
                         $rowsB[] = '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $inner . '</td></tr>';
+
+                    // Signature rows under travel consent (match Arrival/Departure signature block style)
+                    if ($kind === 'pdf') {
+                        $rowsB[] = '<tr>'
+                            . '<td width="33.33%" style="border-top:' . $b . '; padding:' . $pad . ';">' . $sigVal . '</td>'
+                            . '<td width="33.33%" style="border-top:' . $b . '; padding:' . $pad . ';">' . $witVal . '</td>'
+                            . '<td width="33.33%" style="border-top:' . $b . '; padding:' . $pad . ';">' . $dateVal . '</td>'
+                            . '</tr>';
+                        $rowsB[] = '<tr>'
+                            . '<td width="33.33%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; font-size:80%;">' . self::h('Parent / Guardian Signature') . '</td>'
+                            . '<td width="33.33%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; font-size:80%;">' . self::h('Witness') . '</td>'
+                            . '<td width="33.33%" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold; font-size:80%;">' . self::h('Date Signed') . '</td>'
+                            . '</tr>';
+                    } else {
+                        $innerVals = '<table style="width:100%; border-collapse:collapse; table-layout:fixed;"><tr>'
+                            . '<td style="width:33.33%; padding:' . $pad . ';">' . $sigVal . '</td>'
+                            . '<td style="width:33.33%; padding:' . $pad . ';">' . $witVal . '</td>'
+                            . '<td style="width:33.33%; padding:' . $pad . ';">' . $dateVal . '</td>'
+                            . '</tr></table>';
+                        $rowsB[] = '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $innerVals . '</td></tr>';
+
+                        $innerLabs = '<table style="width:100%; border-collapse:collapse; table-layout:fixed;"><tr>'
+                            . '<td style="width:33.33%; padding:' . $pad . '; font-weight:bold; font-size:80%;">' . self::h('Parent / Guardian Signature') . '</td>'
+                            . '<td style="width:33.33%; padding:' . $pad . '; font-weight:bold; font-size:80%;">' . self::h('Witness') . '</td>'
+                            . '<td style="width:33.33%; padding:' . $pad . '; font-weight:bold; font-size:80%;">' . self::h('Date Signed') . '</td>'
+                            . '</tr></table>';
+                        $rowsB[] = '<tr><td colspan="2" style="padding:0; border-top:' . $b . ';">' . $innerLabs . '</td></tr>';
+                    }
                     }
 
                     // Photo heading
