@@ -64,7 +64,7 @@ class EmailPrintTemplate
         $value = self::normalizeWhitespace((string)$value);
         $value = self::formatIsoDate($value);
         if ($value === '') {
-            return '<span style="color:#888;">(blank)</span>';
+            return '';
         }
         // Preserve newlines in long text fields
         return nl2br(self::h($value));
@@ -673,8 +673,20 @@ if ($kind === 'pdf' && stripos($html, 'Immunization Form.') !== false && stripos
                          . '<div style="height:4px; line-height:4px;">&nbsp;</div>'
                          . $html;
                 } else {
-                    $titleStyle = 'font-weight:bold; margin:0 0 4px 0;';
-                    $html = '<div style="' . $titleStyle . '">' . self::h($title) . '</div>' . $html;
+                    $isWaterPlayAuthHeading = ($title === 'AUTHORIZATION FOR RECREATIONAL WATER PLAY');
+                    $isHandSanitizerAuthHeading = ($title === 'AUTHORIZATION FOR THE USE OF HAND SANITIZER');
+
+                    if ($isWaterPlayAuthHeading || $isHandSanitizerAuthHeading) {
+                        // Reduce the top "air" before these headings while preventing TCPDF text overlap.
+                        // Use a tight block title + small spacer, then wrap the paragraph content in its own block.
+                        $titleStyle = 'font-weight:bold; margin:0; padding:0; line-height:1.0;';
+                        $html = '<div style="' . $titleStyle . '">' . self::h($title) . '</div>'
+                             . '<div style="height:2pt; line-height:2pt;">&nbsp;</div>'
+                             . '<div style="margin:0; padding:0; line-height:1.15;">' . $html . '</div>';
+                    } else {
+                        $titleStyle = 'font-weight:bold; margin:0 0 4px 0;';
+                        $html = '<div style="' . $titleStyle . '">' . self::h($title) . '</div>' . $html;
+                    };
                 }
             }
 
@@ -2706,7 +2718,7 @@ $rows[] =
       $pad .
       '; border-top:' .
       $bt .
-      '; vertical-align:top; font-weight:bold;">' .
+      '; vertical-align:top; font-weight:bold; font-size:80%;">' .
       self::h('Other Authorized Pickups') .
       '</td>' .
       '<td colspan="2" style="width:66.67%; padding:' .
@@ -2821,7 +2833,6 @@ private static function renderWaitlistFourColRow(
 
       $label = $labelOverride ?? ($f['label'] ?? '');
       $value = self::getFieldValue($f, $data);
-      if (trim($value) === '') $value = '(blank)';
 
       $labelHtml = self::h((string)$label);
       $valueHtml = self::h($value);
@@ -2845,7 +2856,6 @@ private static function renderWaitlistFourColRow(
     $b = self::borderTop($kind);
     $label = $field['label'] ?? 'Home Phone #';
     $value = self::getFieldValue($field, $data);
-    if (trim($value) === '') $value = '(blank)';
 
     $labelHtml = self::h((string)$label);
     $valueHtml = self::h($value);
