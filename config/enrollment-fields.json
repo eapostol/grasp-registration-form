@@ -1126,7 +1126,7 @@
               "options": [
                 {
                   "value": "yes",
-                  "label": "I consent"
+                  "label": "I consent and agree"
                 },
                 {
                   "value": "no",
@@ -1142,11 +1142,11 @@
               "options": [
                 {
                   "value": "yes",
-                  "label": "I consent"
+                  "label": "I acknowledge and agree"
                 },
                 {
                   "value": "no",
-                  "label": "I do not consent"
+                  "label": "I do not agree"
                 }
               ]
             },
