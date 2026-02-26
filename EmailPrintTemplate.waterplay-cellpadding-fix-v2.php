@@ -1162,7 +1162,7 @@ HTML;
 
                     // 1) "My child may not attend childcare..." first
                     $rows[] = $row8020(
-                        self::h('I acknowledge that my child may not attend childcare for the before-school program on a daily basis and may be dropped off directly at school.'),
+                        self::h('I acknowledge that my child may not attend childcare for the before-school program on a daily basis and may be dropped off directly at school. Childcare will not call if my child is absent during the morning portion of program during the school year.'),
                         $beforeSchoolVal
                     );
 
