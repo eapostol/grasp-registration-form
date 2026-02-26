@@ -64,7 +64,7 @@ class EmailPrintTemplate
         $value = self::normalizeWhitespace((string)$value);
         $value = self::formatIsoDate($value);
         if ($value === '') {
-            return '';
+            return '<span style="color:#888;">(blank)</span>';
         }
         // Preserve newlines in long text fields
         return nl2br(self::h($value));
@@ -526,6 +526,14 @@ private static function renderRows(string $kind, array $fields, array $data): st
         $label = self::rowLabel($field);
 
         if ($kind === 'pdf') {
+            // Water Play: reduce label font size to fit on one line (PDF-only) without changing the 75/25 column split.
+            if (stripos($label, 'Authorization for recreational water play') !== false) {
+                return '<tr>'
+                    . '<td width="75%" style="border-top:' . $b . '; font-weight:bold; vertical-align:top; font-size:80%;"><nobr>' . $label . '</nobr></td>'
+                    . '<td width="25%" style="border-top:' . $b . '; vertical-align:top;">' . self::displayValue($value) . '</td>'
+                    . '</tr>';
+            }
+
             return '<tr>'
                 . '<td width="75%" style="border-top:' . $b . '; font-weight:bold; vertical-align:top;">' . $label . '</td>'
                 . '<td width="25%" style="border-top:' . $b . '; vertical-align:top;">' . self::displayValue($value) . '</td>'
@@ -588,6 +596,17 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
                     // Remove leading <br> and empty div spacers only at the very start of the block HTML.
                     $html = preg_replace('/^(?:\s*(?:<br\s*\/?\s*>|<div\b[^>]*>\s*(?:&nbsp;)?\s*<\/div>|&nbsp;))+\s*/i', '', $html);
                 }
+            }
+
+            // Enrollment PDF: tighten heading-to-top spacing for Water Play & Hand Sanitizer blocks
+            // Replace the first bold <div> heading with an inline <span> to avoid TCPDF adding extra leading space.
+            if ($kind === 'pdf') {
+                $html = preg_replace(
+                    '/<div\s+style="font-weight:bold;\s*margin:0\s*0\s*4px\s*0;">\s*(AUTHORIZATION\s+FOR\s+(?:RECREATIONAL\s+WATER\s+PLAY|THE\s+USE\s+OF\s+HAND\s+SANITIZER))\s*<\/div>/i',
+                    '<span style="font-weight:bold; line-height:1.0; text-decoration:none;">$1</span><div style="height:3pt; line-height:3pt;">&nbsp;</div>',
+                    $html,
+                    1
+                );
             }
 
 
@@ -2687,7 +2706,7 @@ $rows[] =
       $pad .
       '; border-top:' .
       $bt .
-      '; vertical-align:top; font-weight:bold; font-size:80%;">' .
+      '; vertical-align:top; font-weight:bold;">' .
       self::h('Other Authorized Pickups') .
       '</td>' .
       '<td colspan="2" style="width:66.67%; padding:' .
@@ -2802,6 +2821,7 @@ private static function renderWaitlistFourColRow(
 
       $label = $labelOverride ?? ($f['label'] ?? '');
       $value = self::getFieldValue($f, $data);
+      if (trim($value) === '') $value = '(blank)';
 
       $labelHtml = self::h((string)$label);
       $valueHtml = self::h($value);
@@ -2825,6 +2845,7 @@ private static function renderWaitlistFourColRow(
     $b = self::borderTop($kind);
     $label = $field['label'] ?? 'Home Phone #';
     $value = self::getFieldValue($field, $data);
+    if (trim($value) === '') $value = '(blank)';
 
     $labelHtml = self::h((string)$label);
     $valueHtml = self::h($value);
