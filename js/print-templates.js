@@ -1261,10 +1261,12 @@ an updated immunization record must be attached to thisform. </em>
       </div>`,
       `<div class="grasp-section">
         <div class="grasp-section-title">Photograph / Media Release</div>
-        <p class="grasp-paragraph">
-          I, <span class="grasp-inline-fill">${escapeHtml(parentSig || "")}</span>, grant GRASP the right to use photographed or electronic images and/or audio-video recordings of my child for GRASP activities and/or promoting GRASP.
-        </p>
-        ${kvTable(kvRow("Selection", photoConsent))}
+        <p class="grasp-paragraph" style="text-align: justify;">
+  <span style="font-weight:600; text-decoration:underline;">PHOTOGRAPH / MEDIA RELEASE</span><br>
+  I hereby grant Greenland After School Recreational Program (“GRASP” or the “Centre”) the right to reproduce, use, exhibit, copy, distribute, display, and broadcast photographed or electronic images and/or audio-video recordings (collectively, “Images”) of my child for use in connection with GRASP activities or for promoting, publicizing or explaining GRASP and/or its activities.<br><br>
+  This permission includes, without limitation, the right to display the Images in the Centre, distribute the Images to other parents of children at the Centre via email, and to publish such Images on the GRASP website, Instagram account, and in promotional materials such as brochures, newsletters and/or any other Centre-related publication.
+</p>
+${kvTable(kvRow("Selection", photoConsent))}
         ${signatureRow({ includeWitness: true, includeDate: true })}
       </div>`,
     ].join("");

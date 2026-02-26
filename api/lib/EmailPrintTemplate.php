@@ -1434,8 +1434,24 @@ HTML : '');
                         $rowsB[] = '<tr><td colspan="2" style="border-top:' . $b . '; padding:' . $pad . '; font-weight:bold;">' . $photoHead . '</td></tr>';
                     }
 
-                    // Photo/media row (50/50)
-                    $photoLabel = self::h('Photo / media release for GRASP activities and promotional materials (see handbook for full wording).');
+                    // Photo/media static policy paragraph (full width)
+                    $photoPolicyHtml = <<<'HTML'
+<div style="text-align:justify; margin:0; padding:0; line-height:1.05;">
+  <div style="font-weight:bold; text-decoration:underline; margin:0 0 4pt 0;">PHOTOGRAPH / MEDIA RELEASE</div>
+  <span>I hereby grant Greenland After School Recreational Program (“GRASP” or the “Centre”) the right to reproduce, use, exhibit, copy, distribute, display, and broadcast photographed or electronic images and/or audio-video recordings (collectively, “Images”) of my child for use in connection with GRASP activities or for promoting, publicizing or explaining GRASP and/or its activities.</span>
+  <div style="height:6pt; line-height:6pt;">&nbsp;</div>
+  <span>This permission includes, without limitation, the right to display the Images in the Centre, distribute the Images to other parents of children at the Centre via email, and to publish such Images on the GRASP website, Instagram account, and in promotional materials such as brochures, newsletters and/or any other Centre-related publication.</span>
+</div>
+HTML;
+
+                    if ($kind === 'pdf') {
+                        $rowsB[] = '<tr><td width="100%" style="border-top:' . $b . '; padding:' . $pad . '; vertical-align:top;">' . $photoPolicyHtml . '</td></tr>';
+                    } else {
+                        $rowsB[] = '<tr><td colspan="2" style="border-top:' . $b . '; padding:' . $pad . '; vertical-align:top;">' . $photoPolicyHtml . '</td></tr>';
+                    }
+
+// Photo/media row (50/50)
+                    $photoLabel = self::h('I acknowledge that my child(ren) was (were) not paid to appear in these photographed or electronic images and/or audio-video recordings and neither my child, nor I will receive any royalties, fees, or other compensation for the use of these Images now or  in the future. (check one)');
                     $photoValHtml = is_string($photoDisplay) ? self::displayValue($photoDisplay) : $photoDisplay;
                     if ($kind === 'pdf') {
                         $rowsB[] = '<tr>'
