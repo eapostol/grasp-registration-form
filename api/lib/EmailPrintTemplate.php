@@ -526,6 +526,14 @@ private static function renderRows(string $kind, array $fields, array $data): st
         $label = self::rowLabel($field);
 
         if ($kind === 'pdf') {
+            // Water Play: reduce label font size to fit on one line (PDF-only) without changing the 75/25 column split.
+            if (stripos($label, 'Authorization for recreational water play') !== false) {
+                return '<tr>'
+                    . '<td width="75%" style="border-top:' . $b . '; font-weight:bold; vertical-align:top; font-size:80%;"><nobr>' . $label . '</nobr></td>'
+                    . '<td width="25%" style="border-top:' . $b . '; vertical-align:top;">' . self::displayValue($value) . '</td>'
+                    . '</tr>';
+            }
+
             return '<tr>'
                 . '<td width="75%" style="border-top:' . $b . '; font-weight:bold; vertical-align:top;">' . $label . '</td>'
                 . '<td width="25%" style="border-top:' . $b . '; vertical-align:top;">' . self::displayValue($value) . '</td>'
@@ -588,6 +596,17 @@ private static function renderContentBlocks(string $kind, array $blocks, array $
                     // Remove leading <br> and empty div spacers only at the very start of the block HTML.
                     $html = preg_replace('/^(?:\s*(?:<br\s*\/?\s*>|<div\b[^>]*>\s*(?:&nbsp;)?\s*<\/div>|&nbsp;))+\s*/i', '', $html);
                 }
+            }
+
+            // Enrollment PDF: tighten heading-to-top spacing for Water Play & Hand Sanitizer blocks
+            // Replace the first bold <div> heading with an inline <span> to avoid TCPDF adding extra leading space.
+            if ($kind === 'pdf') {
+                $html = preg_replace(
+                    '/<div\s+style="font-weight:bold;\s*margin:0\s*0\s*4px\s*0;">\s*(AUTHORIZATION\s+FOR\s+(?:RECREATIONAL\s+WATER\s+PLAY|THE\s+USE\s+OF\s+HAND\s+SANITIZER))\s*<\/div>/i',
+                    '<span style="font-weight:bold; line-height:1.0; text-decoration:none;">$1</span><div style="height:3pt; line-height:3pt;">&nbsp;</div>',
+                    $html,
+                    1
+                );
             }
 
 
@@ -654,8 +673,20 @@ if ($kind === 'pdf' && stripos($html, 'Immunization Form.') !== false && stripos
                          . '<div style="height:4px; line-height:4px;">&nbsp;</div>'
                          . $html;
                 } else {
-                    $titleStyle = 'font-weight:bold; margin:0 0 4px 0;';
-                    $html = '<div style="' . $titleStyle . '">' . self::h($title) . '</div>' . $html;
+                    $isWaterPlayAuthHeading = ($title === 'AUTHORIZATION FOR RECREATIONAL WATER PLAY');
+                    $isHandSanitizerAuthHeading = ($title === 'AUTHORIZATION FOR THE USE OF HAND SANITIZER');
+
+                    if ($isWaterPlayAuthHeading || $isHandSanitizerAuthHeading) {
+                        // Reduce the top "air" before these headings while preventing TCPDF text overlap.
+                        // Use a tight block title + small spacer, then wrap the paragraph content in its own block.
+                        $titleStyle = 'font-weight:bold; margin:0; padding:0; line-height:1.0;';
+                        $html = '<div style="' . $titleStyle . '">' . self::h($title) . '</div>'
+                             . '<div style="height:2pt; line-height:2pt;">&nbsp;</div>'
+                             . '<div style="margin:0; padding:0; line-height:1.15;">' . $html . '</div>';
+                    } else {
+                        $titleStyle = 'font-weight:bold; margin:0 0 4px 0;';
+                        $html = '<div style="' . $titleStyle . '">' . self::h($title) . '</div>' . $html;
+                    };
                 }
             }
 
