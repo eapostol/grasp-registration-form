@@ -1331,20 +1331,30 @@ HTML;
                     $travelField = $map['travel_consent'] ?? null;
                     $photoField = $map['photo_media_consent'] ?? null;
 
+                                        // Consent rows and mappings (use config-driven option label resolution to prevent value flips)
+                    $infoField = $map['info_sharing_consent'] ?? null;
+                    $travelField = $map['travel_consent'] ?? null;
+                    $photoField = $map['photo_media_consent'] ?? null;
+
                     $infoRaw = self::getFieldValue($infoField, $data);
-                    $infoDisplay = ($infoRaw === 'I consent') ? 'I consent and agree' : $infoRaw;
+                    $infoDisplay = trim((string)self::normalizeFieldValue($infoField ?? ['type' => 'text'], $infoRaw));
 
                     $travelRaw = self::getFieldValue($travelField, $data);
-                    $travelDisplay = ($travelRaw === 'I consent') ? 'I acknowledge and agree' : (($travelRaw !== '') ? 'I disagree and do not consent' : '');
+                    $travelDisplay = trim((string)self::normalizeFieldValue($travelField ?? ['type' => 'text'], $travelRaw));
 
                     $photoRaw = self::getFieldValue($photoField, $data);
-                    $photoDisplay = ($photoRaw === 'I agree to full use as described')
-                        ? 'I have read, understood and agree to the above Release'
-                        : (($photoRaw !== '') ? <<<'HTML'
-I disagree with the above release form and I do not give permission to GRASP to distribute Images to other parents of children at the Centre via email, and to publish such Images on the GRASP website, Instagram account, and in promotional materials such as brochures, newsletters and/or any other Center-related publication. I do give permission to display the Images in the Centre and to be used for internal projects.
-HTML : '');
+                    $photoNormalized = trim((string)self::normalizeFieldValue($photoField ?? ['type' => 'text'], $photoRaw));
 
-                    $rows = [];
+                    // Photo/media has 3 states (full / limited / none). Only show the "disagree" paragraph for the explicit negative choice.
+                    $photoDisplay = $photoNormalized;
+                    if ($photoNormalized === 'I agree to full use as described') {
+                        $photoDisplay = 'I have read, understood and agree to the above Release';
+                    } elseif ($photoNormalized === 'I do not agree') {
+                        $photoDisplay = <<<'HTML'
+I disagree with the above release form and I do not give permission to GRASP to distribute Images to other parents of children at the Centre via email, and to publish such Images on the GRASP website, Instagram account, and in promotional materials such as brochures, newsletters and/or any other Center-related publication. I do give permission to display the Images in the Centre and to be used for internal projects.
+HTML;
+                    }
+$rows = [];
 
                     // Sub-heading + disclosure paragraph
                     $subHead = self::h('Disclosure Of Information Policy');

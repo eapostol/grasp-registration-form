@@ -37,6 +37,63 @@
         return ch.toUpperCase();
       });
   }
+function randomInt(min, max) {
+  var mn = Number(min);
+  var mx = Number(max);
+  if (!isFinite(mn) || !isFinite(mx) || mx < mn) return mn;
+  return Math.floor(mn + Math.random() * (mx - mn + 1));
+}
+
+function safeJsonStringify(obj) {
+  try {
+    return JSON.stringify(obj, null, 2);
+  } catch (e) {
+    return String(obj);
+  }
+}
+
+function copyTextToClipboard(text) {
+  try {
+    if (navigator && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      return navigator.clipboard.writeText(text);
+    }
+  } catch (e) {
+    // ignore
+  }
+  // Fallback
+  try {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+  } catch (e2) {
+    // ignore
+  }
+  return Promise.resolve();
+}
+
+function downloadTextFile(filename, text) {
+  try {
+    var blob = new Blob([text], { type: "application/json;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) {} }, 250);
+  } catch (e) {
+    console.warn("DEBUG: download failed", e);
+  }
+}
+
+
 
   function generateRandomCanadianPostalCode() {
     // Generate a valid-looking Canadian postal code in the format A1A 1A1.
@@ -123,6 +180,76 @@
       });
     }
   }
+function addDebugToolsPanel() {
+  if (document.getElementById("grasp-debug-tools")) return;
+
+  var panel = document.createElement("div");
+  panel.id = "grasp-debug-tools";
+  panel.style.position = "fixed";
+  panel.style.bottom = "16px";
+  panel.style.left = "120px";
+  panel.style.padding = "6px 8px";
+  panel.style.background = "rgba(0, 0, 0, 0.75)";
+  panel.style.color = "#ffffff";
+  panel.style.fontSize = "11px";
+  panel.style.fontFamily = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  panel.style.borderRadius = "4px";
+  panel.style.zIndex = "10000";
+  panel.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.3)";
+  panel.style.pointerEvents = "auto";
+
+  var title = document.createElement("div");
+  title.textContent = "DEBUG tools";
+  title.style.fontWeight = "600";
+  title.style.marginBottom = "4px";
+  panel.appendChild(title);
+
+  function mkBtn(label) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.textContent = label;
+    b.style.fontSize = "11px";
+    b.style.marginRight = "6px";
+    b.style.padding = "3px 6px";
+    b.style.cursor = "pointer";
+    return b;
+  }
+
+  var copyBtn = mkBtn("Copy defaults JSON");
+  copyBtn.addEventListener("click", function () {
+    var payload = window.__GRASP_DEBUG_DEFAULTS_REPORT__ || null;
+    if (!payload) {
+      alert("No debug defaults report found yet. Refresh with ?debug=true and wait for the form to load.");
+      return;
+    }
+    copyTextToClipboard(safeJsonStringify(payload));
+  });
+
+  var dlBtn = mkBtn("Download defaults JSON");
+  dlBtn.addEventListener("click", function () {
+    var payload = window.__GRASP_DEBUG_DEFAULTS_REPORT__ || null;
+    if (!payload) {
+      alert("No debug defaults report found yet. Refresh with ?debug=true and wait for the form to load.");
+      return;
+    }
+    downloadTextFile("__debug_defaults_report.json", safeJsonStringify(payload));
+  });
+
+  panel.appendChild(copyBtn);
+  panel.appendChild(dlBtn);
+
+  if (document.body) {
+    document.body.appendChild(panel);
+  } else {
+    document.addEventListener("DOMContentLoaded", function () {
+      if (!document.getElementById("grasp-debug-tools")) {
+        document.body.appendChild(panel);
+      }
+    });
+  }
+}
+
+
 
   // [GRASP-DEBUG] Build a bundle of first/last names for split-name fields.
   // [GRASP-DEBUG] Build a bundle of first/last names for split-name fields.
@@ -455,43 +582,52 @@
       return String(year) + "-09-01";
     }
 
-    // Radio / select: choose "yes" if available, otherwise first option
-    if (type === "radio" || type === "select") {
-      var selected = null;
-      // prefer an option whose value looks like "yes"
-      for (var i = 0; i < options.length; i++) {
-        var opt = options[i];
-        if (!opt) continue;
-        var v =
-          typeof opt === "string"
-            ? opt
-            : typeof opt.value !== "undefined"
-            ? opt.value
-            : null;
-        if (v && String(v).toLowerCase() === "yes") {
-          selected = v;
-          break;
-        }
+// Numeric-ish fields: ensure we don't use "Test value" for fields that should be numbers.
+if (name === "current_weight" || (label.includes("weight") && label.includes("(kg"))) {
+  return String(randomInt(18, 60)); // reasonable child weight range (kg)
+}
+if (label.includes("age") && (type === "text" || type === "number")) {
+  return String(randomInt(4, 12));
+}
+if ((label.includes("grade") || name.includes("grade")) && type !== "radio" && type !== "select") {
+  return String(randomInt(1, 6));
+}
+
+
+
+// Radio / select: prefer an affirmative/agree-like option, otherwise first option.
+if (type === "radio" || type === "select") {
+  var selected = null;
+  var preferred = ["agree", "yes", "true", "full"];
+  function optValue(opt) {
+    if (!opt) return null;
+    if (typeof opt === "string") return opt;
+    if (typeof opt.value !== "undefined") return opt.value;
+    return null;
+  }
+  // Prefer known positive values
+  for (var pi = 0; pi < preferred.length && !selected; pi++) {
+    var want = preferred[pi];
+    for (var i = 0; i < options.length; i++) {
+      var v = optValue(options[i]);
+      if (v && String(v).toLowerCase() === want) {
+        selected = v;
+        break;
       }
-      // if nothing matched "yes", pick the first non-empty option
-      if (!selected) {
-        for (var j = 0; j < options.length; j++) {
-          var opt2 = options[j];
-          if (!opt2) continue;
-          var v2 =
-            typeof opt2 === "string"
-              ? opt2
-              : typeof opt2.value !== "undefined"
-              ? opt2.value
-              : null;
-          if (v2) {
-            selected = v2;
-            break;
-          }
-        }
-      }
-      return selected || "";
     }
+  }
+  // Otherwise pick the first non-empty option value
+  if (!selected) {
+    for (var j = 0; j < options.length; j++) {
+      var v2 = optValue(options[j]);
+      if (v2) {
+        selected = v2;
+        break;
+      }
+    }
+  }
+  return selected || "";
+}
 
     // Checkboxes: default to true (consent given)
     if (type === "checkbox") {
@@ -690,6 +826,7 @@
       var overrides = await buildDebugFormStateOverrides();
       var steps = cfg.steps || [];
       var changedFields = [];
+var debugReport = [];
 
       // IMPORTANT: Do NOT wipe existing values. Only fill empty fields.
       steps.forEach(function (step) {
@@ -721,6 +858,28 @@
             if (typeof value !== "undefined" && value !== null && !isEmptyValue(value)) {
               formStateObj[name] = value;
               changedFields.push(name);
+debugReport.push({
+  name: name,
+  label: field.label || "",
+  type: field.type || "text",
+  value: value,
+  // For radio/select, include the resolved label if available for audit.
+  resolvedLabel: (field.type === "radio" || field.type === "select") ? (function () {
+    try {
+      var opts = field.options || [];
+      for (var oi = 0; oi < opts.length; oi++) {
+        var opt = opts[oi];
+        if (!opt) continue;
+        if (typeof opt === "string") {
+          if (String(opt) === String(value)) return String(opt);
+        } else {
+          if (String(opt.value) === String(value)) return String(opt.label || opt.value || "");
+        }
+      }
+    } catch (e) {}
+    return "";
+  })() : ""
+});
               // Mirror into the UI where possible.
               setDomValueForField(field, value);
             }
@@ -770,6 +929,25 @@
 
       // Re-render if the app exposes a renderer (Enrollment does).
       callIfExists("renderCurrentStep");
+// Expose the applied defaults for QA visibility (do not include in submission payload).
+if (typeof window !== "undefined") {
+  window.__GRASP_DEBUG_DEFAULTS_REPORT__ = {
+    generatedAt: new Date().toISOString(),
+    changedFields: changedFields.slice(),
+    entries: debugReport.slice()
+  };
+  try {
+    console.groupCollapsed("GRASP DEBUG defaults applied (" + debugReport.length + " fields)");
+    if (console && typeof console.table === "function") {
+      console.table(debugReport);
+    } else {
+      console.log(debugReport);
+    }
+    console.groupEnd();
+  } catch (e) {
+    // ignore
+  }
+}
 
       return true;
     } catch (e) {
@@ -803,6 +981,7 @@ function doApplyIfNeeded() {
 
   try {
     addDebugBadge();
+    addDebugToolsPanel();
   } catch (e) {
     console.warn("DEBUG: failed to add debug badge", e);
   }
