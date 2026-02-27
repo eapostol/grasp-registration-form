@@ -799,6 +799,18 @@
           "title": "Medical Release & Medication",
           "fields": [
             {
+              "type": "static",
+              "name": "medication_policy_text",
+              "label": "",
+              "html": "<div class=\"grasp-policy-block\"><div class=\"grasp-policy-heading\"><u>MEDICATION</u></div><p style=\"text-align: justify;\">The Centre will administer only prescription medication as required. All medication must come in the original container with the prescription label. The Centre will document all medication on the appropriate consent form and parents/guardians must sign this medication form before the medication is administered to their child.</p></div>"
+            },
+            {
+              "type": "static",
+              "name": "medical_release_policy_text",
+              "label": "",
+              "html": "<div class=\"grasp-policy-block\"><div class=\"grasp-policy-heading\"><u>(MEDICAL RELEASE) PARENTS CONSENT FOR MEDICAL TREATMENT</u></div><p style=\"text-align: justify;\">In the event that a parent/guardian cannot be reached, I give permission for a Greenland Recreational After School Program qualified staff member to secure any emergency medical treatment deemed necessary for my child by the attending physician. Treatment may include anesthetic and/or blood transfusion. I also consent to emergency transportation of whatever type seen fit by the staff of the child care centre at the time of the incident. Transportation will be by ambulance, taxi or on rare occasion private vehicle driven by a licensed driver. Parents will be notified that their child has been taken to the hospital and updated as often as possible thereafter. (In cases where child abuse is suspected parents will be contacted as advised by a Children Aid Society worker.) A copy of an updated immunization record must be sent in a separate e-mail along with the Immunization Form. The immunization form is available at <a href=\"https://greenlandrecreational.com/pdf/medical-2016.pdf\" target=\"_blank\" rel=\"noopener noreferrer\"><u>https://greenlandrecreational.com/pdf/medical-2016.pdf</u></a>. Fill out that form separately and attach it along with your child&rsquo;s immunization record.</p></div>"
+            },
+            {
               "name": "medication_notes",
               "label": "Medication details",
               "type": "textarea",
@@ -821,18 +833,6 @@
                   "label": "I do not agree"
                 }
               ]
-            }
-          ],
-          "contentBlocks": [
-            {
-              "kind": "policy",
-              "title": "MEDICATION",
-              "html": "<div style=\"text-align: justify;\">The Centre will administer only prescription medication as required. All medication must come in the original container with the prescription label. The Centre will document all medication on the appropriate consent form and parents/guardians must sign this medication form before the medication is administered to their child.</div>"
-            },
-            {
-              "kind": "policy",
-              "title": "(MEDICAL RELEASE) PARENTS CONSENT FOR MEDICAL TREATMENT",
-              "html": "<div style=\"text-align: justify;\">In the event that a parent/guardian cannot be reached, I give permission for a Greenland Recreational After School Program qualified staff member to secure any emergency medical treatment deemed necessary for my child by the attending physician. Treatment may include anesthetic and/or blood transfusion. I also consent to emergency transportation of whatever type seen fit by the staff of the child care centre at the time of the incident. Transportation will be by ambulance, taxi or on rare occasion private vehicle driven by a licensed driver. Parents will be notified that their child has been taken to the hospital and updated as often as possible thereafter. (In cases where child abuse is suspected parents will be contacted as advised by a Children Aid Society worker.) A copy of an updated immunization record must be sent in a separate e-mail along with the Immunization Form. The immunization form is available at <a href=\"https://greenlandrecreational.com/pdf/medical-2016.pdf\"><u>https://greenlandrecreational.com/pdf/medical-2016.pdf</u></a>. Fill out that form separately and attach it along with your child&rsquo;s immunization record.</div>"
             }
           ]
         },
