@@ -1086,7 +1086,7 @@ an updated immunization record must be attached to thisform. </em>
         <div class="grasp-section-title">Medical & Health Information</div>
         <div class="grasp-subtitle">MEDICATION</div>
         <p class="grasp-paragraph">${escapeHtml(medicationText)}</p>
-        ${kvTable(kvRow("Medication (prescription only) – details", displayFieldValue("medication_notes"), { multiline: true }))}
+        ${kvTable(kvRow("Medication details", displayFieldValue("medication_notes"), { multiline: true }))}
       </div>`,
       `<div class="grasp-section">
         <div class="grasp-section-title">Medical Release – Parents Consent for Medical Treatment</div>
