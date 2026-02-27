@@ -43,11 +43,13 @@ class FormPdfGenerator
         $profile = isset($opts['profile']) ? (string)$opts['profile'] : '';
         if ($profile === 'waitlist') {
             $pdf->SetMargins(10, 8, 10);
-            $pdf->SetAutoPageBreak(true, 8);
+            $bottomMargin = 8;
+            $pdf->SetAutoPageBreak(true, $bottomMargin);
             $pdf->SetFont('helvetica', '', 9.5);
         } else {
             $pdf->SetMargins(12, 12, 12);
-            $pdf->SetAutoPageBreak(true, 12);
+            $bottomMargin = 12;
+            $pdf->SetAutoPageBreak(true, $bottomMargin);
             $pdf->SetFont('helvetica', '', 10);
         }
 
@@ -154,6 +156,8 @@ class FormPdfGenerator
         };
 
         // Render body, honoring page break markers between complete HTML segments.
+        // IMPORTANT: Only add a new page if there's actually more content ahead.
+        // Trailing/leading pagebreak markers can otherwise create blank pages and shift numbering.
         $chunks = explode($pageBreak, $body);
         $chunkCount = count($chunks);
         for ($i = 0; $i < $chunkCount; $i++) {
@@ -161,9 +165,75 @@ class FormPdfGenerator
             if (trim($chunk) !== '') {
                 $writeChunk($prefix . $chunk . $suffix);
             }
+
             if ($i < $chunkCount - 1) {
-                $pdf->AddPage();
+                $hasMoreContent = false;
+                for ($j = $i + 1; $j < $chunkCount; $j++) {
+                    if (trim($chunks[$j]) !== '') {
+                        $hasMoreContent = true;
+                        break;
+                    }
+                }
+                if ($hasMoreContent) {
+                    $pdf->AddPage();
+                }
             }
+        }
+
+        // Phase 9F (Global): stable page numbering without enabling TCPDF's footer.
+        // We stamp numbers AFTER all pages are generated to avoid footer-related attachment regressions.
+        // Placement: bottom-right on every page.
+        try {
+            $pageCount = method_exists($pdf, 'getNumPages') ? (int)$pdf->getNumPages() : 0;
+            if ($pageCount > 0) {
+                $currentPage = method_exists($pdf, 'getPage') ? (int)$pdf->getPage() : 1;
+                $margins = method_exists($pdf, 'getMargins')
+                    ? (array)$pdf->getMargins()
+                    : ['left' => 0, 'right' => 0, 'top' => 0, 'bottom' => 0];
+                $pageHeight = method_exists($pdf, 'getPageHeight') ? (float)$pdf->getPageHeight() : 0.0;
+
+                // Place within the printable area, just above the bottom margin.
+                // Important: if Y is >= (pageHeight - bottomMargin), TCPDF may auto page-break and
+                // the number will appear on the NEXT page (which is why it looked like numbering started on page 2).
+                $cellH = 6.0;
+                $y = ($pageHeight > 0)
+                    ? max(0.0, $pageHeight - (float)$bottomMargin - $cellH)
+                    : 0.0;
+
+                // Stamp without triggering automatic page breaks.
+                $prevAuto = method_exists($pdf, 'getAutoPageBreak') ? (bool)$pdf->getAutoPageBreak() : true;
+                $prevBMargin = method_exists($pdf, 'getBreakMargin') ? (float)$pdf->getBreakMargin() : (float)$bottomMargin;
+                $pdf->SetAutoPageBreak(false, 0);
+
+                // Add a small inset from the right border (~2 characters).
+                $rightInsetMm = 4.0;
+                $prevRightMargin = isset($margins['right']) ? (float)$margins['right'] : 0.0;
+                if (method_exists($pdf, 'SetRightMargin')) {
+                    $pdf->SetRightMargin($prevRightMargin + $rightInsetMm);
+                }
+
+                for ($p = 1; $p <= $pageCount; $p++) {
+                    $pdf->setPage($p);
+                    // Consistent 75–80% of body text (~10pt): use 8pt
+                    $pdf->SetFont('helvetica', '', 8);
+                    $pdf->SetTextColor(0, 0, 0);
+                    $pdf->SetXY((float)$margins['left'], $y);
+                    $pdf->Cell(0, $cellH, 'Page ' . $p . ' of ' . $pageCount, 0, 0, 'R', false, '', 0, false, 'T', 'M');
+                }
+
+                // Restore margins / auto page break.
+                if (method_exists($pdf, 'SetRightMargin')) {
+                    $pdf->SetRightMargin($prevRightMargin);
+                }
+                $pdf->SetAutoPageBreak($prevAuto, $prevBMargin);
+
+                // Restore current page (non-fatal if it fails).
+                if ($currentPage > 0 && $currentPage <= $pageCount) {
+                    $pdf->setPage($currentPage);
+                }
+            }
+        } catch (Throwable $e) {
+            // Non-fatal: never block attachment generation for page numbering.
         }
 
         $safeBase = preg_replace('/[^A-Za-z0-9._-]+/', '-', $filenameBase);

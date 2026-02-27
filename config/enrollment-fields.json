@@ -1212,7 +1212,7 @@
             },
             {
               "name": "before_school_program_ack",
-              "label": "I acknowledge that my child may not attend childcare for the before-school program on a daily basis and may be dropped off directly at school.",
+              "label": "I acknowledge that my child may not attend childcare for the before-school program on a daily basis and may be dropped off directly at school. Childcare will not call if my child is absent during the morning portion of program during the school year.",
               "type": "radio",
               "required": false,
               "options": [
