@@ -1157,18 +1157,16 @@ HTML;
                     $sunSafetyPolicyHtml = <<<'HTML'
 <div class="grasp-policy-block"><div class="grasp-policy-heading"><u>SUN AND SAFETY POLICY</u></div>
 <span>To ensure we are providing a healthy and safe environment for our children and educators, we are requesting all sunscreens provided are cream based, rather than aerosol. The application of aerosol sunscreens can be inconsistent, providing less protection for your child with and more opportunity for uneven coverage. These sprays can also trigger respiratory irritation for those with scent sensitivities. Other health and safety issues consists of overstay, misuse and misdirected sprayers.</span>
-<div style="height:7pt; line-height:7pt;">&nbsp;</div>
+<div style="height:4pt; line-height:4pt;">&nbsp;</div>
 <span><strong>Thank you for your ongoing support and understanding.</strong></span>
-<div style="height:6pt; line-height:6pt;">&nbsp;</div>
-<div style="margin:0; padding:0; line-height:1.05;"><strong>- We will be applying sunscreen prior to going outside before and after every water play time.</strong><br/><strong>- Staff will supervise the application of sunscreen and assist when necessary.</strong></div>
-<div style="height:6pt; line-height:6pt;">&nbsp;</div>
+<div style="height:3pt; line-height:3pt;">&nbsp;</div>
+<div style="margin:0; padding:0; line-height:1.0;"><strong>- We will be applying sunscreen prior to going outside before and after every water play time.</strong><br/><strong>- Staff will supervise the application of sunscreen and assist when necessary.</strong></div>
+<div style="height:3pt; line-height:3pt;">&nbsp;</div>
 <span>Should parents wish to provide their own sunscreen, a labeled bottle with their child’s name on it must be supplied.</span><br>
 <span>Their child is the only one who will be permitted to use this sunscreen. Cream only sunscreen please.</span><br>
-<span><strong>Shade:</strong></span><br>
-<span>The play area has a combination of natural and artificial shade located close to the portable.</span><br>
-<span><strong>Smog Alerts:</strong></span><br>
-<span>During smog alerts children will have limited outdoor play and increased indoor/air-conditioned play. Field trips may be postponed or canceled as necessary should the smog alert remain in effect for extended periods of time.</span>
-<div style="height:6pt; line-height:6pt;">&nbsp;</div></div>
+<span><strong>Shade:</strong> The play area has a combination of natural and artificial shade located close to the portable.</span><br>
+<span><strong>Smog Alerts:</strong> During smog alerts children will have limited outdoor play and increased indoor/air-conditioned play. Field trips may be postponed or canceled as necessary should the smog alert remain in effect for extended periods of time.</span>
+<div style="height:3pt; line-height:3pt;">&nbsp;</div></div>
 HTML;
                     } else {
                     $sunSafetyPolicyHtml = <<<'HTML'
