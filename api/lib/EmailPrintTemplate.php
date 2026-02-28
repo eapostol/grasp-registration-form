@@ -642,23 +642,27 @@ if ($kind === 'pdf' && stripos($html, 'Immunization Form.') !== false && stripos
         // Normalize accidental double period after the URL if present.
         $p2 = str_replace('medical-2016.pdf..', 'medical-2016.pdf.', $p2);
 
+        // Remove spacer divs that browsers collapse but TCPDF can inflate into large gaps.
+        $p1 = preg_replace('/<div\s+style="height:\s*\d+(?:px|pt);\s*line-height:\s*\d+(?:px|pt);">\s*&nbsp;\s*<\/div>/i', '', $p1);
+        $p2 = preg_replace('/<div\s+style="height:\s*\d+(?:px|pt);\s*line-height:\s*\d+(?:px|pt);">\s*&nbsp;\s*<\/div>/i', '', $p2);
+
         // Remove any empty block elements that can cause TCPDF to insert large vertical gaps.
         // (Browsers usually collapse them; TCPDF often does not.)
-        $p1 = preg_replace('/<div\b[^>]*>\s*(?:&nbsp;\s*)?<\/div>/i', '', $p1);
-        $p2 = preg_replace('/<div\b[^>]*>\s*(?:&nbsp;\s*)?<\/div>/i', '', $p2);
-
-        // Collapse accidental duplicate spacer divs (defensive).
-        $p1 = preg_replace('/(?:<div\s+style="height:\d+(?:px|pt);\s*line-height:\d+(?:px|pt);">&nbsp;<\/div>\s*){2,}/i', '<div style="height:2pt; line-height:2pt;">&nbsp;</div>', $p1);
-        $p2 = preg_replace('/(?:<div\s+style="height:\d+(?:px|pt);\s*line-height:\d+(?:px|pt);">&nbsp;<\/div>\s*){2,}/i', '<div style="height:2pt; line-height:2pt;">&nbsp;</div>', $p2);
+        $emptyDiv = '/<div\b[^>]*>\s*(?:&nbsp;|<br\s*\/?\s*>|\s)*<\/div>/i';
+        $p1 = preg_replace($emptyDiv, '', $p1);
+        $p2 = preg_replace($emptyDiv, '', $p2);
 
         // TCPDF can inflate vertical spacing with <p>; use tight <div> blocks.
         // Keep paragraph 1 justified and paragraph 2 left-aligned.
-        // IMPORTANT: avoid spacer divs here (TCPDF can render them as large gaps depending on line metrics).
         $html = '<div style="text-align:justify; margin:0; padding:0; line-height:1.15;">' . $p1 . '</div>'
+              . '<div style="height:2pt; line-height:2pt;">&nbsp;</div>'
               . '<div style="text-align:left; margin:0; padding:0; line-height:1.15;">' . $p2 . '</div>';
 
+        // Final defensive cleanup (PDF only): strip any empty divs that may have been introduced upstream.
+        $html = preg_replace($emptyDiv, '', $html);
     }
 }
+
 
             // Enrollment PDF: tighten vertical rhythm around specific Medical section headings only
             // (MEDICATION and (MEDICAL RELEASE)...) without impacting global row_full rendering.
