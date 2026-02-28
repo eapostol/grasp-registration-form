@@ -494,16 +494,25 @@ private static function renderRows(string $kind, array $fields, array $data): st
             $value = $data[$key] ?? '';
             $value = self::normalizeFieldValue($field, $value);
             $label = self::rowLabel($field);
+            $display = self::displayValue($value);
+
+            // Skip fully-empty rows (label + value) to avoid rendering blank bordered rows in PDF/email.
+            // This can happen when legacy enrollment keys are removed from the config but the renderer still iterates placeholders.
+            $labelCheck = preg_replace('/[\s\x{00A0}]+/u', '', html_entity_decode(strip_tags($label), ENT_QUOTES));
+            $valueCheck = preg_replace('/[\s\x{00A0}]+/u', '', html_entity_decode(strip_tags($display), ENT_QUOTES));
+            if ($labelCheck === '' && $valueCheck === '') {
+                continue;
+            }
 
             if ($kind === 'pdf') {
                 $out[] = '<tr>'
                     . '<td width="60%" style="border-top:' . $b . '; font-weight:bold; vertical-align:top;">' . $label . '</td>'
-                    . '<td width="40%" style="border-top:' . $b . '; vertical-align:top;">' . self::displayValue($value) . '</td>'
+                    . '<td width="40%" style="border-top:' . $b . '; vertical-align:top;">' . $display . '</td>'
                     . '</tr>';
             } else {
                 $out[] = '<tr>'
                     . '<td style="width:60%; padding:7px 10px; border-top:' . $b . '; vertical-align:top; font-weight:bold;">' . $label . '</td>'
-                    . '<td style="width:40%; padding:7px 10px; border-top:' . $b . '; vertical-align:top;">' . self::displayValue($value) . '</td>'
+                    . '<td style="width:40%; padding:7px 10px; border-top:' . $b . '; vertical-align:top;">' . $display . '</td>'
                     . '</tr>';
             }
         }
@@ -633,11 +642,21 @@ if ($kind === 'pdf' && stripos($html, 'Immunization Form.') !== false && stripos
         // Normalize accidental double period after the URL if present.
         $p2 = str_replace('medical-2016.pdf..', 'medical-2016.pdf.', $p2);
 
-        // TCPDF can inflate vertical spacing with <p>; use tight <div> blocks + a controlled spacer.
+        // Remove any empty block elements that can cause TCPDF to insert large vertical gaps.
+        // (Browsers usually collapse them; TCPDF often does not.)
+        $p1 = preg_replace('/<div\b[^>]*>\s*(?:&nbsp;\s*)?<\/div>/i', '', $p1);
+        $p2 = preg_replace('/<div\b[^>]*>\s*(?:&nbsp;\s*)?<\/div>/i', '', $p2);
+
+        // Collapse accidental duplicate spacer divs (defensive).
+        $p1 = preg_replace('/(?:<div\s+style="height:\d+(?:px|pt);\s*line-height:\d+(?:px|pt);">&nbsp;<\/div>\s*){2,}/i', '<div style="height:2pt; line-height:2pt;">&nbsp;</div>', $p1);
+        $p2 = preg_replace('/(?:<div\s+style="height:\d+(?:px|pt);\s*line-height:\d+(?:px|pt);">&nbsp;<\/div>\s*){2,}/i', '<div style="height:2pt; line-height:2pt;">&nbsp;</div>', $p2);
+
+        // TCPDF can inflate vertical spacing with <p>; use tight <div> blocks.
         // Keep paragraph 1 justified and paragraph 2 left-aligned.
+        // IMPORTANT: avoid spacer divs here (TCPDF can render them as large gaps depending on line metrics).
         $html = '<div style="text-align:justify; margin:0; padding:0; line-height:1.15;">' . $p1 . '</div>'
-              . '<div style="height:1px; line-height:1px;">&nbsp;</div>'
               . '<div style="text-align:left; margin:0; padding:0; line-height:1.15;">' . $p2 . '</div>';
+
     }
 }
 
