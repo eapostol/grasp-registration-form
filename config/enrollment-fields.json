@@ -209,7 +209,7 @@
               "name": "parent1_work_unit",
               "label": "Parent Work/School unit / suite / extra (optional)",
               "type": "text",
-              "required": true
+              "required": false
             },
             {
               "name": "parent1_work_city",
