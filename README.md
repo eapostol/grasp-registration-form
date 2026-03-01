@@ -2,6 +2,10 @@
 last reviewed Feb 2026
 
 ## Changes
+- 2026-03-01: Restored and stabilized `contentBlocks` rendering in online form; fixed regression where Medical Release static paragraphs disappeared after JS overwrite; aligned styling to match other static policy blocks.
+- 2026-02-28: Implemented online rendering support for static policy `contentBlocks` (Medical Release & Medication) using existing `type: "static"` mechanism for UI consistency.
+- 2026-02-27: Removed unintended blank/debug rows (“Test value”) from Email and PDF outputs; added defensive PDF-only cleanup to prevent empty `<div>` emission in Medical Release immunization split logic.
+- 2026-02-27: Fixed excessive paragraph spacing in TCPDF for Medical Release immunization section by tightening PDF-only rendering logic (no impact to email or UI).
 - 2026-02-26: Added documentation regarding static policy block architecture and cross-layer parity TODO
 - 2026-02-15: Updated README with comprehensive project documentation
 - 2026-02-10: Implemented client-side validation with error messaging
