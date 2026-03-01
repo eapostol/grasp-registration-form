@@ -1096,6 +1096,25 @@ function renderCurrentStep() {
     gTitle.textContent = group.title;
     groupEl.appendChild(gTitle);
 
+
+    // Render group-level contentBlocks (policy/static paragraphs) above fields (online UI only).
+    // Email/PDF already render contentBlocks server-side; this is purely for the web form.
+    (group.contentBlocks || []).forEach((cb) => {
+      if (!cb || !cb.html) return;
+      const blockWrap = document.createElement("div");
+      blockWrap.className = "grasp-content-block";
+
+      // Match existing policy styling used by static fields (e.g., Disclosure of Information Policy)
+      const safeTitle = (cb.title || "").trim();
+      if (safeTitle) {
+        blockWrap.innerHTML = `<div class="grasp-policy-block"><div class="grasp-policy-heading"><u><b>${escapeHtml(safeTitle)}</b></u></div>${cb.html}</div>`;
+      } else {
+        blockWrap.innerHTML = cb.html;
+      }
+
+      groupEl.appendChild(blockWrap);
+    });
+
     (group.fields || []).forEach((fieldDef, index, allFields) => {
       // [GRASP-HIDDEN] Skip hidden/derived fields when rendering the UI.
       // They still exist in config + formState for email/DB use.
@@ -1166,6 +1185,25 @@ function renderCurrentStep() {
     gTitle.className = "grasp-form-group-title";
     gTitle.textContent = group.title;
     groupEl.appendChild(gTitle);
+
+
+    // Render group-level contentBlocks (policy/static paragraphs) above fields (online UI only).
+    // Email/PDF already render contentBlocks server-side; this is purely for the web form.
+    (group.contentBlocks || []).forEach((cb) => {
+      if (!cb || !cb.html) return;
+      const blockWrap = document.createElement("div");
+      blockWrap.className = "grasp-content-block";
+
+      // Match existing policy styling used by static fields (e.g., Disclosure of Information Policy)
+      const safeTitle = (cb.title || "").trim();
+      if (safeTitle) {
+        blockWrap.innerHTML = `<div class="grasp-policy-block"><div class="grasp-policy-heading"><u><b>${escapeHtml(safeTitle)}</b></u></div>${cb.html}</div>`;
+      } else {
+        blockWrap.innerHTML = cb.html;
+      }
+
+      groupEl.appendChild(blockWrap);
+    });
 
     (group.fields || []).forEach((fieldDef, index, allFields) => {
       // Skip hidden/derived fields in the UI (still exist in formState/email/DB)
