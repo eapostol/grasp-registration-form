@@ -203,25 +203,25 @@
               "name": "parent1_work_street",
               "label": "Parent Work/School street address",
               "type": "text",
-              "required": false
+              "required": true
             },
             {
               "name": "parent1_work_unit",
               "label": "Parent Work/School unit / suite / extra (optional)",
               "type": "text",
-              "required": false
+              "required": true
             },
             {
               "name": "parent1_work_city",
               "label": "Parent Work/School city",
               "type": "text",
-              "required": false
+              "required": true
             },
             {
               "name": "parent1_work_province",
               "label": "Parent Work/School province / territory",
               "type": "select",
-              "required": false,
+              "required": true,
               "default": "ON",
               "options": [
                 {
@@ -282,7 +282,7 @@
               "name": "parent1_work_postal1",
               "label": "Parent Work/School postal code (first part: A1A)",
               "type": "text",
-              "required": false,
+              "required": true,
               "maxLength": 3,
               "placeholder": "A1A"
             },
@@ -290,7 +290,7 @@
               "name": "parent1_work_postal2",
               "label": "Parent Work/School postal code (second part: 1A1)",
               "type": "text",
-              "required": false,
+              "required": true,
               "maxLength": 3,
               "placeholder": "1A1"
             },
@@ -298,19 +298,19 @@
               "name": "parent1_work_address",
               "label": "Parent Work/School address (full, derived)",
               "type": "hidden",
-              "required": false
+              "required": true
             },
             {
               "name": "parent1_work_postal_code",
               "label": "Parent Work/School postal code (full, derived)",
               "type": "hidden",
-              "required": false
+              "required": true
             },
             {
               "name": "parent1_work_phone",
               "label": "Parent Work/School phone #",
               "type": "text",
-              "required": false
+              "required": true
             }
           ]
         },
@@ -585,19 +585,19 @@
               "name": "doctor_name",
               "label": "Doctor's name",
               "type": "text",
-              "required": false
+              "required": true
             },
             {
               "name": "doctor_phone",
               "label": "Doctor's phone #",
               "type": "text",
-              "required": false
+              "required": true
             },
             {
               "name": "doctor_street",
               "label": "Doctor/Clinic street address",
               "type": "text",
-              "required": false
+              "required": true
             },
             {
               "name": "doctor_unit",
@@ -609,13 +609,13 @@
               "name": "doctor_city",
               "label": "City",
               "type": "text",
-              "required": false
+              "required": true
             },
             {
               "name": "doctor_province",
               "label": "Province / territory",
               "type": "select",
-              "required": false,
+              "required": true,
               "default": "ON",
               "options": [
                 {
@@ -676,7 +676,7 @@
               "name": "doctor_postal1",
               "label": "Postal code (first part: A1A)",
               "type": "text",
-              "required": false,
+              "required": true,
               "maxLength": 3,
               "placeholder": "A1A"
             },
@@ -684,7 +684,7 @@
               "name": "doctor_postal2",
               "label": "Postal code (second part: 1A1)",
               "type": "text",
-              "required": false,
+              "required": true,
               "maxLength": 3,
               "placeholder": "1A1"
             },
@@ -692,13 +692,13 @@
               "name": "doctor_address",
               "label": "Doctor/Clinic address (full, derived)",
               "type": "hidden",
-              "required": false
+              "required": true
             },
             {
               "name": "doctor_postal_code",
               "label": "Doctor/Clinic postal code (full, derived)",
               "type": "hidden",
-              "required": false
+              "required": true
             },
             {
               "name": "child_allergies",
@@ -772,11 +772,11 @@
             },
             {
               "name": "authorized_pickups",
-              "label": "Other authorized pick ups (names, relationships & phone numbers)",
+              "label": "Other authorized pick ups (names, relationships & phone numbers).",
               "type": "textarea",
-              "required": false,
+              "required": true,
               "placeholder": "i.e. Jane Smith, aunt, 416-555-1234 \n     John Smith, uncle, 416-111-2222",
-              "helpText": "List each authorized pick up on a new line in the text box below."
+              "helpText": "List 3 in order of priority, and include their full name, relationship and phone number. List each authorized pick up on a new line in the text box below. "
             }
           ],
           "contentBlocks": [
