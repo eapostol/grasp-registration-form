@@ -1096,6 +1096,44 @@ function renderCurrentStep() {
     gTitle.textContent = group.title;
     groupEl.appendChild(gTitle);
 
+    // Render group-level contentBlocks (static policy/paragraph blocks).
+    // These are display-only and should NOT be submitted as form fields.
+    // Email body + PDF attachment already render these server-side.
+    (group.contentBlocks || []).forEach((cb) => {
+      if (!cb) return;
+
+      const safeTitle = String(cb.title || "").trim();
+      const bodyHtml = String(cb.html || "");
+      if (!safeTitle && !bodyHtml.trim()) return;
+
+      const policyHtml = safeTitle
+        ? `<div class="grasp-policy-block"><div class="grasp-policy-heading"><u><b>${escapeHtml(
+            safeTitle,
+          )}</b></u></div>${bodyHtml}</div>`
+        : bodyHtml;
+
+      const staticRow = createFieldRow({
+        name: `__contentBlock_${(group.name || group.title || "group")
+          .toString()
+          .replace(/\s+/g, "_")
+          .replace(/[^a-zA-Z0-9_]/g, "")}_${safeTitle
+          .toString()
+          .replace(/\s+/g, "_")
+          .replace(/[^a-zA-Z0-9_]/g, "") || "policy"}`,
+        type: "static",
+        label: "",
+        html: policyHtml,
+      });
+
+      // Hide empty label to avoid a blank left gutter column.
+      const lbl = staticRow.querySelector(".grasp-field-label");
+      if (lbl && !String(lbl.textContent || "").trim()) {
+        lbl.style.display = "none";
+      }
+
+      groupEl.appendChild(staticRow);
+    });
+
     (group.fields || []).forEach((fieldDef, index, allFields) => {
       // [GRASP-HIDDEN] Skip hidden/derived fields when rendering the UI.
       // They still exist in config + formState for email/DB use.
@@ -1166,6 +1204,44 @@ function renderCurrentStep() {
     gTitle.className = "grasp-form-group-title";
     gTitle.textContent = group.title;
     groupEl.appendChild(gTitle);
+
+    // Render group-level contentBlocks (static policy/paragraph blocks).
+    // These are display-only and should NOT be submitted as form fields.
+    // Email body + PDF attachment already render these server-side.
+    (group.contentBlocks || []).forEach((cb) => {
+      if (!cb) return;
+
+      const safeTitle = String(cb.title || "").trim();
+      const bodyHtml = String(cb.html || "");
+      if (!safeTitle && !bodyHtml.trim()) return;
+
+      const policyHtml = safeTitle
+        ? `<div class="grasp-policy-block"><div class="grasp-policy-heading"><u><b>${escapeHtml(
+            safeTitle,
+          )}</b></u></div>${bodyHtml}</div>`
+        : bodyHtml;
+
+      const staticRow = createFieldRow({
+        name: `__contentBlock_${(group.name || group.title || "group")
+          .toString()
+          .replace(/\s+/g, "_")
+          .replace(/[^a-zA-Z0-9_]/g, "")}_${safeTitle
+          .toString()
+          .replace(/\s+/g, "_")
+          .replace(/[^a-zA-Z0-9_]/g, "") || "policy"}`,
+        type: "static",
+        label: "",
+        html: policyHtml,
+      });
+
+      // Hide empty label to avoid a blank left gutter column.
+      const lbl = staticRow.querySelector(".grasp-field-label");
+      if (lbl && !String(lbl.textContent || "").trim()) {
+        lbl.style.display = "none";
+      }
+
+      groupEl.appendChild(staticRow);
+    });
 
     (group.fields || []).forEach((fieldDef, index, allFields) => {
       // Skip hidden/derived fields in the UI (still exist in formState/email/DB)
