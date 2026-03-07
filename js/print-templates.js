@@ -709,12 +709,15 @@ an updated immunization record must be attached to thisform. </em>
           </div>
           <div class="grasp-choices">
             ${renderRadioChoices(photoConsent, [
-              { value: "full", label: "I agree to full use as described" },
               {
-                value: "limited",
-                label: "Limited use (centre only, internal projects)",
+                value: "full",
+                label: "I have read, understood, and agree to the above Release.",
               },
-              { value: "none", label: "I do not agree" },
+              {
+                value: "none",
+                label:
+                  "I disagree with the above release form and I do not give permission to GRASP to distribute Images to other parents of children at the Centre via email, and to publish such Images on the GRASP website, Instagram account, and in promotional materials such as brochures, newsletters and/or any other Center-related publication. I do give permission to display the Images in the Centre and to be used for internal projects ",
+              },
             ])}
           </div>
           <div class="grasp-field-grid grasp-2col">

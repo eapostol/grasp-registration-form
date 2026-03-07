@@ -1366,11 +1366,19 @@ HTML;
                     $photoRaw = self::getFieldValue($photoField, $data);
                     $photoNormalized = trim((string)self::normalizeFieldValue($photoField ?? ['type' => 'text'], $photoRaw));
 
-                    // Photo/media has 3 states (full / limited / none). Only show the "disagree" paragraph for the explicit negative choice.
+                    // Photo/media now has 2 states (full / none). Keep backward-safe handling
+                    // for older stored labels while rendering the current required copy.
                     $photoDisplay = $photoNormalized;
-                    if ($photoNormalized === 'I agree to full use as described') {
-                        $photoDisplay = 'I have read, understood and agree to the above Release';
-                    } elseif ($photoNormalized === 'I do not agree') {
+                    if (
+                        $photoNormalized === 'I have read, understood, and agree to the above Release.' ||
+                        $photoNormalized === 'I have read, understood and agree to the above Release' ||
+                        $photoNormalized === 'I agree to full use as described'
+                    ) {
+                        $photoDisplay = 'I have read, understood, and agree to the above Release.';
+                    } elseif (
+                        $photoNormalized === 'I do not agree' ||
+                        strpos($photoNormalized, 'I disagree with the above release form') === 0
+                    ) {
                         $photoDisplay = <<<'HTML'
 I disagree with the above release form and I do not give permission to GRASP to distribute Images to other parents of children at the Centre via email, and to publish such Images on the GRASP website, Instagram account, and in promotional materials such as brochures, newsletters and/or any other Center-related publication. I do give permission to display the Images in the Centre and to be used for internal projects.
 HTML;
