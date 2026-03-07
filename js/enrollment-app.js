@@ -1476,6 +1476,7 @@ function buildEmailHtml(data, submittedAt, emailHtmlFromClient) {
     (window.GRASP_DEBUG === true || isDebugMode === true);
 
   const labelMap = {};
+  const fieldMap = {};
   const orderedNames = [];
   (config.steps || []).forEach((step) => {
     (step.groups || []).forEach((group) => {
@@ -1485,10 +1486,34 @@ function buildEmailHtml(data, submittedAt, emailHtmlFromClient) {
         // in the preview/email (they are not rendered in the UI, but they
         // still matter for submission).
         labelMap[field.name] = field.label || field.name;
+        fieldMap[field.name] = field;
         if (!orderedNames.includes(field.name)) orderedNames.push(field.name);
       });
     });
   });
+
+  function formatPreviewValue(name, rawValue) {
+    if (rawValue === undefined || rawValue === null || rawValue === "") {
+      return "—";
+    }
+
+    const field = fieldMap[name];
+    if (
+      field &&
+      (field.type === "radio" || field.type === "select") &&
+      Array.isArray(field.options)
+    ) {
+      const selected = field.options.find(
+        (opt) => String(opt.value) === String(rawValue),
+      );
+      if (selected && typeof selected.label !== "undefined") {
+        return String(selected.label);
+      }
+    }
+
+    return String(rawValue);
+  }
+
   (orderedNames.length ? orderedNames : Object.keys(data || {})).forEach(
     (name) => {
       const label = labelMap[name] || name;
@@ -1499,10 +1524,7 @@ function buildEmailHtml(data, submittedAt, emailHtmlFromClient) {
 
       if (name === "parent2_home_same_as_parent1") return;
 
-      const displayValue =
-        value === undefined || value === null || value === ""
-          ? "—"
-          : String(value);
+      const displayValue = formatPreviewValue(name, value);
 
       const rawName = name.startsWith("field_") ? name.slice(6) : name;
 
