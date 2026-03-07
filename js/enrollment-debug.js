@@ -19,10 +19,10 @@
   function detectDebugMode() {
     try {
       var params = new URLSearchParams(window.location.search);
-      var raw = params.get("DEBUG") || params.get("debug");
+      var raw = params.get("DEBUG") || params.get("debug") || params.get("Debug");
       if (!raw) return false;
       var value = String(raw).toLowerCase();
-      return value === "true" || value === "1" || value === "yes";
+      return value === "true" || value === "1" || value === "yes" || value === "on";
     } catch (e) {
       console.warn("DEBUG: failed to read DEBUG query param", e);
       return false;
@@ -631,6 +631,12 @@ if (type === "radio" || type === "select") {
 
     // Checkboxes: default to true (consent given)
     if (type === "checkbox") {
+      if (typeof field.checkedValue !== "undefined") {
+        return field.checkedValue;
+      }
+      if (typeof field.checkboxLabel !== "undefined") {
+        return field.checkboxLabel;
+      }
       return true;
     }
 

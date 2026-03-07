@@ -112,7 +112,15 @@ class EmailPrintTemplate
 
         // Checkbox: display Yes/No
         if ($type === 'checkbox') {
-            return self::truthy($value) ? 'Yes' : 'No';
+            $checkedValue = $field['checkedValue'] ?? ($field['checkboxLabel'] ?? null);
+            $isChecked = self::truthy($value);
+            if (!$isChecked && $checkedValue !== null && (string)$value === (string)$checkedValue) {
+                $isChecked = true;
+            }
+            if ($checkedValue !== null) {
+                return $isChecked ? (string)$checkedValue : '';
+            }
+            return $isChecked ? 'Yes' : 'No';
         }
 
         return $value;

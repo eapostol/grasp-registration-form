@@ -1072,18 +1072,11 @@
             {
               "name": "arrival_departure_ack",
               "label": "I agree to accompany my child to and from GRASP and notify staff verbally upon arrival and departure.",
-              "type": "radio",
+              "type": "checkbox",
               "required": true,
-              "options": [
-                {
-                  "value": "agree",
-                  "label": "I agree"
-                },
-                {
-                  "value": "disagree",
-                  "label": "I do not agree"
-                }
-              ]
+              "enforceChecked": true,
+              "checkboxLabel": "I agree",
+              "checkedValue": "I agree"
             },
             {
               "name": "arrival_departure_notes",
@@ -1113,19 +1106,11 @@
             {
               "name": "info_sharing_consent",
               "label": "I consent to reciprocal exchange of information about my child between GRASP, the school and Toronto Children’s Services.",
-              "type": "radio",
+              "type": "checkbox",
               "required": true,
-              "default": "yes",
-              "options": [
-                {
-                  "value": "yes",
-                  "label": "I consent and agree"
-                },
-                {
-                  "value": "no",
-                  "label": "I do not consent"
-                }
-              ]
+              "enforceChecked": true,
+              "checkboxLabel": "I consent and agree",
+              "checkedValue": "I consent and agree"
             },
             {
               "type": "static",
@@ -1136,18 +1121,11 @@
             {
               "name": "travel_consent",
               "label": "I give consent for my child to leave GRASP premises for local outings with qualified staff.",
-              "type": "radio",
+              "type": "checkbox",
               "required": true,
-              "options": [
-                {
-                  "value": "yes",
-                  "label": "I acknowledge and agree"
-                },
-                {
-                  "value": "no",
-                  "label": "I do not agree"
-                }
-              ]
+              "enforceChecked": true,
+              "checkboxLabel": "I acknowledge and agree",
+              "checkedValue": "I acknowledge and agree"
             },
             {
               "type": "static",
@@ -1186,34 +1164,20 @@
             {
               "name": "safe_arrival_ack",
               "label": "I acknowledge the Safe Arrival and Dismissal policy and agree to call the childcare by 10am if my child will be absent.",
-              "type": "radio",
+              "type": "checkbox",
               "required": true,
-              "options": [
-                {
-                  "value": "yes",
-                  "label": "I acknowledge and agree"
-                },
-                {
-                  "value": "no",
-                  "label": "I do not agree"
-                }
-              ]
+              "enforceChecked": true,
+              "checkboxLabel": "I acknowledge and agree",
+              "checkedValue": "I acknowledge and agree"
             },
             {
               "name": "before_school_program_ack",
               "label": "I acknowledge that my child may not attend childcare for the before-school program on a daily basis and may be dropped off directly at school. Childcare will not call if my child is absent during the morning portion of program during the school year.",
-              "type": "radio",
-              "required": false,
-              "options": [
-                {
-                  "value": "yes",
-                  "label": "I acknowledge and agree"
-                },
-                {
-                  "value": "no",
-                  "label": "I disagree"
-                }
-              ]
+              "type": "checkbox",
+              "required": true,
+              "enforceChecked": true,
+              "checkboxLabel": "I acknowledge and agree",
+              "checkedValue": "I acknowledge and agree"
             },
             {
               "type": "static",
@@ -1240,34 +1204,20 @@
             {
               "name": "sunscreen_assistance_consent",
               "label": "GRASP may assist my child in the application of sunscreen if necessary.",
-              "type": "radio",
+              "type": "checkbox",
               "required": true,
-              "options": [
-                {
-                  "value": "yes",
-                  "label": "I consent and agree"
-                },
-                {
-                  "value": "no",
-                  "label": "I disagree and do not provide consent"
-                }
-              ]
+              "enforceChecked": true,
+              "checkboxLabel": "I consent and agree",
+              "checkedValue": "I consent and agree"
             },
             {
               "name": "sun_safety_ack",
               "label": "I understand I must send my child with a water bottle and hat each day during July and August.",
-              "type": "radio",
+              "type": "checkbox",
               "required": true,
-              "options": [
-                {
-                  "value": "yes",
-                  "label": "I acknowledge and agree"
-                },
-                {
-                  "value": "no",
-                  "label": "I disagree"
-                }
-              ]
+              "enforceChecked": true,
+              "checkboxLabel": "I acknowledge and agree",
+              "checkedValue": "I acknowledge and agree"
             }
           ]
         },

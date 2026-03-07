@@ -678,6 +678,59 @@ function getFieldValue(name) {
   return formState[name] ?? "";
 }
 
+function getCheckboxCheckedValue(fieldDef) {
+  return typeof fieldDef?.checkedValue !== "undefined"
+    ? fieldDef.checkedValue
+    : (fieldDef?.checkboxLabel || true);
+}
+
+function isCheckboxChecked(fieldDef, rawValue) {
+  if (rawValue === true) return true;
+  if (rawValue === false || rawValue === null || typeof rawValue === "undefined") {
+    return false;
+  }
+
+  const checkedValue = getCheckboxCheckedValue(fieldDef);
+  if (checkedValue !== true && String(rawValue) === String(checkedValue)) {
+    return true;
+  }
+
+  if (typeof rawValue === "number") return rawValue !== 0;
+
+  const s = String(rawValue).trim();
+  if (s === "") return false;
+  const lower = s.toLowerCase();
+
+  const falseTokens = new Set([
+    "0",
+    "false",
+    "no",
+    "n",
+    "off",
+    "disagree",
+    "i do not agree",
+    "i do not consent",
+    "none",
+  ]);
+  if (falseTokens.has(lower)) return false;
+
+  const trueTokens = new Set([
+    "1",
+    "true",
+    "yes",
+    "y",
+    "on",
+    "agree",
+    "i agree",
+    "i consent and agree",
+    "i acknowledge and agree",
+  ]);
+  if (trueTokens.has(lower)) return true;
+
+  // For text-valued consent checkboxes, unknown legacy values are safer as unchecked.
+  return checkedValue === true;
+}
+
 let draftTimer = null;
 function scheduleDraftSave() {
   if (draftTimer) {
@@ -986,10 +1039,22 @@ if (fieldDef.html) {
     const input = document.createElement("input");
     input.type = "checkbox";
     input.id = "field_" + fieldDef.name;
-    input.checked = !!value;
+    const checkedValue = getCheckboxCheckedValue(fieldDef);
+    const uncheckedValue = checkedValue === true ? false : "";
+    const isChecked = isCheckboxChecked(fieldDef, value);
+    input.checked = isChecked;
+
+    // Normalize loaded legacy values into canonical checked/unchecked payload values.
+    const normalizedValue = isChecked ? checkedValue : uncheckedValue;
+    if (value !== normalizedValue) {
+      formState[fieldDef.name] = normalizedValue;
+    }
 
     input.addEventListener("change", () => {
-      setFieldValue(fieldDef.name, input.checked);
+      setFieldValue(
+        fieldDef.name,
+        input.checked ? checkedValue : uncheckedValue,
+      );
     });
 
     const lbl = document.createElement("label");
@@ -997,7 +1062,11 @@ if (fieldDef.html) {
     lbl.htmlFor = input.id;
     lbl.appendChild(input);
     lbl.appendChild(
-      document.createTextNode(" " + (fieldDef.checkboxLabel || "Yes")),
+      document.createTextNode(
+        " " +
+          (fieldDef.checkboxLabel ||
+            (checkedValue === true ? "Yes" : String(checkedValue))),
+      ),
     );
 
     group.appendChild(lbl);
@@ -1333,7 +1402,7 @@ function validateStep(stepIndex) {
           fieldDef.type === "checkbox" &&
           fieldDef.enforceChecked === true
         ) {
-          if (!value) {
+          if (!isCheckboxChecked(fieldDef, value)) {
             valid = false;
             if (errorEl) {
               errorEl.textContent = "You must check this box to proceed.";
@@ -1498,6 +1567,11 @@ function buildEmailHtml(data, submittedAt, emailHtmlFromClient) {
     }
 
     const field = fieldMap[name];
+    if (field?.type === "checkbox") {
+      const checkedValue = getCheckboxCheckedValue(field);
+      return isCheckboxChecked(field, rawValue) ? String(checkedValue) : "—";
+    }
+
     if (
       field &&
       (field.type === "radio" || field.type === "select") &&
@@ -1561,6 +1635,32 @@ function buildEmailHtml(data, submittedAt, emailHtmlFromClient) {
     "</div>";
 
   return html;
+}
+
+function buildSubmissionData() {
+  const data = { ...formState };
+  if (!config || !Array.isArray(config.steps)) return data;
+
+  (config.steps || []).forEach((step) => {
+    (step.groups || []).forEach((group) => {
+      (group.fields || []).forEach((field) => {
+        if (!field || !field.name || field.type !== "checkbox") return;
+
+        const checkedValue = getCheckboxCheckedValue(field);
+        const raw = data[field.name];
+        const checked = isCheckboxChecked(field, raw);
+
+        if (checkedValue === true) {
+          data[field.name] = checked;
+          return;
+        }
+
+        data[field.name] = checked ? String(checkedValue) : "";
+      });
+    });
+  });
+
+  return data;
 }
 
 function bindClearSavedDataButton() {
@@ -1870,7 +1970,7 @@ function collectValidationIssues() {
             fieldDef.type === "checkbox" &&
             fieldDef.enforceChecked === true
           ) {
-            if (!value) {
+            if (!isCheckboxChecked(fieldDef, value)) {
               issues.push({
                 name,
                 label,
@@ -1922,12 +2022,13 @@ async function openPreview() {
   const issues = collectValidationIssues();
   const canSubmit = issues.length === 0;
   const submittedAt = new Date().toISOString();
+  const submissionData = buildSubmissionData();
 
   const payload = {
     formId: FORM_ID,
     sessionId,
     submittedAt,
-    data: { ...formState },
+    data: submissionData,
   };
 
   let previewHtml = buildEmailHtml(payload.data, payload.submittedAt, null);
@@ -2032,10 +2133,13 @@ async function submitEnrollment(payload, previewHtml) {
 async function initWizard() {
   try {
     const params = getQueryParams();
+    const debugRaw = params.DEBUG ?? params.debug ?? params.Debug ?? "";
+    const debugValue = String(debugRaw).toLowerCase();
     isDebugMode =
-      params.DEBUG === "true" ||
-      params.debug === "true" ||
-      params.debug === "1";
+      debugValue === "true" ||
+      debugValue === "1" ||
+      debugValue === "yes" ||
+      debugValue === "on";
 
     await loadConfig();
     await loadDraft();

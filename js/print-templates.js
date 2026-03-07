@@ -876,6 +876,51 @@ an updated immunization record must be attached to thisform. </em>
       type: "date",
     });
 
+    function isCheckedCheckboxValue(field, raw) {
+      if (raw === true) return true;
+      if (raw === false || raw === null || typeof raw === "undefined") return false;
+      if (typeof raw === "number") return raw !== 0;
+
+      const checkedValue =
+        typeof field?.checkedValue !== "undefined"
+          ? field.checkedValue
+          : (field?.checkboxLabel || true);
+      if (checkedValue !== true && String(raw) === String(checkedValue)) {
+        return true;
+      }
+
+      const s = String(raw).trim().toLowerCase();
+      if (!s) return false;
+      if (
+        s === "0" ||
+        s === "false" ||
+        s === "no" ||
+        s === "n" ||
+        s === "off" ||
+        s === "disagree" ||
+        s === "i do not agree" ||
+        s === "i do not consent" ||
+        s === "none"
+      ) {
+        return false;
+      }
+      if (
+        s === "1" ||
+        s === "true" ||
+        s === "yes" ||
+        s === "y" ||
+        s === "on" ||
+        s === "agree" ||
+        s === "i agree" ||
+        s === "i consent and agree" ||
+        s === "i acknowledge and agree"
+      ) {
+        return true;
+      }
+
+      return checkedValue === true;
+    }
+
     // Convert a stored value into a printable display value using config options where possible.
     function displayFieldValue(fieldName, opts = {}) {
       const raw = getValue(state, fieldName);
@@ -891,7 +936,12 @@ an updated immunization record must be attached to thisform. </em>
       }
 
       if (field?.type === "checkbox") {
-        return raw ? "YES" : "NO";
+        if (!isCheckedCheckboxValue(field, raw)) return "";
+        return String(
+          typeof field.checkedValue !== "undefined"
+            ? field.checkedValue
+            : (field.checkboxLabel || "Yes"),
+        );
       }
 
       if (field?.type === "radio") {
