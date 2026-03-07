@@ -1588,15 +1588,34 @@ function buildEmailHtml(data, submittedAt, emailHtmlFromClient) {
     return String(rawValue);
   }
 
+  function renderStaticPolicyRow(fieldDef) {
+    const policyHtml =
+      fieldDef && typeof fieldDef.html === "string" ? fieldDef.html.trim() : "";
+    if (!policyHtml) return "";
+    return (
+      "<tr>" +
+      '<td colspan="2" style="border:1px solid #e5e7eb;padding:8px 10px;">' +
+      policyHtml +
+      "</td>" +
+      "</tr>"
+    );
+  }
+
   (orderedNames.length ? orderedNames : Object.keys(data || {})).forEach(
     (name) => {
       const label = labelMap[name] || name;
+      const field = fieldMap[name];
       const value =
         data && Object.prototype.hasOwnProperty.call(data, name)
           ? data[name]
           : undefined;
 
       if (name === "parent2_home_same_as_parent1") return;
+
+      if (field?.type === "static" && typeof field.html === "string" && field.html.trim() !== "") {
+        rows += renderStaticPolicyRow(field);
+        return;
+      }
 
       const displayValue = formatPreviewValue(name, value);
 

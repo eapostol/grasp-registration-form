@@ -1011,6 +1011,16 @@ an updated immunization record must be attached to thisform. </em>
       return `<div class="grasp-page">${headerHtml()}${bodyHtml}</div>`;
     }
 
+    function getStaticPolicyHtml(fieldName, fallbackHtml = "") {
+      const field = cfg ? findField(cfg, fieldName) : null;
+      const policyHtml =
+        field?.type === "static" && typeof field.html === "string"
+          ? field.html.trim()
+          : "";
+      if (!policyHtml) return fallbackHtml;
+      return `<div class="grasp-policy-content">${policyHtml}</div>`;
+    }
+
     // -----------------
     // Page 1 (Info)
     // -----------------
@@ -1274,9 +1284,12 @@ an updated immunization record must be attached to thisform. </em>
       </div>`,
       `<div class="grasp-section">
         <div class="grasp-section-title">Arrival & Departure Procedure</div>
-        <p class="grasp-paragraph">
-          I, <span class="grasp-inline-fill">${escapeHtml(parentSig || "")}</span>, agree to accompany my child to and from the GRASP classroom and notify staff verbally upon arrival and departure. I understand that it is my responsibility to inform all pick up and drop off persons of this policy and ensure they make verbal contact with the staff.
-        </p>
+        ${getStaticPolicyHtml(
+          "arrival_departure_policy_text",
+          `<p class="grasp-paragraph">
+            I, <span class="grasp-inline-fill">${escapeHtml(parentSig || "")}</span>, agree to accompany my child to and from the GRASP classroom and notify staff verbally upon arrival and departure. I understand that it is my responsibility to inform all pick up and drop off persons of this policy and ensure they make verbal contact with the staff.
+          </p>`,
+        )}
         ${kvTable([kvRow("Acknowledgement", arrivalAck), kvRow("Notes", arrivalNotes, { multiline: true })].join(""))}
         ${signatureRow({ includeWitness: true, includeDate: true })}
       </div>`,
@@ -1295,30 +1308,39 @@ an updated immunization record must be attached to thisform. </em>
       </div>`,
       `<div class="grasp-section">
         <div class="grasp-section-title">Disclosure of Information Policy</div>
-        <p class="grasp-paragraph">
-          Consent for sharing information among professionals involved in a child’s day enhances educational and family support. I,
-          <span class="grasp-inline-fill">${escapeHtml(parentSig || "")}</span>, consent to reciprocal exchange of information about my child,
-          <span class="grasp-inline-fill">${escapeHtml(childName || "")}</span>, between GRASP, the school and Toronto Children’s Services.
-        </p>
+        ${getStaticPolicyHtml(
+          "disclosure_info_policy_text",
+          `<p class="grasp-paragraph">
+            Consent for sharing information among professionals involved in a child’s day enhances educational and family support. I,
+            <span class="grasp-inline-fill">${escapeHtml(parentSig || "")}</span>, consent to reciprocal exchange of information about my child,
+            <span class="grasp-inline-fill">${escapeHtml(childName || "")}</span>, between GRASP, the school and Toronto Children’s Services.
+          </p>`,
+        )}
         ${kvTable(kvRow("Selection", infoSharing))}
         ${signatureRow({ includeWitness: true, includeDate: true })}
       </div>`,
       `<div class="grasp-section">
         <div class="grasp-section-title">Travel Consent</div>
-        <p class="grasp-paragraph">
-          I, <span class="grasp-inline-fill">${escapeHtml(parentSig || "")}</span>, the parent/guardian of
-          <span class="grasp-inline-fill">${escapeHtml(childName || "")}</span>, give consent for my child to leave GRASP premises under staff supervision to participate in local outings that can be reached without motorized transportation.
-        </p>
+        ${getStaticPolicyHtml(
+          "travel_consent_policy_text",
+          `<p class="grasp-paragraph">
+            I, <span class="grasp-inline-fill">${escapeHtml(parentSig || "")}</span>, the parent/guardian of
+            <span class="grasp-inline-fill">${escapeHtml(childName || "")}</span>, give consent for my child to leave GRASP premises under staff supervision to participate in local outings that can be reached without motorized transportation.
+          </p>`,
+        )}
         ${kvTable(kvRow("Selection", travelConsent2))}
         ${signatureRow({ includeWitness: true, includeDate: true })}
       </div>`,
       `<div class="grasp-section">
         <div class="grasp-section-title">Photograph / Media Release</div>
-        <p class="grasp-paragraph" style="text-align: justify;">
-  <span style="font-weight:600; text-decoration:underline;">PHOTOGRAPH / MEDIA RELEASE</span><br>
-  I hereby grant Greenland After School Recreational Program (“GRASP” or the “Centre”) the right to reproduce, use, exhibit, copy, distribute, display, and broadcast photographed or electronic images and/or audio-video recordings (collectively, “Images”) of my child for use in connection with GRASP activities or for promoting, publicizing or explaining GRASP and/or its activities.<br><br>
-  This permission includes, without limitation, the right to display the Images in the Centre, distribute the Images to other parents of children at the Centre via email, and to publish such Images on the GRASP website, Instagram account, and in promotional materials such as brochures, newsletters and/or any other Centre-related publication.
-</p>
+        ${getStaticPolicyHtml(
+          "photo_media_release_policy_text",
+          `<p class="grasp-paragraph" style="text-align: justify;">
+            <span style="font-weight:600; text-decoration:underline;">PHOTOGRAPH / MEDIA RELEASE</span><br>
+            I hereby grant Greenland After School Recreational Program (“GRASP” or the “Centre”) the right to reproduce, use, exhibit, copy, distribute, display, and broadcast photographed or electronic images and/or audio-video recordings (collectively, “Images”) of my child for use in connection with GRASP activities or for promoting, publicizing or explaining GRASP and/or its activities.<br><br>
+            This permission includes, without limitation, the right to display the Images in the Centre, distribute the Images to other parents of children at the Centre via email, and to publish such Images on the GRASP website, Instagram account, and in promotional materials such as brochures, newsletters and/or any other Centre-related publication.
+          </p>`,
+        )}
 ${kvTable(kvRow("Selection", photoConsent))}
         ${signatureRow({ includeWitness: true, includeDate: true })}
       </div>`,
@@ -1339,10 +1361,12 @@ ${kvTable(kvRow("Selection", photoConsent))}
     const page5Body = [
       `<div class="grasp-section">
         <div class="grasp-section-title">Safe Arrival & Sun Safety</div>
-        <div class="grasp-subtitle">SAFE ARRIVAL AND DISMISSAL Acknowledgement</div>
-        <p class="grasp-paragraph">
-          This policy helps support the safe arrival and dismissal of children receiving care. Parents must call and inform the childcare by 10am if their child will be absent from childcare and/or school.
-        </p>
+        ${getStaticPolicyHtml(
+          "safe_arrival_policy_text",
+          `<p class="grasp-paragraph">
+            This policy helps support the safe arrival and dismissal of children receiving care. Parents must call and inform the childcare by 10am if their child will be absent from childcare and/or school.
+          </p>`,
+        )}
         ${kvTable(
           [
             kvRow("Acknowledgement", safeArrival),
@@ -1357,9 +1381,12 @@ ${kvTable(kvRow("Selection", photoConsent))}
       </div>`,
       `<div class="grasp-section">
         <div class="grasp-section-title">Sun & Safety Policy – Sunscreen</div>
-        <p class="grasp-paragraph">
-          GRASP will provide sunscreen for the summer months (NO-AD SPF 30–45). Parents who wish to provide their own sunscreen must supply a labelled cream-only bottle with their child’s name.
-        </p>
+        ${getStaticPolicyHtml(
+          "sun_safety_policy_text",
+          `<p class="grasp-paragraph">
+            GRASP will provide sunscreen for the summer months (NO-AD SPF 30–45). Parents who wish to provide their own sunscreen must supply a labelled cream-only bottle with their child’s name.
+          </p>`,
+        )}
         ${kvTable(
           [
             kvRow("Sunscreen arrangement", sunscreenProvidedBy),
