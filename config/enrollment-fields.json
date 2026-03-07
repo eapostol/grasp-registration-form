@@ -922,36 +922,20 @@
             {
               "name": "water_play_consent",
               "label": "Authorization for recreational water play (splash pads, supervised pools, etc.)",
-              "type": "radio",
+              "type": "checkbox",
               "required": true,
-              "default": "no",
-              "options": [
-                {
-                  "value": "yes",
-                  "label": "I consent"
-                },
-                {
-                  "value": "no",
-                  "label": "I do not consent"
-                }
-              ]
+              "enforceChecked": true,
+              "checkboxLabel": "I acknowledge and agree",
+              "checkedValue": "I acknowledge and agree"
             },
             {
               "name": "hand_sanitizer_consent",
               "label": "Authorization for the use of hand sanitizer (70–90% alcohol, as per Toronto Public Health)",
-              "type": "radio",
+              "type": "checkbox",
               "required": true,
-              "default": "no",
-              "options": [
-                {
-                  "value": "yes",
-                  "label": "I consent"
-                },
-                {
-                  "value": "no",
-                  "label": "I do not consent"
-                }
-              ]
+              "enforceChecked": true,
+              "checkboxLabel": "I acknowledge and agree",
+              "checkedValue": "I acknowledge and agree"
             }
           ],
           "contentBlocks": [
