@@ -241,7 +241,16 @@ class FormPdfGenerator
         if ($safeBase === '') $safeBase = 'GRASP-Form';
 
         $filename = $safeBase . '.pdf';
-        $tmpPath = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $filename;
+
+        // Allow caller to override temp output directory (useful in restricted hosting environments).
+        $tmpDir = '';
+        if (!empty($opts['tmpDir']) && is_string($opts['tmpDir'])) {
+            $tmpDir = trim($opts['tmpDir']);
+        }
+        if ($tmpDir === '') {
+            $tmpDir = sys_get_temp_dir();
+        }
+        $tmpPath = rtrim($tmpDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $filename;
 
         $pdf->Output($tmpPath, 'F');
 
