@@ -1711,6 +1711,7 @@ let _previewModalWired = false;
 let _previewOnSubmit = null;
 let _previewLastHtml = "";
 let _previewLastPrintHtml = "";
+let _previewLastPayload = null;
 let isPreviewDebugMode = false;
 
 function printPreviewViaIframe(previewHtml) {
@@ -1760,6 +1761,40 @@ function printPreviewViaIframe(previewHtml) {
   <div class="grasp-print-container">${html}</div>
 </body>
 </html>`;
+}
+
+function printPdfBlobViaIframe(pdfBlob) {
+  if (!(pdfBlob instanceof Blob) || pdfBlob.size === 0) {
+    throw new Error("Invalid PDF blob");
+  }
+
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  iframe.style.visibility = "hidden";
+  document.body.appendChild(iframe);
+
+  const objectUrl = URL.createObjectURL(pdfBlob);
+  iframe.onload = () => {
+    try {
+      iframe.contentWindow && iframe.contentWindow.focus();
+      iframe.contentWindow && iframe.contentWindow.print();
+    } finally {
+      setTimeout(() => {
+        try {
+          URL.revokeObjectURL(objectUrl);
+        } catch {}
+        iframe.remove();
+      }, 1000);
+    }
+  };
+
+  iframe.src = objectUrl;
 }
 
 
@@ -1826,24 +1861,39 @@ function showPreviewModal(
     if (btnClose) btnClose.addEventListener("click", close);
 
     if (btnPrint) {
-      btnPrint.addEventListener("click", () => {
-        // Print should always use the PDF-style view when available.
+      btnPrint.addEventListener("click", async () => {
+        const originalText = btnPrint.textContent;
+        btnPrint.disabled = true;
+        btnPrint.textContent = "Preparing PDF...";
+
         try {
-          const build =
-            window.GRASP_PRINT_TEMPLATES &&
-            window.GRASP_PRINT_TEMPLATES.buildEnrollmentPrintHtml;
-          const printHtml =
-            _previewLastPrintHtml ||
-            (typeof build === "function"
-              ? build(formState, window.config)
-              : _previewLastHtml);
-          printPreviewViaIframe(printHtml);
+          if (!_previewLastPayload) {
+            throw new Error("No preview payload available for PDF print");
+          }
+          const pdfBlob = await buildServerPreviewPdfBlob(_previewLastPayload);
+          printPdfBlobViaIframe(pdfBlob);
         } catch (e) {
-          console.warn(
-            "[GRASP][enrollment] print template failed; falling back to preview HTML",
-            e,
-          );
-          printPreviewViaIframe(_previewLastHtml);
+          console.warn("[GRASP][enrollment] PDF print failed; falling back to HTML print", e);
+          try {
+            const build =
+              window.GRASP_PRINT_TEMPLATES &&
+              window.GRASP_PRINT_TEMPLATES.buildEnrollmentPrintHtml;
+            const printHtml =
+              _previewLastPrintHtml ||
+              (typeof build === "function"
+                ? build(formState, window.config)
+                : _previewLastHtml);
+            printPreviewViaIframe(printHtml);
+          } catch (fallbackErr) {
+            console.warn(
+              "[GRASP][enrollment] fallback HTML print failed; printing preview HTML",
+              fallbackErr,
+            );
+            printPreviewViaIframe(_previewLastHtml);
+          }
+        } finally {
+          btnPrint.disabled = false;
+          btnPrint.textContent = originalText || "Print";
         }
       });
     }
@@ -2070,6 +2120,36 @@ async function buildServerPreviewHtml(payload) {
     pdfHtml: typeof json.pdfHtml === "string" ? json.pdfHtml : "",
   };
 }
+
+async function buildServerPreviewPdfBlob(payload) {
+  const res = await fetch("../api/preview_enrollment_pdf.php", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/pdf",
+    },
+    body: JSON.stringify({
+      sessionId: payload?.sessionId || "",
+      submittedAt: payload?.submittedAt || "",
+      data: payload?.data || {},
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Non-200 response from preview_enrollment_pdf.php");
+  }
+
+  const contentType = String(res.headers.get("content-type") || "").toLowerCase();
+  if (!contentType.includes("application/pdf")) {
+    throw new Error("Preview PDF endpoint did not return a PDF");
+  }
+
+  const blob = await res.blob();
+  if (!blob || blob.size === 0) {
+    throw new Error("Preview PDF blob is empty");
+  }
+  return blob;
+}
 /**
  * Preview + submit handler
  */
@@ -2096,6 +2176,7 @@ async function openPreview() {
     submittedAt,
     data: submissionData,
   };
+  _previewLastPayload = { ...payload };
 
   const legacyPreviewHtml = buildEmailHtml(payload.data, payload.submittedAt, null);
   let serverPreview = null;
