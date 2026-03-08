@@ -457,9 +457,9 @@ function addDebugToolsPanel() {
   function generateDebugFieldValue(field) {
     if (!field) return undefined;
 
-    // [GRASP-DEBUG] Hidden / derived fields are computed via syncDerivedFields,
-    // so we do not assign them directly in DEBUG mode.
-    if (field.type === "hidden") {
+    // [GRASP-DEBUG] Hidden/derived and static display-only fields should not
+    // be assigned directly in DEBUG mode.
+    if (field.type === "hidden" || field.type === "static") {
       return undefined;
     }
 

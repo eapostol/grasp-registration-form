@@ -178,6 +178,21 @@
     white-space: pre-wrap;
   }
 
+  .grasp-policy-content .grasp-policy-block {
+    font-size: 10.5pt;
+    line-height: 1.35;
+    text-align: justify;
+  }
+
+  .grasp-policy-content .grasp-policy-heading {
+    font-weight: 700;
+    margin: 0 0 6px;
+  }
+
+  .grasp-policy-content .grasp-policy-block p {
+    margin: 0 0 10px;
+  }
+
   /* Waitlist: clean paragraph (avoid hard-wrapped line breaks) */
   .grasp-paragraph {
     font-size: 10.5pt;
