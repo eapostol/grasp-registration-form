@@ -2122,7 +2122,11 @@ async function buildServerPreviewHtml(payload) {
 }
 
 async function buildServerPreviewPdfBlob(payload) {
-  const res = await fetch("../api/preview_enrollment_pdf.php", {
+  const previewPdfUrl =
+    "../api/preview_enrollment_pdf.php" +
+    (isPreviewDebugMode || isDebugMode ? "?isdebug=1" : "");
+
+  const res = await fetch(previewPdfUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
