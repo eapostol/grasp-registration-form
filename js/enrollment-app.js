@@ -1710,9 +1710,14 @@ function bindClearSavedDataButton() {
 let _previewModalWired = false;
 let _previewOnSubmit = null;
 let _previewLastHtml = "";
+let _previewLastPrintHtml = "";
+let isPreviewDebugMode = false;
 
 function printPreviewViaIframe(previewHtml) {
-  const html = previewHtml || "";
+  const html = String(previewHtml || "").replace(
+    /<tcpdf\b[^>]*method=["']AddPage["'][^>]*\/?>/gi,
+    '<div class="grasp-page-break"></div>',
+  );
 
   // Avoid popup blockers by printing from a hidden iframe.
   const iframe = document.createElement("iframe");
@@ -1728,9 +1733,10 @@ function printPreviewViaIframe(previewHtml) {
 
   const printCss = `
     body { margin: 0; padding: 0; }
+    .grasp-page-break { break-before: page; page-break-before: always; }
   `;
 
-  const printCssHref = new URL("css/print.css", window.location.href).toString();
+  const printCssHref = new URL("../css/print.css", window.location.href).toString();
 
   iframe.onload = () => {
     try {
@@ -1767,7 +1773,10 @@ function hidePreviewModal() {
   document.body.style.overflow = "";
 }
 
-function showPreviewModal(html, { canSubmit = false, onSubmit = null } = {}) {
+function showPreviewModal(
+  html,
+  { canSubmit = false, onSubmit = null, printHtml = "" } = {},
+) {
   const modal = byId("grasp-preview-modal");
   const content = byId("grasp-preview-content");
   const btnCloseX = byId("grasp-preview-close");
@@ -1781,6 +1790,7 @@ function showPreviewModal(html, { canSubmit = false, onSubmit = null } = {}) {
   }
 
   _previewLastHtml = html || "";
+  _previewLastPrintHtml = printHtml || "";
   content.innerHTML = _previewLastHtml;
   _previewOnSubmit = onSubmit;
 
@@ -1817,13 +1827,22 @@ function showPreviewModal(html, { canSubmit = false, onSubmit = null } = {}) {
 
     if (btnPrint) {
       btnPrint.addEventListener("click", () => {
-        // Print uses a dedicated print template (PDF-like), separate from the on-screen email preview.
+        // Print should always use the PDF-style view when available.
         try {
-          const build = window.GRASP_PRINT_TEMPLATES && window.GRASP_PRINT_TEMPLATES.buildEnrollmentPrintHtml;
-          const printHtml = typeof build === "function" ? build(formState, window.config) : _previewLastHtml;
+          const build =
+            window.GRASP_PRINT_TEMPLATES &&
+            window.GRASP_PRINT_TEMPLATES.buildEnrollmentPrintHtml;
+          const printHtml =
+            _previewLastPrintHtml ||
+            (typeof build === "function"
+              ? build(formState, window.config)
+              : _previewLastHtml);
           printPreviewViaIframe(printHtml);
         } catch (e) {
-          console.warn('[GRASP][enrollment] print template failed; falling back to preview HTML', e);
+          console.warn(
+            "[GRASP][enrollment] print template failed; falling back to preview HTML",
+            e,
+          );
           printPreviewViaIframe(_previewLastHtml);
         }
       });
@@ -2023,6 +2042,34 @@ function collectValidationIssues() {
 function isFormSubmittable() {
   return collectValidationIssues().length === 0;
 }
+
+async function buildServerPreviewHtml(payload) {
+  const res = await fetch("../api/preview_enrollment.php", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sessionId: payload?.sessionId || "",
+      submittedAt: payload?.submittedAt || "",
+      data: payload?.data || {},
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Non-200 response from preview_enrollment.php");
+  }
+
+  const json = await res.json();
+  if (!json || !json.success) {
+    throw new Error((json && json.error) || "Preview build failed");
+  }
+
+  return {
+    emailHtml: typeof json.emailHtml === "string" ? json.emailHtml : "",
+    pdfHtml: typeof json.pdfHtml === "string" ? json.pdfHtml : "",
+  };
+}
 /**
  * Preview + submit handler
  */
@@ -2050,7 +2097,33 @@ async function openPreview() {
     data: submissionData,
   };
 
-  let previewHtml = buildEmailHtml(payload.data, payload.submittedAt, null);
+  const legacyPreviewHtml = buildEmailHtml(payload.data, payload.submittedAt, null);
+  let serverPreview = null;
+  try {
+    serverPreview = await buildServerPreviewHtml(payload);
+  } catch (e) {
+    console.warn("[GRASP][enrollment] server preview build failed; using local fallback", e);
+  }
+
+  let previewHtml = isPreviewDebugMode
+    ? legacyPreviewHtml
+    : (serverPreview?.emailHtml || legacyPreviewHtml);
+
+  let printHtml = serverPreview?.pdfHtml || "";
+  if (!printHtml) {
+    try {
+      const build =
+        window.GRASP_PRINT_TEMPLATES &&
+        window.GRASP_PRINT_TEMPLATES.buildEnrollmentPrintHtml;
+      printHtml =
+        typeof build === "function"
+          ? build(formState, window.config)
+          : previewHtml;
+    } catch (e) {
+      console.warn("[GRASP][enrollment] local print template failed; using preview html", e);
+      printHtml = previewHtml;
+    }
+  }
 
   if (!canSubmit) {
     const issueListHtml =
@@ -2087,11 +2160,14 @@ async function openPreview() {
       previewHtml;
   }
 
+  const previewHtmlForSubmission =
+    serverPreview?.emailHtml || legacyPreviewHtml;
+
   const onSubmit = async () => {
-    await submitEnrollment(payload, previewHtml);
+    await submitEnrollment(payload, previewHtmlForSubmission);
   };
 
-  showPreviewModal(previewHtml, { canSubmit, onSubmit });
+  showPreviewModal(previewHtml, { canSubmit, onSubmit, printHtml });
 }
 
 /**
@@ -2159,6 +2235,19 @@ async function initWizard() {
       debugValue === "1" ||
       debugValue === "yes" ||
       debugValue === "on";
+
+    const previewDebugRaw =
+      params.ISDEBUG ??
+      params.isdebug ??
+      params.Isdebug ??
+      params.isDebug ??
+      "";
+    const previewDebugValue = String(previewDebugRaw).toLowerCase();
+    isPreviewDebugMode =
+      previewDebugValue === "true" ||
+      previewDebugValue === "1" ||
+      previewDebugValue === "yes" ||
+      previewDebugValue === "on";
 
     await loadConfig();
     await loadDraft();
