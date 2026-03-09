@@ -4,10 +4,11 @@ set -euo pipefail
 # Re-render Parent Manual page images from the source PDF.
 #
 # Usage (from repo root):
-#   bash tools/render-parent-manual-pages.sh [path-to-pdf] [dpi]
+#   bash tools/render-parent-manual-pages.sh [path-to-pdf] [dpi] [jpeg-quality]
 #
 # Examples:
 #   bash tools/render-parent-manual-pages.sh parent-manual-form/assets/GRASP-parent-manual-2026.pdf 110
+#   bash tools/render-parent-manual-pages.sh parent-manual-form/assets/GRASP-parent-manual-2026.pdf 110 82
 #
 # Requirements (WSL/Ubuntu):
 #   sudo apt-get update && sudo apt-get install -y poppler-utils
@@ -19,6 +20,7 @@ set -euo pipefail
 
 PDF_PATH="${1:-parent-manual-form/assets/GRASP-parent-manual-2026.pdf}"
 DPI="${2:-110}"
+JPEG_QUALITY="${3:-82}"
 
 OUTDIR="parent-manual-form/assets/pages"
 TMPDIR="$(mktemp -d)"
@@ -32,8 +34,13 @@ fi
 mkdir -p "$OUTDIR"
 rm -f "$OUTDIR"/page-*.jpg
 
-echo "Rendering pages from: $PDF_PATH (DPI=$DPI)"
-pdftoppm -jpeg -r "$DPI" "$PDF_PATH" "$TMPDIR/page" >/dev/null
+if [[ ! "$JPEG_QUALITY" =~ ^[0-9]+$ ]] || [ "$JPEG_QUALITY" -lt 1 ] || [ "$JPEG_QUALITY" -gt 100 ]; then
+  echo "Invalid jpeg-quality: $JPEG_QUALITY (expected integer 1-100)"
+  exit 1
+fi
+
+echo "Rendering pages from: $PDF_PATH (DPI=$DPI, JPEG_QUALITY=$JPEG_QUALITY)"
+pdftoppm -jpeg -jpegopt "quality=$JPEG_QUALITY" -r "$DPI" "$PDF_PATH" "$TMPDIR/page" >/dev/null
 
 # Rename to padded page-01.jpg format
 count=0
