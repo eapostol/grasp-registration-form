@@ -776,7 +776,7 @@
               "type": "textarea",
               "required": true,
               "placeholder": "i.e. Jane Smith, aunt, 416-555-1234 \n     John Smith, uncle, 416-111-2222",
-              "helpText": "List 3 in order of priority, and include their full name, relationship and phone number. List each authorized pick up on a new line in the text box below. "
+              "helpText": "List three (3) additional pick up contacts in order of priority, and include their full name, relationship and phone number. List each authorized pick up on a new line in the text box below. "
             }
           ],
           "contentBlocks": [
