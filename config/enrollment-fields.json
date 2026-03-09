@@ -801,19 +801,11 @@
             {
               "name": "medical_release_consent",
               "label": "I acknowledge and agree for GRASP staff to secure emergency medical treatment for my child.",
-              "type": "radio",
+              "type": "checkbox",
               "required": true,
-              "default": "agree",
-              "options": [
-                {
-                  "value": "agree",
-                  "label": "I agree"
-                },
-                {
-                  "value": "disagree",
-                  "label": "I do not agree"
-                }
-              ]
+              "enforceChecked": true,
+              "checkboxLabel": "I agree",
+              "checkedValue": "I agree"
             }
           ],
           "contentBlocks": [
