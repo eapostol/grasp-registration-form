@@ -48,6 +48,7 @@ $config = require __DIR__ . '/config.php';
 
 require_once __DIR__ . '/lib/EmailPrintTemplate.php';
 require_once __DIR__ . '/lib/FormPdfGenerator.php';
+require_once __DIR__ . '/lib/NormalizedSubmissionStore.php';
 // 1) Save to DB (optional)
 $dbSaved = false;
 
@@ -150,6 +151,27 @@ if ($emailHtml === '') {
     $emailHtml = '<h2 style="margin:0 0 12px 0;">GRASP Enrollment Form</h2>'
               . '<p style="margin:0 0 10px 0;">Submitted: ' . escape_html($submittedAt) . '</p>'
               . '<table style="border-collapse:collapse;width:100%;">' . $rows . '</table>';
+}
+
+// Best-effort dual-write to normalized DB (does not block legacy flow).
+$normalizedResult = ['ok' => false, 'skipped' => true];
+try {
+    $normalizedResult = NormalizedSubmissionStore::persistSubmission([
+        'dsn' => $config['db']['dsn'] ?? '',
+        'user' => $config['db']['user'] ?? '',
+        'password' => $config['db']['password'] ?? '',
+        'formType' => 'enrollment',
+        'sessionId' => $sessionId,
+        'submittedAt' => $submittedAt,
+        'status' => 'submitted',
+        'fields' => $fields,
+        'payloadJson' => json_encode($fields, JSON_UNESCAPED_UNICODE),
+        'emailHtml' => $emailHtml,
+        'pdfHtml' => $pdfHtml,
+        'source' => 'submit_enrollment.php',
+    ]);
+} catch (Throwable $e) {
+    $normalizedResult = ['ok' => false, 'error' => $e->getMessage()];
 }
 
 
@@ -306,6 +328,17 @@ if (!$success && $mailError === '') {
     }
 }
 
+if ($success && !empty($normalizedResult['submissionId'])) {
+    NormalizedSubmissionStore::markEmailSent([
+        'dsn' => $config['db']['dsn'] ?? '',
+        'user' => $config['db']['user'] ?? '',
+        'password' => $config['db']['password'] ?? '',
+        'submissionId' => (int)$normalizedResult['submissionId'],
+        'source' => 'submit_enrollment.php',
+        'meta' => ['mailSent' => true],
+    ]);
+}
+
 // Optional: log outcome while debugging on staging
 
 $logFile = __DIR__ . '/../submit_enrollment.log';
@@ -318,6 +351,7 @@ $logFile = __DIR__ . '/../submit_enrollment.log';
     . ' envFromUsed=' . var_export($envFromUsed, true)
     . ' mailError=' . ($mailError !== '' ? $mailError : '-')
     . ' dbSaved=' . var_export($dbSaved, true)
+    . ' normalizedSaved=' . var_export(!empty($normalizedResult['ok']), true)
     . ' to=' . $to
     . PHP_EOL,
     FILE_APPEND
@@ -329,6 +363,7 @@ echo json_encode([
     'envFromUsed' => $envFromUsed,
     'mailError' => $mailError,
     'dbSaved' => $dbSaved,
+    'normalizedSaved' => !empty($normalizedResult['ok']),
 ]);
 
 // cleanup temp pdf

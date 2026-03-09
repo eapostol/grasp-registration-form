@@ -37,6 +37,7 @@ $config = require __DIR__ . '/config.php';
 
 require_once __DIR__ . '/lib/EmailPrintTemplate.php';
 require_once __DIR__ . '/lib/FormPdfGenerator.php';
+require_once __DIR__ . '/lib/NormalizedSubmissionStore.php';
 $to = $config['email_to'] ?? '';
 $from = $config['email_from'] ?? '';
 if (!$to || !$from) {
@@ -71,6 +72,10 @@ if ($sessionId !== '') {
 }
 
 $submittedAtRaw = isset($payload['submittedAt']) ? trim((string)$payload['submittedAt']) : '';
+$submittedAtSql = date('Y-m-d H:i:s', strtotime($submittedAtRaw ?: 'now'));
+if ($submittedAtSql === false || $submittedAtSql === null) {
+  $submittedAtSql = date('Y-m-d H:i:s');
+}
 if ($submittedAtRaw !== '') {
   try {
     $dt = new DateTime($submittedAtRaw);
@@ -129,6 +134,27 @@ try {
 } catch (Throwable $e) {
   // Non-fatal: still send the email body even if PDF generation fails (unlike Parent Manual)
   $pdfTmpPath = null;
+}
+
+// Best-effort dual-write to normalized DB (non-blocking for email flow).
+$normalizedResult = ['ok' => false, 'skipped' => true];
+try {
+  $normalizedResult = NormalizedSubmissionStore::persistSubmission([
+    'dsn' => $config['db']['dsn'] ?? '',
+    'user' => $config['db']['user'] ?? '',
+    'password' => $config['db']['password'] ?? '',
+    'formType' => 'waitlist',
+    'sessionId' => $sessionId,
+    'submittedAt' => $submittedAtSql,
+    'status' => 'submitted',
+    'fields' => $data,
+    'payloadJson' => json_encode($data, JSON_UNESCAPED_UNICODE),
+    'emailHtml' => $emailHtml,
+    'pdfHtml' => $pdfHtml,
+    'source' => 'submit_waitlist.php',
+  ]);
+} catch (Throwable $e) {
+  $normalizedResult = ['ok' => false, 'error' => $e->getMessage()];
 }
 
 // Build MIME email (HTML + optional PDF)
@@ -229,7 +255,22 @@ if (!$sent) {
   exit;
 }
 
-echo json_encode(['ok' => true]);
+// Best-effort event: email sent.
+if (!empty($normalizedResult['submissionId'])) {
+  NormalizedSubmissionStore::markEmailSent([
+    'dsn' => $config['db']['dsn'] ?? '',
+    'user' => $config['db']['user'] ?? '',
+    'password' => $config['db']['password'] ?? '',
+    'submissionId' => (int)$normalizedResult['submissionId'],
+    'source' => 'submit_waitlist.php',
+    'meta' => ['mailSent' => true],
+  ]);
+}
+
+echo json_encode([
+  'ok' => true,
+  'normalizedSaved' => !empty($normalizedResult['ok']),
+]);
 
 // cleanup temp pdf
 if ($pdfTmpPath && file_exists($pdfTmpPath)) {

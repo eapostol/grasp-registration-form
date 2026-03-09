@@ -36,6 +36,7 @@ $config = require __DIR__ . '/config.php';
 
 
 require_once __DIR__ . '/lib/EmailPrintTemplate.php';
+require_once __DIR__ . '/lib/NormalizedSubmissionStore.php';
 $to = $config['email_to'] ?? '';
 $from = $config['email_from'] ?? '';
 if (!$to || !$from) {
@@ -46,6 +47,10 @@ if (!$to || !$from) {
 
 $sessionId = $payload['sessionId'] ?? '';
 $submittedAt = $payload['submittedAt'] ?? '';
+$submittedAtSql = date('Y-m-d H:i:s', strtotime((string)$submittedAt ?: 'now'));
+if ($submittedAtSql === false || $submittedAtSql === null) {
+  $submittedAtSql = date('Y-m-d H:i:s');
+}
 $data = $payload['data'] ?? [];
 // HTML body: server-rendered, Gmail-safe print layout (PDF-like)
 $emailHtml = '';
@@ -77,6 +82,27 @@ $meta = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color
   . '</div>';
 
 $body = $meta . ($emailHtml ? $emailHtml : '<p>No emailHtml provided.</p>');
+
+// Best-effort dual-write to normalized DB (non-blocking for existing behavior).
+$normalizedResult = ['ok' => false, 'skipped' => true];
+try {
+  $normalizedResult = NormalizedSubmissionStore::persistSubmission([
+    'dsn' => $config['db']['dsn'] ?? '',
+    'user' => $config['db']['user'] ?? '',
+    'password' => $config['db']['password'] ?? '',
+    'formType' => 'parent_manual',
+    'sessionId' => (string)$sessionId,
+    'submittedAt' => $submittedAtSql,
+    'status' => 'submitted',
+    'fields' => is_array($data) ? $data : [],
+    'payloadJson' => json_encode($data, JSON_UNESCAPED_UNICODE),
+    'emailHtml' => $emailHtml,
+    'pdfHtml' => null,
+    'source' => 'submit_parent_manual.php',
+  ]);
+} catch (Throwable $e) {
+  $normalizedResult = ['ok' => false, 'error' => $e->getMessage()];
+}
 
 // --- PDF attachment (completed manual) ---
 // We generate a PDF from the handbook page images + the submitted field values, then attach it.
@@ -140,4 +166,18 @@ if (!$ok) {
   exit;
 }
 
-echo json_encode(['ok' => true]);
+if (!empty($normalizedResult['submissionId'])) {
+  NormalizedSubmissionStore::markEmailSent([
+    'dsn' => $config['db']['dsn'] ?? '',
+    'user' => $config['db']['user'] ?? '',
+    'password' => $config['db']['password'] ?? '',
+    'submissionId' => (int)$normalizedResult['submissionId'],
+    'source' => 'submit_parent_manual.php',
+    'meta' => ['mailSent' => true],
+  ]);
+}
+
+echo json_encode([
+  'ok' => true,
+  'normalizedSaved' => !empty($normalizedResult['ok']),
+]);
