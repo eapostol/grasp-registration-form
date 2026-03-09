@@ -23,13 +23,13 @@ CREATE TABLE IF NOT EXISTS legacy_enrollment_backfill_run (
 
 CREATE TABLE IF NOT EXISTS legacy_enrollment_submission_map (
   legacy_id BIGINT UNSIGNED NOT NULL,
-  backfill_batch_id CHAR(36) NOT NULL,
+  backfill_batch_id CHAR(36) COLLATE utf8mb4_unicode_ci NOT NULL,
   package_id BIGINT UNSIGNED NOT NULL,
   submission_id BIGINT UNSIGNED NOT NULL,
-  session_id_effective VARCHAR(191) NOT NULL,
+  session_id_effective VARCHAR(191) COLLATE utf8mb4_unicode_ci NOT NULL,
   form_type_mapped ENUM('waitlist', 'enrollment', 'parent_manual') NOT NULL,
   submission_status_mapped ENUM('draft', 'submitted', 'superseded', 'void') NOT NULL,
-  execution_id CHAR(36) NOT NULL,
+  execution_id CHAR(36) COLLATE utf8mb4_unicode_ci NOT NULL,
   processed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (legacy_id, backfill_batch_id),
   UNIQUE KEY uq_legacy_submission_map_submission_id (submission_id),
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS legacy_enrollment_submission_map (
   CONSTRAINT fk_legacy_submission_map_submission
     FOREIGN KEY (submission_id) REFERENCES form_submission(id)
     ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET @execution_id = UUID();
 
