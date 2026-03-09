@@ -12,7 +12,7 @@ Because the document is rendered from images, you **edit the PDF**, then re-rend
 2. Re-render the page images (WSL/Linux):
    ```bash
    sudo apt-get update && sudo apt-get install -y poppler-utils
-   bash tools/render-parent-manual-pages.sh parent-manual-form/assets/GRASP-parent-manual-2026.pdf 160
+   bash tools/render-parent-manual-pages.sh parent-manual-form/assets/GRASP-parent-manual-2026.pdf 110 82
    ```
 
 That script outputs `page-01.jpg`, `page-02.jpg`, ... into `parent-manual-form/assets/pages/` and updates `config/parent-manual-fields.json` with the correct `manual.pageCount`.

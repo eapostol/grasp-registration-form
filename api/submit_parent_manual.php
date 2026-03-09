@@ -33,6 +33,8 @@ if (!is_array($payload)) {
 }
 
 $config = require __DIR__ . '/config.php';
+$reqUri = $_SERVER['REQUEST_URI'] ?? '';
+$isStagingPath = (strpos($reqUri, '/staging/') === 0);
 
 
 require_once __DIR__ . '/lib/EmailPrintTemplate.php';
@@ -123,7 +125,7 @@ try {
   $pdfBytes = (int) filesize($pdfTmpPath);
   // Keep encoded message safely below common shared-host limits.
   $maxPdfBytes = 8 * 1024 * 1024;
-  if ($pdfBytes > $maxPdfBytes) {
+  if (!$isStagingPath && $pdfBytes > $maxPdfBytes) {
     throw new RuntimeException('Generated Parent Manual PDF is too large to email safely (' . $pdfBytes . ' bytes).');
   }
 
