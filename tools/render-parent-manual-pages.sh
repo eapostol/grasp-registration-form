@@ -7,7 +7,7 @@ set -euo pipefail
 #   bash tools/render-parent-manual-pages.sh [path-to-pdf] [dpi]
 #
 # Examples:
-#   bash tools/render-parent-manual-pages.sh parent-manual-form/assets/GRASP-parent-manual-2026.pdf 160
+#   bash tools/render-parent-manual-pages.sh parent-manual-form/assets/GRASP-parent-manual-2026.pdf 110
 #
 # Requirements (WSL/Ubuntu):
 #   sudo apt-get update && sudo apt-get install -y poppler-utils
@@ -18,7 +18,7 @@ set -euo pipefail
 # - The script also updates config/parent-manual-fields.json manual.pageCount.
 
 PDF_PATH="${1:-parent-manual-form/assets/GRASP-parent-manual-2026.pdf}"
-DPI="${2:-160}"
+DPI="${2:-110}"
 
 OUTDIR="parent-manual-form/assets/pages"
 TMPDIR="$(mktemp -d)"

@@ -68,14 +68,6 @@ if (is_array($data)) {
 $subject = 'GRASP Parent Manual Agreement';
 if ($parentName) $subject .= ' - ' . $parentName;
 
-$headers = [];
-$headers[] = 'MIME-Version: 1.0';
-$headers[] = 'Content-type: text/html; charset=utf-8';
-$headers[] = 'From: ' . $from;
-if (!empty($config['email_bcc'])) {
-  $headers[] = 'Bcc: ' . $config['email_bcc'];
-}
-
 $meta = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333;margin:0 0 10px;">'
   . '<p style="margin:0;">Session ID: ' . htmlspecialchars($sessionId) . '</p>'
   . '<p style="margin:0;">Submitted: ' . htmlspecialchars($submittedAt) . '</p>'
@@ -107,6 +99,11 @@ try {
 // --- PDF attachment (completed manual) ---
 // We generate a PDF from the handbook page images + the submitted field values, then attach it.
 $pdfTmpPath = null;
+$pdfBytes = 0;
+$messageBytes = 0;
+$envFromUsed = 0;
+$mailError = '';
+$ok = false;
 try {
   $autoload = __DIR__ . '/vendor/autoload.php';
   if (!file_exists($autoload)) {
@@ -123,19 +120,32 @@ try {
     throw new RuntimeException('Failed to generate Parent Manual PDF.');
   }
 
+  $pdfBytes = (int) filesize($pdfTmpPath);
+  // Keep encoded message safely below common shared-host limits.
+  $maxPdfBytes = 8 * 1024 * 1024;
+  if ($pdfBytes > $maxPdfBytes) {
+    throw new RuntimeException('Generated Parent Manual PDF is too large to email safely (' . $pdfBytes . ' bytes).');
+  }
+
   $boundary = '=_GRASP_PM_' . bin2hex(random_bytes(12));
-  $headers = [];
-  $headers[] = 'MIME-Version: 1.0';
-  $headers[] = 'From: ' . $from;
-  $headers[] = 'Content-Type: multipart/mixed; boundary="' . $boundary . '"';
+  $headersMixed = [];
+  $headersMixed[] = 'MIME-Version: 1.0';
+  $headersMixed[] = 'From: ' . $from;
+  $headersMixed[] = 'Reply-To: ' . $from;
+  $headersMixed[] = 'X-Mailer: PHP/' . phpversion();
+  if (!empty($config['email_bcc'])) {
+    $headersMixed[] = 'Bcc: ' . $config['email_bcc'];
+  }
+  $headersMixed[] = 'Content-Type: multipart/mixed; boundary="' . $boundary . '"';
 
   $attachmentData = chunk_split(base64_encode(file_get_contents($pdfTmpPath)));
+  $htmlPart = wordwrap($body, 900, "\r\n", true);
 
   $message = '';
   $message .= '--' . $boundary . "\r\n";
   $message .= "Content-Type: text/html; charset=utf-8\r\n";
   $message .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
-  $message .= $body . "\r\n\r\n";
+  $message .= $htmlPart . "\r\n\r\n";
 
   $message .= '--' . $boundary . "\r\n";
   $message .= 'Content-Type: application/pdf; name="' . addcslashes($pdfFilename, '"') . '"' . "\r\n";
@@ -144,7 +154,42 @@ try {
   $message .= $attachmentData . "\r\n";
   $message .= '--' . $boundary . "--\r\n";
 
-  $ok = @mail($to, $subject, $message, implode("\r\n", $headers));
+  $headersStr = implode("\r\n", $headersMixed);
+  $messageBytes = strlen($message);
+
+  // Use envelope-from for better deliverability where supported.
+  $envFrom = '';
+  if (preg_match('/<([^>]+)>/', $from, $m)) {
+    $envFrom = trim($m[1]);
+  } else {
+    $envFrom = trim($from);
+  }
+  $envFrom = preg_replace("/[\r\n]+/", "", $envFrom);
+  if (!filter_var($envFrom, FILTER_VALIDATE_EMAIL)) {
+    $envFrom = '';
+  }
+
+  if ($envFrom !== '') {
+    $envFromUsed = 1;
+    $ok = @mail($to, $subject, $message, $headersStr, "-f $envFrom");
+    if (!$ok) {
+      $last = error_get_last();
+      if (is_array($last) && isset($last['message'])) {
+        $mailError = (string) $last['message'];
+      }
+      $envFromUsed = 0;
+      $ok = @mail($to, $subject, $message, $headersStr);
+    }
+  } else {
+    $ok = @mail($to, $subject, $message, $headersStr);
+  }
+
+  if (!$ok && $mailError === '') {
+    $last = error_get_last();
+    if (is_array($last) && isset($last['message'])) {
+      $mailError = (string) $last['message'];
+    }
+  }
 } catch (Throwable $e) {
   // Fallback: if we cannot generate/attach the PDF, fail so the sender can fix server setup.
   http_response_code(500);
@@ -155,6 +200,23 @@ try {
   ]);
   exit;
 } finally {
+  $logFile = __DIR__ . '/../submit_parent_manual.log';
+  @file_put_contents(
+    $logFile,
+    date('c')
+    . ' host=' . ($_SERVER['HTTP_HOST'] ?? '')
+    . ' uri=' . ($_SERVER['REQUEST_URI'] ?? '')
+    . ' success=' . var_export($ok, true)
+    . ' envFromUsed=' . var_export($envFromUsed, true)
+    . ' mailError=' . ($mailError !== '' ? $mailError : '-')
+    . ' normalizedSaved=' . var_export(!empty($normalizedResult['ok']), true)
+    . ' pdfBytes=' . $pdfBytes
+    . ' messageBytes=' . $messageBytes
+    . ' to=' . $to
+    . PHP_EOL,
+    FILE_APPEND
+  );
+
   if ($pdfTmpPath && file_exists($pdfTmpPath)) {
     @unlink($pdfTmpPath);
   }
@@ -162,7 +224,11 @@ try {
 
 if (!$ok) {
   http_response_code(500);
-  echo json_encode(['ok' => false, 'message' => 'Unable to send email (mail() failed).']);
+  echo json_encode([
+    'ok' => false,
+    'message' => 'Unable to send email (mail() failed).',
+    'mailError' => $mailError,
+  ]);
   exit;
 }
 
