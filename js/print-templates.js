@@ -875,6 +875,7 @@ an updated immunization record must be attached to thisform. </em>
     const sigDate = normalizeValueForPrint(getValue(state, "signature_date"), {
       type: "date",
     });
+    const witnessName = normalizeValueForPrint(getValue(state, "witness"));
 
     function isCheckedCheckboxValue(field, raw) {
       if (raw === true) return true;
@@ -992,7 +993,7 @@ an updated immunization record must be attached to thisform. </em>
       const blocks = [];
       blocks.push(fieldBlock(label, parentSig));
       if (includeDate) blocks.push(fieldBlock("Date", sigDate));
-      if (includeWitness) blocks.push(fieldBlock("Witness", ""));
+      if (includeWitness) blocks.push(fieldBlock("Witness", witnessName));
       return `<div class="grasp-sign-row">${blocks.join("")}</div>`;
     }
 
