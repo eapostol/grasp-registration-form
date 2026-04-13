@@ -825,8 +825,21 @@ Notes:
     }
   }
 
+  function isStructuralField(field) {
+    const t = String(field?.type || "").toLowerCase();
+    return t === "divider" || t === "hr";
+  }
 
   function renderField(field) {
+    if (isStructuralField(field)) {
+      const wrap = document.createElement("div");
+      wrap.className = "grasp-field grasp-field-divider";
+      const hr = document.createElement("hr");
+      hr.className = "grasp-divider";
+      wrap.appendChild(hr);
+      return wrap;
+    }
+
     const wrap = document.createElement("div");
     wrap.className = "grasp-field";
 
@@ -948,6 +961,8 @@ Notes:
   }
 
   function validateField(field) {
+    if (isStructuralField(field)) return "";
+
     const value = window.formState[field.name];
 
     if (field.required) {
@@ -981,6 +996,7 @@ Notes:
     let ok = true;
     for (const group of step.groups) {
       for (const field of group.fields) {
+        if (isStructuralField(field)) continue;
         const msg = validateField(field);
         showFieldError(field.name, msg);
         if (msg) ok = false;
@@ -994,6 +1010,7 @@ Notes:
     for (const step of window.config.steps) {
       for (const group of step.groups) {
         for (const field of group.fields) {
+          if (isStructuralField(field)) continue;
           const msg = validateField(field);
           if (msg) ok = false;
         }
@@ -1015,6 +1032,7 @@ Notes:
         parts.push(`<h5>${escapeHtml(group.title || "")}</h5>`);
         parts.push("<table class='grasp-preview-table'>");
         for (const field of group.fields) {
+          if (isStructuralField(field)) continue;
           const label = field.label + (field.required ? " *" : "");
           const hintHtml = field.hint ? `<div style="font-size:9pt;color:#444;margin-top:2px;">${escapeHtml(field.hint)}</div>` : "";
           let value = window.formState[field.name];
@@ -1075,7 +1093,9 @@ Notes:
     const skip = new Set(["parent_signature", "signature_date"]);
     for (const step of (cfg?.steps || [])) {
       for (const group of (step.groups || [])) {
-        const fields = (group.fields || []).filter((f) => !skip.has(f.name));
+        const fields = (group.fields || []).filter(
+          (f) => !isStructuralField(f) && !skip.has(f.name),
+        );
         if (fields.length === 0) continue;
 
         parts.push('<div class="grasp-section">');

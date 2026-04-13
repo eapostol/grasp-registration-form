@@ -219,6 +219,8 @@
 /* Basic form layout for generated fields */
 .grasp-step { margin: 8px 0 20px; }
 .grasp-field { margin: 8px 0 14px; }
+.grasp-field-divider { margin: 14px 0 16px; }
+.grasp-divider { border: 0; border-top: 1px solid #d1d9e0; margin: 0; }
 .grasp-field label { display: block; font-weight: 600; margin-bottom: 6px; }
 .grasp-field input[type="text"],
 .grasp-field input[type="email"],
