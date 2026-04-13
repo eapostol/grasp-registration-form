@@ -116,6 +116,30 @@
               "required": true
             },
             {
+              "name": "parent1_email",
+              "label": "Email Address (Parent / Guardian 1)",
+              "type": "email",
+              "inputType": "email",
+              "required": true
+            },
+            {
+              "name": "parent1_work_phone",
+              "label": "Work Phone # (Parent / Guardian 1)",
+              "type": "text",
+              "inputType": "text",
+              "required": true
+            },
+            {
+              "name": "parent1_cell_phone",
+              "label": "Cell Phone # (Parent / Guardian 1)",
+              "type": "text",
+              "inputType": "text",
+              "required": true
+            },
+            {
+              "type": "divider"
+            },
+            {
               "name": "parent2_name",
               "label": "Parent 2 Name (Guardian 2)",
               "type": "text",
@@ -123,43 +147,22 @@
               "required": false
             },
             {
-              "name": "parent1_email",
-              "label": "Email address (Parent 1)",
-              "type": "email",
-              "inputType": "email",
-              "required": true
-            },
-            {
               "name": "parent2_email",
-              "label": "Email address (Parent 2)",
+              "label": "Email Address (Parent / Guardian 2)",
               "type": "email",
               "inputType": "email",
-              "required": false
-            },
-            {
-              "name": "parent1_work_phone",
-              "label": "Work Phone # (Parent 1)",
-              "type": "text",
-              "inputType": "text",
               "required": false
             },
             {
               "name": "parent2_work_phone",
-              "label": "Work Phone # (Parent 2)",
-              "type": "text",
-              "inputType": "text",
-              "required": false
-            },
-            {
-              "name": "parent1_cell_phone",
-              "label": "Cell phone # (Parent 1)",
+              "label": "Work Phone # (Parent / Guardian 2)",
               "type": "text",
               "inputType": "text",
               "required": false
             },
             {
               "name": "parent2_cell_phone",
-              "label": "Cell phone # (Parent 2)",
+              "label": "Cell Phone # (Parent / Guardian 2)",
               "type": "text",
               "inputType": "text",
               "required": false
