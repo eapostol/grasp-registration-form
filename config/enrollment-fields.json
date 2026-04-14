@@ -316,17 +316,21 @@
         },
         {
           "id": "parent2",
-          "title": "Parent / Guardian 2 (optional)",
+          "title": "Parent Guardian 2 Information (Optional)",
           "fields": [
             {
+              "type": "single_parent_toggle",
+              "label": "Check if there is only one parent / guardian"
+            },
+            {
               "name": "parent2_first_name",
-              "label": "Parent/Guardian 2 first name",
+              "label": "Parent/Guardian 2 First Name",
               "type": "text",
               "required": false
             },
             {
               "name": "parent2_last_name",
-              "label": "Parent/Guardian 2 last name",
+              "label": "Parent/Guardian 2 Last Name",
               "type": "text",
               "required": false
             },
@@ -338,7 +342,7 @@
             },
             {
               "name": "parent2_email",
-              "label": "E-mail address",
+              "label": "Parent/Guardian 2 E-mail Address",
               "type": "text",
               "inputType": "email",
               "required": false
@@ -351,25 +355,25 @@
             },
             {
               "name": "parent2_home_street",
-              "label": "Home Street Address",
+              "label": "Parent/Guardian 2 Home Street Address",
               "type": "text",
               "required": false
             },
             {
               "name": "parent2_home_unit",
-              "label": "Apartment / Suite / Unit (optional)",
+              "label": "Parent/Guardian 2 Apartment / Suite / Unit (optional)",
               "type": "text",
               "required": false
             },
             {
               "name": "parent2_home_city",
-              "label": "Home city",
+              "label": "Parent/Guardian 2 Home City",
               "type": "text",
               "required": false
             },
             {
               "name": "parent2_home_province",
-              "label": "Home province / territory",
+              "label": "Parent/Guardian 2 Home Province / Territory",
               "type": "select",
               "required": false,
               "default": "ON",
@@ -458,31 +462,31 @@
             },
             {
               "name": "parent2_phones",
-              "label": "Cell and home #",
+              "label": "Parent / Guardian 2 Cell and home #",
               "type": "text",
               "required": false
             },
             {
               "name": "parent2_work_street",
-              "label": "Parent Work/School street address",
+              "label": "Parent / Guardian 2 Work / School Street Address",
               "type": "text",
               "required": false
             },
             {
               "name": "parent2_work_unit",
-              "label": "Parent Work/School unit / suite / extra (optional)",
+              "label": "Parent / Guardian 2 Work / School unit / suite / extra (optional)",
               "type": "text",
               "required": false
             },
             {
               "name": "parent2_work_city",
-              "label": "Parent Work/School city",
+              "label": "Parent / Guardian 2 Work / School city",
               "type": "text",
               "required": false
             },
             {
               "name": "parent2_work_province",
-              "label": "Parent Work/School province / territory",
+              "label": "Parent / Guardian 2 Work / School province / territory",
               "type": "select",
               "required": false,
               "default": "ON",
@@ -571,7 +575,7 @@
             },
             {
               "name": "parent2_work_phone",
-              "label": "Parent Work/School phone #",
+              "label": "Parent / Guardian 2 Work / School phone #",
               "type": "text",
               "required": false
             }
