@@ -88,8 +88,17 @@
   padding-bottom: 4px;
 }
 
+.grasp-parent-group-title {
+  font-size: inherit;
+  font-weight: 700;
+}
+
 .grasp-field-row {
   margin-bottom: 10px;
+}
+
+.grasp-field-row.grasp-single-parent-toggle {
+  margin: 10px 0 12px;
 }
 
 .grasp-field-label {
