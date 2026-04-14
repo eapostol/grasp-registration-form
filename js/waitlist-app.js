@@ -59,6 +59,15 @@
   const ENROLLMENT_SECRET_KEY_STRING =
     "grasp-enrollment-demo-secret-32-chars!!";
   // must match enrollment-app.js
+  const SINGLE_PARENT_NA_VALUE = "N/A (not available)";
+  const PARENT2_FIELD_NAMES = [
+    "parent2_name",
+    "parent2_email",
+    "parent2_work_phone",
+    "parent2_cell_phone",
+  ];
+  let singleParentOnly = false;
+  let parent2RestoreValues = {};
 
   // Public globals expected by enrollment-debug.js (reused for wait list)
   // NOTE: keep names aligned with enrollment-app.js
@@ -170,6 +179,21 @@
       v === null ||
       (typeof v === "string" && v.trim() === "")
     );
+  }
+
+  function isParent2FieldName(name) {
+    return PARENT2_FIELD_NAMES.includes(String(name || ""));
+  }
+
+  function isSingleParentOnlyMode() {
+    return singleParentOnly === true;
+  }
+
+  function inferSingleParentModeFromValues() {
+    const everyParent2FieldIsNA = PARENT2_FIELD_NAMES.every((name) => {
+      return String(window.formState[name] ?? "").trim() === SINGLE_PARENT_NA_VALUE;
+    });
+    singleParentOnly = everyParent2FieldIsNA;
   }
 
   function todayISODate() {
@@ -825,15 +849,102 @@ Notes:
     }
   }
 
+  function isStructuralField(field) {
+    const t = String(field?.type || "").toLowerCase();
+    return t === "divider" || t === "hr" || t === "single_parent_toggle";
+  }
+
+  function fieldIsRequired(field) {
+    if (!field) return false;
+    if (isParent2FieldName(field.name)) {
+      return !isSingleParentOnlyMode();
+    }
+    return !!field.required;
+  }
+
+  function setParent2ReadonlyOnDom(readonly) {
+    PARENT2_FIELD_NAMES.forEach((name) => {
+      const el = document.getElementById(`fld_${name}`);
+      if (!el) return;
+      el.readOnly = !!readonly;
+      if (readonly) {
+        el.setAttribute("aria-readonly", "true");
+      } else {
+        el.removeAttribute("aria-readonly");
+      }
+    });
+  }
+
+  function applySingleParentMode(isChecked) {
+    singleParentOnly = !!isChecked;
+
+    if (singleParentOnly) {
+      const snapshot = {};
+      PARENT2_FIELD_NAMES.forEach((name) => {
+        snapshot[name] = window.formState[name] ?? "";
+        window.formState[name] = SINGLE_PARENT_NA_VALUE;
+        showFieldError(name, "");
+      });
+      parent2RestoreValues = snapshot;
+      setParent2ReadonlyOnDom(true);
+      scheduleDraftSave();
+      return;
+    }
+
+    PARENT2_FIELD_NAMES.forEach((name) => {
+      const prev = parent2RestoreValues[name];
+      window.formState[name] = isEmptyValue(prev) ? "" : prev;
+    });
+    parent2RestoreValues = {};
+    setParent2ReadonlyOnDom(false);
+    scheduleDraftSave();
+  }
 
   function renderField(field) {
+    const fieldType = String(field?.type || "").toLowerCase();
+
+    if (fieldType === "single_parent_toggle") {
+      const wrap = document.createElement("div");
+      wrap.className = "grasp-field grasp-single-parent-toggle";
+
+      const label = document.createElement("label");
+      label.className = "grasp-single-parent-label";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.id = "grasp-single-parent-toggle";
+      checkbox.className = "grasp-single-parent-checkbox";
+      checkbox.checked = isSingleParentOnlyMode();
+      checkbox.addEventListener("change", () => {
+        applySingleParentMode(checkbox.checked);
+        renderCurrentStep();
+        validateCurrentStep();
+      });
+
+      label.appendChild(checkbox);
+      label.appendChild(
+        document.createTextNode(" " + (field.label || "")),
+      );
+      wrap.appendChild(label);
+      return wrap;
+    }
+
+    if (isStructuralField(field)) {
+      const wrap = document.createElement("div");
+      wrap.className = "grasp-field grasp-field-divider";
+      const hr = document.createElement("hr");
+      hr.className = "grasp-divider";
+      wrap.appendChild(hr);
+      return wrap;
+    }
+
     const wrap = document.createElement("div");
     wrap.className = "grasp-field";
 
     const label = document.createElement("label");
     label.className = "grasp-label";
     label.setAttribute("for", `fld_${field.name}`);
-    label.innerHTML = `${escapeHtml(field.label)}${field.required ? ' <span class="req">*</span>' : ""}`;
+    label.innerHTML = `${escapeHtml(field.label)}${fieldIsRequired(field) ? ' <span class="req">*</span>' : ""}`;
 
     const input = createInput(field);
     const err = document.createElement("div");
@@ -862,6 +973,7 @@ Notes:
   function createInput(field) {
     const id = `fld_${field.name}`;
     const val = window.formState[field.name];
+    const isParent2 = isParent2FieldName(field.name);
 
     if (field.type === "textarea") {
       const el = document.createElement("textarea");
@@ -917,6 +1029,10 @@ Notes:
     el.value = val ?? "";
     el.className = "grasp-input";
     if (field.placeholder) el.placeholder = field.placeholder;
+    if (isParent2 && isSingleParentOnlyMode()) {
+      el.readOnly = true;
+      el.setAttribute("aria-readonly", "true");
+    }
 
     el.addEventListener("input", () => setFieldValue(field.name, el.value));
     el.addEventListener("blur", () => {
@@ -948,9 +1064,16 @@ Notes:
   }
 
   function validateField(field) {
-    const value = window.formState[field.name];
+    if (isStructuralField(field)) return "";
 
-    if (field.required) {
+    const value = window.formState[field.name];
+    const required = fieldIsRequired(field);
+
+    if (isParent2FieldName(field.name) && isSingleParentOnlyMode()) {
+      return "";
+    }
+
+    if (required) {
       if (field.type === "checkbox") {
         if (!value) return "This field is required.";
       } else if (isEmptyValue(value)) {
@@ -981,6 +1104,7 @@ Notes:
     let ok = true;
     for (const group of step.groups) {
       for (const field of group.fields) {
+        if (isStructuralField(field)) continue;
         const msg = validateField(field);
         showFieldError(field.name, msg);
         if (msg) ok = false;
@@ -994,6 +1118,7 @@ Notes:
     for (const step of window.config.steps) {
       for (const group of step.groups) {
         for (const field of group.fields) {
+          if (isStructuralField(field)) continue;
           const msg = validateField(field);
           if (msg) ok = false;
         }
@@ -1015,7 +1140,8 @@ Notes:
         parts.push(`<h5>${escapeHtml(group.title || "")}</h5>`);
         parts.push("<table class='grasp-preview-table'>");
         for (const field of group.fields) {
-          const label = field.label + (field.required ? " *" : "");
+          if (isStructuralField(field)) continue;
+          const label = field.label + (fieldIsRequired(field) ? " *" : "");
           const hintHtml = field.hint ? `<div style="font-size:9pt;color:#444;margin-top:2px;">${escapeHtml(field.hint)}</div>` : "";
           let value = window.formState[field.name];
 
@@ -1075,7 +1201,9 @@ Notes:
     const skip = new Set(["parent_signature", "signature_date"]);
     for (const step of (cfg?.steps || [])) {
       for (const group of (step.groups || [])) {
-        const fields = (group.fields || []).filter((f) => !skip.has(f.name));
+        const fields = (group.fields || []).filter(
+          (f) => !isStructuralField(f) && !skip.has(f.name),
+        );
         if (fields.length === 0) continue;
 
         parts.push('<div class="grasp-section">');
@@ -1084,7 +1212,7 @@ Notes:
         }
         parts.push('<table class="grasp-kv-table"><tbody>');
         for (const field of fields) {
-          const label = `${field.label}${field.required ? " *" : ""}`;
+          const label = `${field.label}${fieldIsRequired(field) ? " *" : ""}`;
           const value = fieldDisplayValue(field);
           parts.push(
             `<tr><td class="grasp-kv-label">${escapeHtml(label)}</td><td class="grasp-kv-value">${escapeHtml(value)}</td></tr>`,
@@ -1245,6 +1373,7 @@ Notes:
 
     // 4) Defaults (debug runs after init and fills missing only)
     applyFieldDefaults();
+    inferSingleParentModeFromValues();
 
     // Render UI
     buildStepNav();
