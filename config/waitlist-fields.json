@@ -137,6 +137,10 @@
               "required": true
             },
             {
+              "type": "single_parent_toggle",
+              "label": "check if there is only one parent / guardian"
+            },
+            {
               "type": "divider"
             },
             {
