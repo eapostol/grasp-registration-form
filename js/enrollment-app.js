@@ -825,7 +825,21 @@ function applySingleParentMode(isChecked) {
   syncDerivedFields();
   scheduleDraftSave();
   renderCurrentStep();
-  validateStep(currentStepIndex);
+
+  // Do not force immediate step validation on toggle.
+  // Validation still runs on normal flows (Next/Preview/Submit) and blur/input handlers.
+  // This prevents postal-part error text from reflowing the postal input spacing
+  // as a side effect of toggling single-parent mode.
+  const step = config?.steps?.[currentStepIndex];
+  if (step) {
+    (step.groups || []).forEach((group) => {
+      (group.fields || []).forEach((fieldDef) => {
+        if (!fieldDef || !fieldDef.name) return;
+        const errorEl = byId("error_" + fieldDef.name);
+        if (errorEl) errorEl.textContent = "";
+      });
+    });
+  }
 }
 
 /**
