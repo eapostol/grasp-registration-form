@@ -1,11 +1,11 @@
-name: Deploy Develop to WHC Staging
+name: Deploy Main to WHC Prod
 
 on:
   push:
-    branches: ["develop"]
+    branches: ["main"]
 
 concurrency:
-  group: deploy-staging
+  group: deploy-prod
   cancel-in-progress: true
 
 jobs:
@@ -22,7 +22,7 @@ jobs:
         run: |
           timeout 5 bash -lc 'cat < /dev/null > /dev/tcp/${{ secrets.WHC_HOST }}/${{ secrets.WHC_PORT }}'
 
-      - name: SSH and deploy staging on WHC
+      - name: SSH and deploy prod on WHC
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.WHC_HOST }}
@@ -30,4 +30,4 @@ jobs:
           key: ${{ secrets.WHC_SSH_KEY }}
           port: ${{ secrets.WHC_PORT }}
           script: |
-            bash ~/deploy/bin/grasp_deploy.sh staging develop
+            bash ~/deploy/bin/grasp_deploy.sh prod main
