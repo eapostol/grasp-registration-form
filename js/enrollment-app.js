@@ -195,6 +195,21 @@ const PARENT2_POSTAL_DASH_FIELDS = new Set([
   "parent2_work_postal2",
 ]);
 
+const INTERVIEW_OPTIONAL_FALLBACK_VALUE = "no information entered";
+const INTERVIEW_OPTIONAL_FALLBACK_FIELDS = new Set([
+  "child_birthmarks",
+  "child_disposition",
+  "eating_habits",
+  "languages_spoken",
+  "child_talking_comprehending",
+  "discipline_method",
+  "child_fears",
+  "fear_reaction",
+  "child_frustrations",
+  "child_special_needs",
+  "child_interests",
+]);
+
 function isParent2FieldName(name) {
   return /^parent2_/i.test(String(name || ""));
 }
@@ -1971,6 +1986,17 @@ function buildSubmissionData() {
         data[field.name] = checked ? String(checkedValue) : "";
       });
     });
+  });
+
+  INTERVIEW_OPTIONAL_FALLBACK_FIELDS.forEach((name) => {
+    const value = data[name];
+    if (
+      value === undefined ||
+      value === null ||
+      String(value).trim() === ""
+    ) {
+      data[name] = INTERVIEW_OPTIONAL_FALLBACK_VALUE;
+    }
   });
 
   return data;
