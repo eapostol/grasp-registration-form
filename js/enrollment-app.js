@@ -839,6 +839,13 @@ function applySingleParentMode(isChecked) {
         if (errorEl) errorEl.textContent = "";
       });
     });
+
+    const stepContainer = byId("grasp-wizard-step-content");
+    if (stepContainer) {
+      stepContainer
+        .querySelectorAll(".grasp-postal-pair-error")
+        .forEach((el) => (el.textContent = ""));
+    }
   }
 }
 
@@ -935,6 +942,14 @@ function isPostalFirstHalfFieldName(fieldName) {
   return /_postal1$/i.test(fieldName || "");
 }
 
+function getPostalPairBaseName(fieldName) {
+  return String(fieldName || "").replace(/_postal[12]$/i, "_postal");
+}
+
+function getPostalPairErrorId(fieldName) {
+  return "error_" + getPostalPairBaseName(fieldName) + "_pair";
+}
+
 // Build a single, user-friendly label for a postal-code pair based on the first half's field name.
 function getPostalPairLabel(fieldDef) {
   const name = fieldDef && fieldDef.name ? fieldDef.name : "";
@@ -1024,11 +1039,6 @@ function createPostalHalfControl(fieldDef) {
 
   partWrapper.appendChild(input);
 
-  const error = document.createElement("div");
-  error.className = "grasp-error-text";
-  error.id = "error_" + fieldDef.name;
-  partWrapper.appendChild(error);
-
   return partWrapper;
 }
 
@@ -1062,11 +1072,6 @@ function createPostalRow(postal1Def, postal2Def) {
 
   const inputsRow = document.createElement("div");
   inputsRow.className = "grasp-postal-inputs";
-  // Inline styles ensure reasonable layout even if CSS is not yet updated.
-  inputsRow.style.display = "flex";
-  inputsRow.style.flexWrap = "nowrap";
-  inputsRow.style.alignItems = "flex-start";
-  inputsRow.style.gap = "0.5rem";
 
   const part1 = createPostalHalfControl(postal1Def);
   inputsRow.appendChild(part1);
@@ -1075,6 +1080,11 @@ function createPostalRow(postal1Def, postal2Def) {
     const part2 = createPostalHalfControl(postal2Def);
     inputsRow.appendChild(part2);
   }
+
+  const sharedError = document.createElement("div");
+  sharedError.className = "grasp-error-text grasp-postal-pair-error";
+  sharedError.id = getPostalPairErrorId(postal1Def.name);
+  inputsRow.appendChild(sharedError);
 
   wrapper.appendChild(inputsRow);
 
@@ -1585,6 +1595,17 @@ function validateStep(stepIndex) {
   if (!step) return true;
 
   let valid = true;
+  const postalPairMessages = {};
+
+  function addPostalPairMessage(pairErrorId, message) {
+    if (!pairErrorId || !message) return;
+    if (!postalPairMessages[pairErrorId]) {
+      postalPairMessages[pairErrorId] = [];
+    }
+    if (!postalPairMessages[pairErrorId].includes(message)) {
+      postalPairMessages[pairErrorId].push(message);
+    }
+  }
 
   (step.groups || []).forEach((group) => {
     (group.fields || []).forEach((fieldDef) => {
@@ -1600,10 +1621,22 @@ function validateStep(stepIndex) {
       const name = fieldDef.name;
       if (!name) return;
       const value = formState[name];
+      const postalPairErrorId = isPostalHalfFieldName(name)
+        ? getPostalPairErrorId(name)
+        : "";
 
       const errorEl = byId("error_" + name);
       if (errorEl) {
         errorEl.textContent = "";
+      }
+      if (postalPairErrorId) {
+        if (!postalPairMessages[postalPairErrorId]) {
+          postalPairMessages[postalPairErrorId] = [];
+        }
+        const postalPairErrorEl = byId(postalPairErrorId);
+        if (postalPairErrorEl) {
+          postalPairErrorEl.textContent = "";
+        }
       }
 
       if (isParent2FieldName(name) && isSingleParentOnlyMode()) {
@@ -1622,7 +1655,12 @@ function validateStep(stepIndex) {
 
       if (postalResult && !postalResult.ok) {
         valid = false;
-        if (errorEl) {
+        if (postalPairErrorId) {
+          addPostalPairMessage(
+            postalPairErrorId,
+            postalResult.message || "Invalid postal code.",
+          );
+        } else if (errorEl) {
           errorEl.textContent = postalResult.message || "Invalid postal code.";
         }
         return;
@@ -1635,7 +1673,9 @@ function validateStep(stepIndex) {
           );
           if (!selected) {
             valid = false;
-            if (errorEl) {
+            if (postalPairErrorId) {
+              addPostalPairMessage(postalPairErrorId, "This field is required.");
+            } else if (errorEl) {
               errorEl.textContent = "This field is required.";
             }
           }
@@ -1645,7 +1685,12 @@ function validateStep(stepIndex) {
         ) {
           if (!isCheckboxChecked(fieldDef, value)) {
             valid = false;
-            if (errorEl) {
+            if (postalPairErrorId) {
+              addPostalPairMessage(
+                postalPairErrorId,
+                "You must check this box to proceed.",
+              );
+            } else if (errorEl) {
               errorEl.textContent = "You must check this box to proceed.";
             }
           }
@@ -1654,12 +1699,20 @@ function validateStep(stepIndex) {
           (value === undefined || value === null || String(value).trim() === "")
         ) {
           valid = false;
-          if (errorEl) {
+          if (postalPairErrorId) {
+            addPostalPairMessage(postalPairErrorId, "This field is required.");
+          } else if (errorEl) {
             errorEl.textContent = "This field is required.";
           }
         }
       }
     });
+  });
+
+  Object.keys(postalPairMessages).forEach((pairErrorId) => {
+    const el = byId(pairErrorId);
+    if (!el) return;
+    el.textContent = (postalPairMessages[pairErrorId] || []).join(" • ");
   });
 
   return valid;
