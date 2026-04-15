@@ -67,7 +67,17 @@ else
   CURRENT_TARGET=""
 fi
 
-mapfile -t RELEASES < <(find "$RELEASES_DIR" -mindepth 1 -maxdepth 1 -type d -name 'release_*' | sort)
+TMP_RELEASES_FILE="$(mktemp)"
+cleanup_tmp() {
+  rm -f "$TMP_RELEASES_FILE"
+}
+trap cleanup_tmp EXIT
+
+find "$RELEASES_DIR" -mindepth 1 -maxdepth 1 -type d -name 'release_*' | sort > "$TMP_RELEASES_FILE"
+RELEASES=()
+while IFS= read -r rel; do
+  RELEASES+=("$rel")
+done < "$TMP_RELEASES_FILE"
 
 if [[ "${#RELEASES[@]}" -eq 0 ]]; then
   echo "No releases found in: $RELEASES_DIR"
@@ -75,11 +85,15 @@ if [[ "${#RELEASES[@]}" -eq 0 ]]; then
 fi
 
 if [[ "$REVERSE" -eq 1 ]]; then
-  mapfile -t RELEASES < <(printf '%s\n' "${RELEASES[@]}" | sort -r)
+  REVERSED_RELEASES=()
+  for ((i=${#RELEASES[@]} - 1; i>=0; i--)); do
+    REVERSED_RELEASES+=("${RELEASES[$i]}")
+  done
+  RELEASES=("${REVERSED_RELEASES[@]}")
 fi
 
 if [[ "$LIMIT" -gt 0 && "$LIMIT" -lt "${#RELEASES[@]}" ]]; then
-  mapfile -t RELEASES < <(printf '%s\n' "${RELEASES[@]}" | head -n "$LIMIT")
+  RELEASES=("${RELEASES[@]:0:$LIMIT}")
 fi
 
 echo "Releases directory: $RELEASES_DIR"
