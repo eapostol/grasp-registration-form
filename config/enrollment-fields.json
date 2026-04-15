@@ -975,67 +975,78 @@
               "label": "Birthmarks",
               "type": "textarea",
               "required": false,
-              "helpText": "Describe any unique birthmarks attributed to the child."
+              "helpText": "Describe any unique birthmarks attributed to the child.",
+              "placeholder": "Please provide details or enter 'none'"
             },
             {
               "name": "child_disposition",
               "label": "Child’s disposition / temperament",
               "type": "textarea",
-              "required": false
+              "required": false,
+              "placeholder": "Please enter detailed information about your child's disposition and temperament or 'none'"
             },
             {
               "name": "eating_habits",
               "label": "General information about eating habits or food restrictions",
               "type": "textarea",
-              "required": false
+              "required": false,
+              "placeholder": "Please enter detailed information about your child's eating habits and/or food restrictions or 'none'"
             },
             {
               "name": "languages_spoken",
               "label": "Language(s) spoken at home",
               "type": "textarea",
-              "required": false
+              "required": false,
+              "placeholder": "Please list the languages spoken at home for example - 'English, French, Farsi'; or enter \"English\" if that is the only language spoken"
             },
             {
               "name": "child_talking_comprehending",
               "label": "Is your child talking and comprehending?",
               "type": "textarea",
-              "required": false
+              "required": false,
+              "placeholder": "Please enter additional details about your child's ability to speak and comprehend information"
             },
             {
               "name": "discipline_method",
               "label": "What method of discipline do you use in your home?",
               "type": "textarea",
-              "required": false
+              "required": false,
+              "placeholder": "Please provide details"
             },
             {
               "name": "child_fears",
               "label": "Does your child have any specific fears?",
               "type": "textarea",
-              "required": false
+              "required": false,
+              "placeholder": "Please provide detailed information or enter 'none that we are aware of'"
             },
             {
               "name": "fear_reaction",
               "label": "Reaction to fear & how you handle it",
               "type": "textarea",
-              "required": false
+              "required": false,
+              "placeholder": "Please provide additional details"
             },
             {
               "name": "child_frustrations",
               "label": "What frustrates your child & how do you deal with it?",
               "type": "textarea",
-              "required": false
+              "required": false,
+              "placeholder": "Please add additional details, point form is acceptable."
             },
             {
               "name": "child_special_needs",
               "label": "Child’s special needs or cultural interests",
               "type": "textarea",
-              "required": false
+              "required": false,
+              "placeholder": "Please indicate any special needs or cultural interests that we need to be aware of, or enter 'none'."
             },
             {
               "name": "child_interests",
               "label": "Child’s interests (activities, sports, hobbies, etc.)",
               "type": "textarea",
-              "required": false
+              "required": false,
+              "placeholder": "Please provide a list of the child's interests - activities, sports, hobbies etc."
             }
           ]
         },
