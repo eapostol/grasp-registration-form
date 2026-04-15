@@ -316,7 +316,7 @@
         },
         {
           "id": "parent2",
-          "title": "Parent Guardian 2 Information (Optional)",
+          "title": "Parent Guardian 2 Information (if applicable)",
           "fields": [
             {
               "type": "single_parent_toggle",
