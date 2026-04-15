@@ -88,8 +88,17 @@
   padding-bottom: 4px;
 }
 
+.grasp-parent-group-title {
+  font-size: inherit;
+  font-weight: 700;
+}
+
 .grasp-field-row {
   margin-bottom: 10px;
+}
+
+.grasp-field-row.grasp-single-parent-toggle {
+  margin: 10px 0 12px;
 }
 
 .grasp-field-label {
@@ -238,13 +247,43 @@
 .grasp-postal-row .grasp-postal-inputs {
   display: flex;
   flex-wrap: nowrap;
-  gap: 0.3rem;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.grasp-postal-row .grasp-postal-part {
+  display: flex;
+  flex-direction: column;
   align-items: flex-start;
 }
 
 .grasp-postal-part .grasp-input.grasp-postal-input {
   box-sizing: content-box; /* ensure width applies to text content */
   width: 4ch; /* visually shows 3 characters */
+  flex: 0 0 auto;
+}
+
+/* Shared postal pair error sits to the right of the two postal inputs. */
+.grasp-postal-row .grasp-postal-pair-error {
+  margin-left: 0.5rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+  margin-top: 0;
+}
+
+@media (max-width: 760px) {
+  .grasp-postal-row .grasp-postal-inputs {
+    flex-wrap: wrap;
+  }
+
+  .grasp-postal-row .grasp-postal-pair-error {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
 }
 
 
