@@ -182,6 +182,90 @@ let currentStepIndex = 0;
 let formState = {}; // name -> value
 let sessionId = null;
 let isDebugMode = false;
+let singleParentOnly = false;
+let parent2RestoreValues = {};
+
+const SINGLE_PARENT_NA_VALUE = "n/a (not available)";
+const SINGLE_PARENT_POSTAL_VALUE = "---";
+
+const PARENT2_POSTAL_DASH_FIELDS = new Set([
+  "parent2_home_postal1",
+  "parent2_home_postal2",
+  "parent2_work_postal1",
+  "parent2_work_postal2",
+]);
+
+function isParent2FieldName(name) {
+  return /^parent2_/i.test(String(name || ""));
+}
+
+function isSingleParentToggleField(fieldDef) {
+  return String(fieldDef?.type || "").toLowerCase() === "single_parent_toggle";
+}
+
+function isParent2HomeSameAsField(name) {
+  return String(name || "") === "parent2_home_same_as_parent1";
+}
+
+function isSingleParentOnlyMode() {
+  return singleParentOnly === true;
+}
+
+function getParent2FieldDefs(includeHidden = false) {
+  if (!config || !Array.isArray(config.steps)) return [];
+  const out = [];
+  (config.steps || []).forEach((step) => {
+    (step.groups || []).forEach((group) => {
+      if (group?.id !== "parent2") return;
+      (group.fields || []).forEach((fieldDef) => {
+        if (!fieldDef || !fieldDef.name) return;
+        if (!includeHidden && fieldDef.type === "hidden") return;
+        out.push(fieldDef);
+      });
+    });
+  });
+  return out;
+}
+
+function isFieldRequired(fieldDef) {
+  if (!fieldDef) return false;
+  if (isSingleParentToggleField(fieldDef)) return false;
+  if (fieldDef.type === "hidden") return false;
+
+  const name = fieldDef.name || "";
+  if (isParent2HomeSameAsField(name)) return false;
+  if (isParent2FieldName(name)) {
+    return !isSingleParentOnlyMode();
+  }
+
+  return !!fieldDef.required;
+}
+
+function inferSingleParentModeFromState() {
+  const defs = getParent2FieldDefs(false);
+  if (defs.length === 0) {
+    singleParentOnly = false;
+    return;
+  }
+
+  const isForced = defs.every((fieldDef) => {
+    const name = fieldDef.name;
+    if (!name || isParent2HomeSameAsField(name)) return true;
+    const value = String(formState[name] ?? "").trim();
+
+    if (PARENT2_POSTAL_DASH_FIELDS.has(name)) {
+      return value === SINGLE_PARENT_POSTAL_VALUE;
+    }
+
+    if (fieldDef.type === "checkbox") {
+      return value === "" || value === "false";
+    }
+
+    return value === SINGLE_PARENT_NA_VALUE;
+  });
+
+  singleParentOnly = isForced;
+}
 
 /**
  * Apply default values from config for fields that are empty.
@@ -641,34 +725,128 @@ function syncDerivedFields() {
  * Parent 2 "same as Parent 1 home address" logic
  */
 function applyParent2SameAsParent1() {
+  if (isSingleParentOnlyMode()) return;
+
   const same = !!formState["parent2_home_same_as_parent1"];
 
-  const fields = ["street", "unit", "city", "province", "postal1", "postal2"];
+  const mappings = [
+    ["parent1_home_street", "parent2_home_street"],
+    ["parent1_home_unit", "parent2_home_unit"],
+    ["parent1_home_city", "parent2_home_city"],
+    ["parent1_home_province", "parent2_home_province"],
+    ["parent1_home_postal1", "parent2_home_postal1"],
+    ["parent1_home_postal2", "parent2_home_postal2"],
+    ["parent1_phones", "parent2_phones"],
+    ["parent1_work_street", "parent2_work_street"],
+    ["parent1_work_postal1", "parent2_work_postal1"],
+    ["parent1_work_postal2", "parent2_work_postal2"],
+  ];
 
-  if (same) {
-    fields.forEach((suffix) => {
-      const srcKey = `parent1_home_${suffix}`;
-      const dstKey = `parent2_home_${suffix}`;
-      const value = formState[srcKey] || "";
-      formState[dstKey] = value;
+  mappings.forEach(([srcKey, dstKey]) => {
+    const value = same ? (formState[srcKey] || "") : "";
+    formState[dstKey] = value;
 
-      const input = byId("field_" + dstKey);
-      if (input) {
+    const input = byId("field_" + dstKey);
+    if (input) {
+      if (input.tagName === "SELECT") {
+        input.value = value;
+      } else {
         input.value = value;
       }
-    });
-  } else {
-    fields.forEach((suffix) => {
-      const dstKey = `parent2_home_${suffix}`;
-      formState[dstKey] = "";
-      const input = byId("field_" + dstKey);
-      if (input) {
-        input.value = "";
-      }
-    });
-  }
+    }
+  });
 
   syncDerivedAddresses();
+}
+
+function createSingleParentSelectOption(selectEl) {
+  if (!selectEl) return null;
+  let opt = selectEl.querySelector('option[data-single-parent-na="true"]');
+  if (!opt) {
+    opt = document.createElement("option");
+    opt.value = SINGLE_PARENT_NA_VALUE;
+    opt.textContent = SINGLE_PARENT_NA_VALUE;
+    opt.setAttribute("data-single-parent-na", "true");
+    selectEl.appendChild(opt);
+  }
+  return opt;
+}
+
+function applySingleParentMode(isChecked) {
+  singleParentOnly = !!isChecked;
+  const parent2Fields = getParent2FieldDefs(false);
+
+  if (singleParentOnly) {
+    const snapshot = {};
+
+    parent2Fields.forEach((fieldDef) => {
+      const name = fieldDef.name;
+      if (!name) return;
+
+      snapshot[name] = formState[name] ?? "";
+
+      if (isParent2HomeSameAsField(name)) {
+        formState[name] = false;
+        return;
+      }
+
+      if (PARENT2_POSTAL_DASH_FIELDS.has(name)) {
+        formState[name] = SINGLE_PARENT_POSTAL_VALUE;
+        return;
+      }
+
+      if (fieldDef.type === "checkbox") {
+        const checkedValue = getCheckboxCheckedValue(fieldDef);
+        formState[name] = checkedValue === true ? false : "";
+        return;
+      }
+
+      formState[name] = SINGLE_PARENT_NA_VALUE;
+    });
+
+    parent2RestoreValues = snapshot;
+  } else {
+    parent2Fields.forEach((fieldDef) => {
+      const name = fieldDef.name;
+      if (!name) return;
+      const prev = Object.prototype.hasOwnProperty.call(parent2RestoreValues, name)
+        ? parent2RestoreValues[name]
+        : "";
+      formState[name] = prev ?? "";
+    });
+
+    if (isCheckboxChecked(null, formState["parent2_home_same_as_parent1"])) {
+      applyParent2SameAsParent1();
+    }
+
+    parent2RestoreValues = {};
+  }
+
+  syncDerivedFields();
+  scheduleDraftSave();
+  renderCurrentStep();
+
+  // Do not force immediate step validation on toggle.
+  // Validation still runs on normal flows (Next/Preview/Submit) and blur/input handlers.
+  // This prevents postal-part error text from reflowing the postal input spacing
+  // as a side effect of toggling single-parent mode.
+  const step = config?.steps?.[currentStepIndex];
+  if (step) {
+    (step.groups || []).forEach((group) => {
+      (group.fields || []).forEach((fieldDef) => {
+        if (!fieldDef || !fieldDef.name) return;
+        const errorEl = byId("error_" + fieldDef.name);
+        if (errorEl) errorEl.textContent = "";
+      });
+    });
+
+    const stepContainer = byId("grasp-wizard-step-content");
+    if (stepContainer) {
+      stepContainer
+        .querySelectorAll(".grasp-postal-pair-error")
+        .forEach((el) => (el.textContent = ""));
+    }
+  }
 }
 
 /**
@@ -744,7 +922,7 @@ function scheduleDraftSave() {
 function setFieldValue(name, value) {
   formState[name] = value;
 
-  if (name === "parent2_home_same_as_parent1") {
+  if (name === "parent2_home_same_as_parent1" && !isSingleParentOnlyMode()) {
     applyParent2SameAsParent1();
   }
 
@@ -762,6 +940,14 @@ function isPostalHalfFieldName(fieldName) {
 
 function isPostalFirstHalfFieldName(fieldName) {
   return /_postal1$/i.test(fieldName || "");
+}
+
+function getPostalPairBaseName(fieldName) {
+  return String(fieldName || "").replace(/_postal[12]$/i, "_postal");
+}
+
+function getPostalPairErrorId(fieldName) {
+  return "error_" + getPostalPairBaseName(fieldName) + "_pair";
 }
 
 // Build a single, user-friendly label for a postal-code pair based on the first half's field name.
@@ -811,6 +997,10 @@ function createPostalHalfControl(fieldDef) {
   input.maxLength = maxLen;
   input.size = maxLen;
   input.style.width = maxLen + 1 + "ch";
+  if (isParent2FieldName(fieldDef.name) && isSingleParentOnlyMode()) {
+    input.readOnly = true;
+    input.setAttribute("aria-readonly", "true");
+  }
 
   input.addEventListener("input", () => {
     let currentValue = input.value;
@@ -849,11 +1039,6 @@ function createPostalHalfControl(fieldDef) {
 
   partWrapper.appendChild(input);
 
-  const error = document.createElement("div");
-  error.className = "grasp-error-text";
-  error.id = "error_" + fieldDef.name;
-  partWrapper.appendChild(error);
-
   return partWrapper;
 }
 
@@ -868,7 +1053,7 @@ function createPostalRow(postal1Def, postal2Def) {
   label.htmlFor = "field_" + postal1Def.name;
   label.textContent = getPostalPairLabel(postal1Def);
 
-  if (postal1Def.required || (postal2Def && postal2Def.required)) {
+  if (isFieldRequired(postal1Def) || (postal2Def && isFieldRequired(postal2Def))) {
     const req = document.createElement("span");
     req.className = "grasp-required";
     req.textContent = " *";
@@ -887,11 +1072,6 @@ function createPostalRow(postal1Def, postal2Def) {
 
   const inputsRow = document.createElement("div");
   inputsRow.className = "grasp-postal-inputs";
-  // Inline styles ensure reasonable layout even if CSS is not yet updated.
-  inputsRow.style.display = "flex";
-  inputsRow.style.flexWrap = "nowrap";
-  inputsRow.style.alignItems = "flex-start";
-  inputsRow.style.gap = "0.5rem";
 
   const part1 = createPostalHalfControl(postal1Def);
   inputsRow.appendChild(part1);
@@ -901,8 +1081,38 @@ function createPostalRow(postal1Def, postal2Def) {
     inputsRow.appendChild(part2);
   }
 
+  const sharedError = document.createElement("div");
+  sharedError.className = "grasp-error-text grasp-postal-pair-error";
+  sharedError.id = getPostalPairErrorId(postal1Def.name);
+  inputsRow.appendChild(sharedError);
+
   wrapper.appendChild(inputsRow);
 
+  return wrapper;
+}
+
+function createSingleParentToggleRow(fieldDef) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "grasp-field-row grasp-single-parent-toggle";
+
+  const label = document.createElement("label");
+  label.className = "grasp-single-parent-label";
+
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.id = "grasp-single-parent-toggle";
+  input.className = "grasp-single-parent-checkbox";
+  input.checked = isSingleParentOnlyMode();
+  input.addEventListener("change", () => {
+    applySingleParentMode(input.checked);
+  });
+
+  label.appendChild(input);
+  label.appendChild(
+    document.createTextNode(" " + String(fieldDef?.label || "")),
+  );
+
+  wrapper.appendChild(label);
   return wrapper;
 }
 
@@ -932,7 +1142,7 @@ function createFieldRow(fieldDef) {
     label.textContent = labelText;
   }
 
-  if (fieldDef.required) {
+  if (isFieldRequired(fieldDef)) {
     const req = document.createElement("span");
     req.className = "grasp-required";
     req.textContent = " *";
@@ -975,6 +1185,10 @@ if (fieldDef.html) {
     control.addEventListener("input", () => {
       setFieldValue(fieldDef.name, control.value);
     });
+    if (isParent2FieldName(fieldDef.name) && isSingleParentOnlyMode()) {
+      control.readOnly = true;
+      control.setAttribute("aria-readonly", "true");
+    }
     wrapper.appendChild(control);
   } else if (fieldDef.type === "select") {
     control = document.createElement("select");
@@ -993,7 +1207,16 @@ if (fieldDef.html) {
       control.appendChild(o);
     });
 
+    if (isParent2FieldName(fieldDef.name) && isSingleParentOnlyMode()) {
+      createSingleParentSelectOption(control);
+    }
+
     control.value = value;
+    if (isParent2FieldName(fieldDef.name) && isSingleParentOnlyMode()) {
+      control.value = SINGLE_PARENT_NA_VALUE;
+      formState[fieldDef.name] = SINGLE_PARENT_NA_VALUE;
+      control.disabled = true;
+    }
     control.addEventListener("change", () => {
       setFieldValue(fieldDef.name, control.value);
     });
@@ -1056,6 +1279,9 @@ if (fieldDef.html) {
         input.checked ? checkedValue : uncheckedValue,
       );
     });
+    if (isParent2FieldName(fieldDef.name) && isSingleParentOnlyMode()) {
+      input.disabled = true;
+    }
 
     const lbl = document.createElement("label");
     lbl.className = "grasp-checkbox-option";
@@ -1085,6 +1311,10 @@ if (fieldDef.html) {
 
     if (fieldDef.placeholder) {
       control.placeholder = fieldDef.placeholder;
+    }
+    if (isParent2FieldName(fieldDef.name) && isSingleParentOnlyMode()) {
+      control.readOnly = true;
+      control.setAttribute("aria-readonly", "true");
     }
 
     control.addEventListener("input", () => {
@@ -1162,6 +1392,9 @@ function renderCurrentStep() {
 
     const gTitle = document.createElement("div");
     gTitle.className = "grasp-form-group-title";
+    if (group.id === "parent1" || group.id === "parent2") {
+      gTitle.classList.add("grasp-parent-group-title");
+    }
     gTitle.textContent = group.title;
     groupEl.appendChild(gTitle);
 
@@ -1271,6 +1504,9 @@ function renderCurrentStep() {
 
     const gTitle = document.createElement("div");
     gTitle.className = "grasp-form-group-title";
+    if (group.id === "parent1" || group.id === "parent2") {
+      gTitle.classList.add("grasp-parent-group-title");
+    }
     gTitle.textContent = group.title;
     groupEl.appendChild(gTitle);
 
@@ -1313,6 +1549,12 @@ function renderCurrentStep() {
     });
 
     (group.fields || []).forEach((fieldDef, index, allFields) => {
+      if (isSingleParentToggleField(fieldDef)) {
+        const toggleRow = createSingleParentToggleRow(fieldDef);
+        groupEl.appendChild(toggleRow);
+        return;
+      }
+
       // Skip hidden/derived fields in the UI (still exist in formState/email/DB)
       if (fieldDef.type === "hidden") return;
 
@@ -1353,20 +1595,52 @@ function validateStep(stepIndex) {
   if (!step) return true;
 
   let valid = true;
+  const postalPairMessages = {};
+
+  function addPostalPairMessage(pairErrorId, message) {
+    if (!pairErrorId || !message) return;
+    if (!postalPairMessages[pairErrorId]) {
+      postalPairMessages[pairErrorId] = [];
+    }
+    if (!postalPairMessages[pairErrorId].includes(message)) {
+      postalPairMessages[pairErrorId].push(message);
+    }
+  }
 
   (step.groups || []).forEach((group) => {
     (group.fields || []).forEach((fieldDef) => {
+      if (isSingleParentToggleField(fieldDef)) {
+        return;
+      }
+
       // [GRASP-HIDDEN] Do not validate hidden
       if (fieldDef.type === "hidden") {
         return;
       }
 
       const name = fieldDef.name;
+      if (!name) return;
       const value = formState[name];
+      const postalPairErrorId = isPostalHalfFieldName(name)
+        ? getPostalPairErrorId(name)
+        : "";
 
       const errorEl = byId("error_" + name);
       if (errorEl) {
         errorEl.textContent = "";
+      }
+      if (postalPairErrorId) {
+        if (!postalPairMessages[postalPairErrorId]) {
+          postalPairMessages[postalPairErrorId] = [];
+        }
+        const postalPairErrorEl = byId(postalPairErrorId);
+        if (postalPairErrorEl) {
+          postalPairErrorEl.textContent = "";
+        }
+      }
+
+      if (isParent2FieldName(name) && isSingleParentOnlyMode()) {
+        return;
       }
 
       // Postal-specific validation
@@ -1381,20 +1655,27 @@ function validateStep(stepIndex) {
 
       if (postalResult && !postalResult.ok) {
         valid = false;
-        if (errorEl) {
+        if (postalPairErrorId) {
+          addPostalPairMessage(
+            postalPairErrorId,
+            postalResult.message || "Invalid postal code.",
+          );
+        } else if (errorEl) {
           errorEl.textContent = postalResult.message || "Invalid postal code.";
         }
         return;
       }
 
-      if (fieldDef.required) {
+      if (isFieldRequired(fieldDef)) {
         if (fieldDef.type === "radio") {
           const selected = (fieldDef.options || []).some(
             (opt) => formState[name] === opt.value,
           );
           if (!selected) {
             valid = false;
-            if (errorEl) {
+            if (postalPairErrorId) {
+              addPostalPairMessage(postalPairErrorId, "This field is required.");
+            } else if (errorEl) {
               errorEl.textContent = "This field is required.";
             }
           }
@@ -1404,7 +1685,12 @@ function validateStep(stepIndex) {
         ) {
           if (!isCheckboxChecked(fieldDef, value)) {
             valid = false;
-            if (errorEl) {
+            if (postalPairErrorId) {
+              addPostalPairMessage(
+                postalPairErrorId,
+                "You must check this box to proceed.",
+              );
+            } else if (errorEl) {
               errorEl.textContent = "You must check this box to proceed.";
             }
           }
@@ -1413,12 +1699,20 @@ function validateStep(stepIndex) {
           (value === undefined || value === null || String(value).trim() === "")
         ) {
           valid = false;
-          if (errorEl) {
+          if (postalPairErrorId) {
+            addPostalPairMessage(postalPairErrorId, "This field is required.");
+          } else if (errorEl) {
             errorEl.textContent = "This field is required.";
           }
         }
       }
     });
+  });
+
+  Object.keys(postalPairMessages).forEach((pairErrorId) => {
+    const el = byId(pairErrorId);
+    if (!el) return;
+    el.textContent = (postalPairMessages[pairErrorId] || []).join(" • ");
   });
 
   return valid;
@@ -2013,10 +2307,12 @@ function collectValidationIssues() {
     for (const group of step.groups || []) {
       for (const fieldDef of group.fields || []) {
         if (!fieldDef || fieldDef.type === "hidden") continue;
+        if (isSingleParentToggleField(fieldDef)) continue;
 
         const name = fieldDef.name;
         if (!name) continue;
         if (name === "parent2_home_same_as_parent1") continue;
+        if (isParent2FieldName(name) && isSingleParentOnlyMode()) continue;
 
         const value = formState[name];
         const label = fieldDef.label || name;
@@ -2040,7 +2336,7 @@ function collectValidationIssues() {
           }
         }
 
-        if (fieldDef.required) {
+        if (isFieldRequired(fieldDef)) {
           if (fieldDef.type === "radio") {
             const selected = (fieldDef.options || []).some(
               (opt) => formState[name] === opt.value,
@@ -2350,6 +2646,7 @@ async function initWizard() {
     }
 
     applyFieldDefaults();
+    inferSingleParentModeFromState();
 
     if (!sessionId) {
       sessionId = generateSessionId();
