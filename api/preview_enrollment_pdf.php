@@ -77,7 +77,10 @@ try {
         'GRASP Enrollment Form',
         $pdfDoc,
         'GRASP-Enrollment-Preview-' . ($sessionId ?: date('Ymd-His')),
-        ['tmpDir' => $preferredTmpDir]
+        [
+            'tmpDir' => $preferredTmpDir,
+            'profile' => 'enrollment',
+        ]
     );
     $pdfTmpPath = $pdfInfo['path'] ?? null;
     $pdfFilename = $pdfInfo['filename'] ?? $pdfFilename;

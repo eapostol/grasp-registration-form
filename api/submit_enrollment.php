@@ -243,7 +243,12 @@ $pdfDoc  = '<!doctype html><html><head><meta charset="utf-8"></head><body>' . $p
 $pdfTmpPath = null;
 $pdfFilename = 'GRASP-Enrollment.pdf';
 try {
-    $pdfInfo = FormPdfGenerator::generateFromHtml('GRASP Enrollment Form', $pdfDoc, 'GRASP-Enrollment-' . ($sessionId ?: date('Ymd-His')));
+    $pdfInfo = FormPdfGenerator::generateFromHtml(
+        'GRASP Enrollment Form',
+        $pdfDoc,
+        'GRASP-Enrollment-' . ($sessionId ?: date('Ymd-His')),
+        ['profile' => 'enrollment']
+    );
     $pdfTmpPath = $pdfInfo['path'] ?? null;
     $pdfFilename = $pdfInfo['filename'] ?? $pdfFilename;
 } catch (Throwable $e) {

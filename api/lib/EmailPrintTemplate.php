@@ -780,6 +780,13 @@ if ($kind === 'pdf' && stripos($html, 'Immunization Form.') !== false && stripos
 
         $sectionTpl = self::loadTemplate($kind, $sectionTplName);
         $out = [];
+        $enrollmentPdfFirstPageFit = ($kind === 'pdf' && $profile === 'enrollment');
+        $pageOneFitEndEmitted = false;
+
+        if ($enrollmentPdfFirstPageFit) {
+            // Marker pair consumed by FormPdfGenerator's adaptive first-page fitting pass.
+            $out[] = '<!--GRASP_PAGE1_FIT_START-->';
+        }
 
         $n = count($sections);
         for ($i = 0; $i < $n; $i++) {
@@ -793,12 +800,12 @@ if ($kind === 'pdf' && stripos($html, 'Immunization Form.') !== false && stripos
             $titleTrim = is_string($title) ? trim($title) : '';
 
             // -----------------------------------------------------------------
-            // Enrollment PDF pagebreak control (Phase 7):
-            // Keep Emergency & Authorized Pickups on Page 1 by forcing clean section starts.
+            // Enrollment PDF deterministic pagebreak control.
+            // Keep Water Play & Hand Sanitizer on a clean page boundary.
             // -----------------------------------------------------------------
             if ($kind === 'pdf' && $profile === 'enrollment' && $titleTrim !== '') {
-                if ($titleTrim === 'Medical Release & Medication' || $titleTrim === 'Water Play & Hand Sanitizer') {
-                    $out[] = '<tcpdf method="AddPage" />';
+                if ($titleTrim === 'Water Play & Hand Sanitizer') {
+                    $out[] = '<!--GRASP_PAGEBREAK-->';
                 }
             }
 
@@ -1768,6 +1775,16 @@ HTML;
                   [self::h((string)$title), $rows],
                   $sectionTpl
                 );
+
+                if ($enrollmentPdfFirstPageFit && !$pageOneFitEndEmitted) {
+                    $out[] = '<!--GRASP_PAGE1_FIT_END-->';
+                    $pageOneFitEndEmitted = true;
+                }
+
+                // Medical Release must begin at the top of page 2.
+                if ($kind === 'pdf') {
+                    $out[] = '<!--GRASP_PAGEBREAK-->';
+                }
               }
               continue;
             }
@@ -1790,6 +1807,13 @@ HTML;
             // -----------------------------------------------------------------
             // Enrollment-only: Medical Release & Medication (render last rows as 60/40)
             if ($profile === 'enrollment' && $titleTrim === 'Medical Release & Medication') {
+                // Fallback safety: if Emergency block was absent, close fit scope and force page 2 start.
+                if ($kind === 'pdf' && $enrollmentPdfFirstPageFit && !$pageOneFitEndEmitted) {
+                    $out[] = '<!--GRASP_PAGE1_FIT_END-->';
+                    $pageOneFitEndEmitted = true;
+                    $out[] = '<!--GRASP_PAGEBREAK-->';
+                }
+
                 $contentRows = '';
                 if (!empty($section['contentBlocks']) && is_array($section['contentBlocks'])) {
                     $contentRows = self::renderContentBlocks($kind, $section['contentBlocks'], $data);
@@ -1982,6 +2006,10 @@ HTML;
                 [self::h((string)$title), $rows],
                 $sectionTpl
             );
+        }
+
+        if ($enrollmentPdfFirstPageFit && !$pageOneFitEndEmitted) {
+            $out[] = '<!--GRASP_PAGE1_FIT_END-->';
         }
 
         return implode("
