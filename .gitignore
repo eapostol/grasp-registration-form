@@ -105,3 +105,6 @@ gitignore.updated
 test-results/
 
 
+
+# Internal-only docs (do not commit)
+docs/internal/
