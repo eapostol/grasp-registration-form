@@ -62,19 +62,19 @@
           "fields": [
             {
               "name": "parent1_first_name",
-              "label": "Parent/Guardian 1 First Name",
+              "label": "First Name",
               "type": "text",
               "required": true
             },
             {
               "name": "parent1_last_name",
-              "label": "Parent/Guardian 1 Last Name",
+              "label": "Last Name",
               "type": "text",
               "required": true
             },
             {
               "name": "parent1_name",
-              "label": "Parent/Guardian 1 Full Name",
+              "label": "Parent / Guardian 1 Full Name",
               "type": "hidden",
               "required": true
             },
