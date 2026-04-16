@@ -342,6 +342,28 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function getFieldMaxLength(fieldDef) {
+  if (!fieldDef || typeof fieldDef.maxLength !== "number") return null;
+  if (!Number.isFinite(fieldDef.maxLength) || fieldDef.maxLength <= 0) {
+    return null;
+  }
+  return Math.floor(fieldDef.maxLength);
+}
+
+function getValueCharLength(value) {
+  if (value === undefined || value === null) return 0;
+  return Array.from(String(value)).length;
+}
+
+function getMaxLengthMessage(maxLen) {
+  const tpl =
+    (config &&
+      config.validationMessages &&
+      config.validationMessages.maxLength) ||
+    "Please use {max} characters or fewer.";
+  return String(tpl).replace("{max}", String(maxLen));
+}
+
 /**
  * Set a user-facing status message at the top of the form
  */
@@ -1257,6 +1279,9 @@ if (fieldDef.html) {
     control.className = "grasp-textarea";
     control.id = "field_" + fieldDef.name;
     control.value = value;
+    if (typeof fieldDef.maxLength === "number") {
+      control.maxLength = fieldDef.maxLength;
+    }
     if (fieldDef.placeholder) {
       control.placeholder = fieldDef.placeholder;
     }
@@ -1746,6 +1771,26 @@ function validateStep(stepIndex) {
           errorEl.textContent = postalResult.message || "Invalid postal code.";
         }
         return;
+      }
+
+      const maxLen = getFieldMaxLength(fieldDef);
+      if (
+        maxLen !== null &&
+        value !== undefined &&
+        value !== null &&
+        String(value).trim() !== ""
+      ) {
+        const valueLen = getValueCharLength(value);
+        if (valueLen > maxLen) {
+          valid = false;
+          const msg = getMaxLengthMessage(maxLen);
+          if (postalPairErrorId) {
+            addPostalPairMessage(postalPairErrorId, msg);
+          } else if (errorEl) {
+            errorEl.textContent = msg;
+          }
+          return;
+        }
       }
 
       if (isFieldRequired(fieldDef)) {
@@ -2478,6 +2523,26 @@ function collectValidationIssues() {
             });
           }
         }
+
+        const maxLen = getFieldMaxLength(fieldDef);
+        if (
+          maxLen !== null &&
+          value !== undefined &&
+          value !== null &&
+          String(value).trim() !== ""
+        ) {
+          const valueLen = getValueCharLength(value);
+          if (valueLen > maxLen) {
+            issues.push({
+              name,
+              label,
+              stepIndex,
+              stepTitle: step.title || "",
+              reason: getMaxLengthMessage(maxLen),
+            });
+            continue;
+          }
+        }
       }
     }
   }
@@ -2503,7 +2568,14 @@ async function buildServerPreviewHtml(payload) {
   });
 
   if (!res.ok) {
-    throw new Error("Non-200 response from preview_enrollment.php");
+    let serverMessage = "Non-200 response from preview_enrollment.php";
+    try {
+      const errJson = await res.json();
+      if (errJson && errJson.error) {
+        serverMessage = String(errJson.error);
+      }
+    } catch (_) {}
+    throw new Error(serverMessage);
   }
 
   const json = await res.json();
@@ -2677,7 +2749,14 @@ async function submitEnrollment(payload, previewHtml) {
     });
 
     if (!res.ok) {
-      throw new Error("Non-200 response from submit_enrollment.php");
+      let serverMessage = "Non-200 response from submit_enrollment.php";
+      try {
+        const errJson = await res.json();
+        if (errJson && errJson.error) {
+          serverMessage = String(errJson.error);
+        }
+      } catch (_) {}
+      throw new Error(serverMessage);
     }
 
     const json = await res.json();
