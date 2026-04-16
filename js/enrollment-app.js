@@ -187,6 +187,7 @@ let parent2RestoreValues = {};
 
 const SINGLE_PARENT_NA_VALUE = "n/a (not available)";
 const SINGLE_PARENT_POSTAL_VALUE = "---";
+const PARENT2_WORK_UNIT_FALLBACK_VALUE = "n/a (not applicable)";
 
 const PARENT2_POSTAL_DASH_FIELDS = new Set([
   "parent2_home_postal1",
@@ -194,6 +195,23 @@ const PARENT2_POSTAL_DASH_FIELDS = new Set([
   "parent2_work_postal1",
   "parent2_work_postal2",
 ]);
+
+const PARENT2_SAME_AS_PARENT1_MAPPINGS = [
+  ["parent1_home_street", "parent2_home_street"],
+  ["parent1_home_unit", "parent2_home_unit"],
+  ["parent1_home_city", "parent2_home_city"],
+  ["parent1_home_province", "parent2_home_province"],
+  ["parent1_home_postal1", "parent2_home_postal1"],
+  ["parent1_home_postal2", "parent2_home_postal2"],
+  ["parent1_phones", "parent2_phones"],
+  ["parent1_work_street", "parent2_work_street"],
+  ["parent1_work_postal1", "parent2_work_postal1"],
+  ["parent1_work_postal2", "parent2_work_postal2"],
+];
+
+const PARENT2_SAME_AS_PARENT1_SOURCE_FIELDS = new Set(
+  PARENT2_SAME_AS_PARENT1_MAPPINGS.map(([src]) => src),
+);
 
 const INTERVIEW_OPTIONAL_FALLBACK_VALUE = "no information entered";
 const INTERVIEW_OPTIONAL_FALLBACK_FIELDS = new Set([
@@ -250,7 +268,7 @@ function isFieldRequired(fieldDef) {
   const name = fieldDef.name || "";
   if (isParent2HomeSameAsField(name)) return false;
   if (isParent2FieldName(name)) {
-    return !isSingleParentOnlyMode();
+    return !isSingleParentOnlyMode() && !!fieldDef.required;
   }
 
   return !!fieldDef.required;
@@ -744,20 +762,7 @@ function applyParent2SameAsParent1() {
 
   const same = !!formState["parent2_home_same_as_parent1"];
 
-  const mappings = [
-    ["parent1_home_street", "parent2_home_street"],
-    ["parent1_home_unit", "parent2_home_unit"],
-    ["parent1_home_city", "parent2_home_city"],
-    ["parent1_home_province", "parent2_home_province"],
-    ["parent1_home_postal1", "parent2_home_postal1"],
-    ["parent1_home_postal2", "parent2_home_postal2"],
-    ["parent1_phones", "parent2_phones"],
-    ["parent1_work_street", "parent2_work_street"],
-    ["parent1_work_postal1", "parent2_work_postal1"],
-    ["parent1_work_postal2", "parent2_work_postal2"],
-  ];
-
-  mappings.forEach(([srcKey, dstKey]) => {
+  PARENT2_SAME_AS_PARENT1_MAPPINGS.forEach(([srcKey, dstKey]) => {
     const value = same ? (formState[srcKey] || "") : "";
     formState[dstKey] = value;
 
@@ -937,14 +942,72 @@ function scheduleDraftSave() {
 function setFieldValue(name, value) {
   formState[name] = value;
 
-  if (name === "parent2_home_same_as_parent1" && !isSingleParentOnlyMode()) {
-    applyParent2SameAsParent1();
+  if (!isSingleParentOnlyMode()) {
+    if (name === "parent2_home_same_as_parent1") {
+      applyParent2SameAsParent1();
+    } else if (
+      isCheckboxChecked(null, formState["parent2_home_same_as_parent1"]) &&
+      PARENT2_SAME_AS_PARENT1_SOURCE_FIELDS.has(name)
+    ) {
+      // Keep dependent Parent 2 mirrored values in sync as Parent 1 fields change.
+      applyParent2SameAsParent1();
+    }
   }
 
   // existing local save call if present...
   scheduleDraftSave();
   // [GRASP-DERIVED] Keep derived names/addresses
   // in sync whenever base fields change
+  syncDerivedFields();
+}
+
+function syncStepValuesFromDom(stepIndex = currentStepIndex) {
+  if (!config || !Array.isArray(config.steps)) return;
+  const step = config.steps[stepIndex];
+  if (!step) return;
+
+  (step.groups || []).forEach((group) => {
+    (group.fields || []).forEach((fieldDef) => {
+      if (!fieldDef) return;
+      if (fieldDef.type === "hidden") return;
+      if (isSingleParentToggleField(fieldDef)) return;
+
+      const name = fieldDef.name;
+      if (!name) return;
+
+      if (fieldDef.type === "radio") {
+        const checked = document.querySelector(
+          'input[name="field_' + name + '"]:checked',
+        );
+        if (checked) {
+          formState[name] = checked.value;
+        }
+        return;
+      }
+
+      const control = byId("field_" + name);
+      if (!control) return;
+
+      if (fieldDef.type === "checkbox") {
+        const checkedValue = getCheckboxCheckedValue(fieldDef);
+        const uncheckedValue = checkedValue === true ? false : "";
+        formState[name] = control.checked ? checkedValue : uncheckedValue;
+        return;
+      }
+
+      if (typeof control.value !== "undefined") {
+        formState[name] = control.value;
+      }
+    });
+  });
+
+  if (
+    !isSingleParentOnlyMode() &&
+    isCheckboxChecked(null, formState["parent2_home_same_as_parent1"])
+  ) {
+    applyParent2SameAsParent1();
+  }
+
   syncDerivedFields();
 }
 
@@ -1606,6 +1669,10 @@ function renderCurrentStep() {
  * Step navigation & validation
  */
 function validateStep(stepIndex) {
+  if (stepIndex === currentStepIndex) {
+    syncStepValuesFromDom(stepIndex);
+  }
+
   const step = config.steps[stepIndex];
   if (!step) return true;
 
@@ -1746,6 +1813,8 @@ function goToStep(targetIndex, { skipValidation = false } = {}) {
     return;
   }
 
+  syncStepValuesFromDom(currentStepIndex);
+
   // Only validate when moving forward via Next / Prev.
   if (!skipValidation && targetIndex > currentStepIndex) {
     const valid = validateStep(currentStepIndex);
@@ -1821,6 +1890,7 @@ function updateNavButtons() {
  */
 async function handleSaveDraft() {
   try {
+    syncStepValuesFromDom(currentStepIndex);
     await saveDraft();
     setStatus("Your progress has been saved.", "success");
   } catch (err) {
@@ -1998,6 +2068,10 @@ function buildSubmissionData() {
       data[name] = INTERVIEW_OPTIONAL_FALLBACK_VALUE;
     }
   });
+
+  if (String(data.parent2_work_unit ?? "").trim() === "") {
+    data.parent2_work_unit = PARENT2_WORK_UNIT_FALLBACK_VALUE;
+  }
 
   return data;
 }
@@ -2480,6 +2554,15 @@ async function buildServerPreviewPdfBlob(payload) {
  * Preview + submit handler
  */
 async function openPreview() {
+  // Capture latest DOM values from the currently visible step (covers autofill and browser-saved values).
+  try {
+    if (typeof syncStepValuesFromDom === "function") {
+      syncStepValuesFromDom(currentStepIndex);
+    }
+  } catch (e) {
+    console.warn("openPreview: syncStepValuesFromDom failed", e);
+  }
+
   // Keep derived hidden fields in sync before previewing.
   try {
     if (typeof syncDerivedFields === "function") {
