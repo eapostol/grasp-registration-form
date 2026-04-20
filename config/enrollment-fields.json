@@ -18,14 +18,16 @@
               "type": "text",
               "inputType": "text",
               "required": true,
-              "placeholder": "first name"
+              "placeholder": "first name",
+              "maxLength": 80
             },
             {
               "name": "child_middle_name_or_initial",
               "label": "Child's Middle Name or Initial (optional)",
               "type": "text",
               "inputType": "text",
-              "required": false
+              "required": false,
+              "maxLength": 80
             },
             {
               "name": "child_last_name",
@@ -33,7 +35,8 @@
               "type": "text",
               "inputType": "text",
               "required": true,
-              "placeholder": "last name / surname"
+              "placeholder": "last name / surname",
+              "maxLength": 80
             },
             {
               "name": "child_name",
@@ -52,7 +55,8 @@
               "label": "Subsidy File #",
               "type": "text",
               "required": false,
-              "placeholder": "optional"
+              "placeholder": "optional",
+              "maxLength": 40
             }
           ]
         },
@@ -64,13 +68,15 @@
               "name": "parent1_first_name",
               "label": "First Name",
               "type": "text",
-              "required": true
+              "required": true,
+              "maxLength": 80
             },
             {
               "name": "parent1_last_name",
               "label": "Last Name",
               "type": "text",
-              "required": true
+              "required": true,
+              "maxLength": 80
             },
             {
               "name": "parent1_name",
@@ -83,25 +89,29 @@
               "label": "E-mail Address",
               "type": "text",
               "inputType": "email",
-              "required": true
+              "required": true,
+              "maxLength": 254
             },
             {
               "name": "parent1_home_street",
               "label": "Home Street Address",
               "type": "text",
-              "required": true
+              "required": true,
+              "maxLength": 120
             },
             {
               "name": "parent1_home_unit",
               "label": "Apartment / Suite / Unit (optional)",
               "type": "text",
-              "required": false
+              "required": false,
+              "maxLength": 25
             },
             {
               "name": "parent1_home_city",
               "label": "Home City",
               "type": "text",
-              "required": true
+              "required": true,
+              "maxLength": 60
             },
             {
               "name": "parent1_home_province",
@@ -197,25 +207,29 @@
               "label": "Cell and home #",
               "type": "text",
               "required": true,
-              "placeholder": "i.e. 416-555-1234"
+              "placeholder": "i.e. 416-555-1234",
+              "maxLength": 25
             },
             {
               "name": "parent1_work_street",
               "label": "Parent Work/School street address",
               "type": "text",
-              "required": true
+              "required": true,
+              "maxLength": 120
             },
             {
               "name": "parent1_work_unit",
               "label": "Parent Work/School unit / suite / extra (optional)",
               "type": "text",
-              "required": false
+              "required": false,
+              "maxLength": 25
             },
             {
               "name": "parent1_work_city",
               "label": "Parent Work/School city",
               "type": "text",
-              "required": true
+              "required": true,
+              "maxLength": 60
             },
             {
               "name": "parent1_work_province",
@@ -310,7 +324,8 @@
               "name": "parent1_work_phone",
               "label": "Parent Work/School phone #",
               "type": "text",
-              "required": true
+              "required": true,
+              "maxLength": 25
             }
           ]
         },
@@ -326,13 +341,15 @@
               "name": "parent2_first_name",
               "label": "Parent/Guardian 2 First Name",
               "type": "text",
-              "required": false
+              "required": false,
+              "maxLength": 80
             },
             {
               "name": "parent2_last_name",
               "label": "Parent/Guardian 2 Last Name",
               "type": "text",
-              "required": false
+              "required": false,
+              "maxLength": 80
             },
             {
               "name": "parent2_name",
@@ -345,7 +362,8 @@
               "label": "Parent/Guardian 2 E-mail Address",
               "type": "text",
               "inputType": "email",
-              "required": false
+              "required": false,
+              "maxLength": 254
             },
             {
               "name": "parent2_home_same_as_parent1",
@@ -357,19 +375,22 @@
               "name": "parent2_home_street",
               "label": "Parent/Guardian 2 Home Street Address",
               "type": "text",
-              "required": false
+              "required": false,
+              "maxLength": 120
             },
             {
               "name": "parent2_home_unit",
               "label": "Parent/Guardian 2 Apartment / Suite / Unit (optional)",
               "type": "text",
-              "required": false
+              "required": false,
+              "maxLength": 25
             },
             {
               "name": "parent2_home_city",
               "label": "Parent/Guardian 2 Home City",
               "type": "text",
-              "required": false
+              "required": false,
+              "maxLength": 60
             },
             {
               "name": "parent2_home_province",
@@ -464,25 +485,29 @@
               "name": "parent2_phones",
               "label": "Parent / Guardian 2 Cell and home #",
               "type": "text",
-              "required": false
+              "required": false,
+              "maxLength": 25
             },
             {
               "name": "parent2_work_street",
               "label": "Parent / Guardian 2 Work / School Street Address",
               "type": "text",
-              "required": false
+              "required": false,
+              "maxLength": 120
             },
             {
               "name": "parent2_work_unit",
               "label": "Parent / Guardian 2 Work / School unit / suite / extra (optional)",
               "type": "text",
-              "required": false
+              "required": false,
+              "maxLength": 25
             },
             {
               "name": "parent2_work_city",
               "label": "Parent / Guardian 2 Work / School city",
               "type": "text",
-              "required": false
+              "required": false,
+              "maxLength": 60
             },
             {
               "name": "parent2_work_province",
@@ -577,7 +602,8 @@
               "name": "parent2_work_phone",
               "label": "Parent / Guardian 2 Work / School phone #",
               "type": "text",
-              "required": false
+              "required": false,
+              "maxLength": 25
             }
           ]
         },
@@ -589,31 +615,36 @@
               "name": "doctor_name",
               "label": "Doctor's name",
               "type": "text",
-              "required": true
+              "required": true,
+              "maxLength": 100
             },
             {
               "name": "doctor_phone",
               "label": "Doctor's phone #",
               "type": "text",
-              "required": true
+              "required": true,
+              "maxLength": 25
             },
             {
               "name": "doctor_street",
               "label": "Doctor/Clinic street address",
               "type": "text",
-              "required": true
+              "required": true,
+              "maxLength": 120
             },
             {
               "name": "doctor_unit",
               "label": "Additional address (suite, clinic name, etc.)",
               "type": "text",
-              "required": false
+              "required": false,
+              "maxLength": 25
             },
             {
               "name": "doctor_city",
               "label": "City",
               "type": "text",
-              "required": true
+              "required": true,
+              "maxLength": 60
             },
             {
               "name": "doctor_province",
@@ -709,21 +740,24 @@
               "label": "Does your child have any allergies?",
               "type": "textarea",
               "required": false,
-              "placeholder": "describe any allergies your child has, including food, medication, environmental, etc., or enter 'none' if no allergies"
+              "placeholder": "describe any allergies your child has, including food, medication, environmental, etc., or enter 'none' if no allergies",
+              "maxLength": 600
             },
             {
               "name": "allergy_symptoms",
               "label": "Symptoms to look for with allergy",
               "type": "textarea",
               "required": false,
-              "placeholder": "describe the symptoms to look for if your child is having an allergic reaction."
+              "placeholder": "describe the symptoms to look for if your child is having an allergic reaction.",
+              "maxLength": 600
             },
             {
               "name": "allergy_treatment",
               "label": "Treatment for allergy",
               "type": "textarea",
               "required": false,
-              "placeholder": "describe the treatment to be given in the case of an allergic reaction, including any medications to be administered"
+              "placeholder": "describe the treatment to be given in the case of an allergic reaction, including any medications to be administered",
+              "maxLength": 600
             },
             {
               "name": "epipen_required",
@@ -752,27 +786,31 @@
               "name": "emergency_contact_name",
               "label": "Name (other than parents/guardians)",
               "type": "text",
-              "required": true
+              "required": true,
+              "maxLength": 80
             },
             {
               "name": "emergency_contact_relationship",
               "label": "Relationship to child",
               "type": "text",
-              "required": true
+              "required": true,
+              "maxLength": 50
             },
             {
               "name": "emergency_contact_day_phone",
               "label": "Day time phone #",
               "type": "text",
               "required": true,
-              "placeholder": "i.e. 416-555-1234"
+              "placeholder": "i.e. 416-555-1234",
+              "maxLength": 25
             },
             {
               "name": "emergency_contact_address",
               "label": "Day time address (incl. postal code)",
               "type": "textarea",
               "required": true,
-              "placeholder": "i.e. 123 Main St, Toronto, ON M1M 1M1"
+              "placeholder": "i.e. 123 Main St, Toronto, ON M1M 1M1",
+              "maxLength": 180
             },
             {
               "name": "authorized_pickups",
@@ -780,7 +818,8 @@
               "type": "textarea",
               "required": true,
               "placeholder": "i.e. Jane Smith, aunt, 416-555-1234 \n     John Smith, uncle, 416-111-2222",
-              "helpText": "List three (3) additional pick up contacts in order of priority, and include their full name, relationship and phone number. List each authorized pick up on a new line in the text box below. "
+              "helpText": "List three (3) additional pick up contacts in order of priority, and include their full name, relationship and phone number. List each authorized pick up on a new line in the text box below. ",
+              "maxLength": 420
             }
           ],
           "contentBlocks": [
@@ -833,7 +872,8 @@
               "name": "general_health_notes",
               "label": "General health / things to be aware of",
               "type": "textarea",
-              "required": false
+              "required": false,
+              "maxLength": 600
             },
             {
               "name": "child_asthmatic",
@@ -901,13 +941,15 @@
               "name": "disease_history",
               "label": "Previous history of any communicable diseases",
               "type": "textarea",
-              "required": false
+              "required": false,
+              "maxLength": 600
             },
             {
               "name": "special_requirements",
               "label": "Special requirements for diet, rest or exercise",
               "type": "textarea",
-              "required": false
+              "required": false,
+              "maxLength": 600
             }
           ]
         },
@@ -976,77 +1018,88 @@
               "type": "textarea",
               "required": false,
               "helpText": "Describe any unique birthmarks attributed to the child.",
-              "placeholder": "Please provide details or enter 'none'"
+              "placeholder": "Please provide details or enter 'none'",
+              "maxLength": 600
             },
             {
               "name": "child_disposition",
               "label": "Child’s disposition / temperament",
               "type": "textarea",
               "required": false,
-              "placeholder": "Please enter detailed information about your child's disposition and temperament or 'none'"
+              "placeholder": "Please enter detailed information about your child's disposition and temperament or 'none'",
+              "maxLength": 600
             },
             {
               "name": "eating_habits",
               "label": "General information about eating habits or food restrictions",
               "type": "textarea",
               "required": false,
-              "placeholder": "Please enter detailed information about your child's eating habits and/or food restrictions or 'none'"
+              "placeholder": "Please enter detailed information about your child's eating habits and/or food restrictions or 'none'",
+              "maxLength": 600
             },
             {
               "name": "languages_spoken",
               "label": "Language(s) spoken at home",
               "type": "textarea",
               "required": false,
-              "placeholder": "Please list the languages spoken at home for example - 'English, French, Farsi'; or enter \"English\" if that is the only language spoken"
+              "placeholder": "Please list the languages spoken at home for example - 'English, French, Farsi'; or enter \"English\" if that is the only language spoken",
+              "maxLength": 600
             },
             {
               "name": "child_talking_comprehending",
               "label": "Is your child talking and comprehending?",
               "type": "textarea",
               "required": false,
-              "placeholder": "Please enter additional details about your child's ability to speak and comprehend information"
+              "placeholder": "Please enter additional details about your child's ability to speak and comprehend information",
+              "maxLength": 600
             },
             {
               "name": "discipline_method",
               "label": "What method of discipline do you use in your home?",
               "type": "textarea",
               "required": false,
-              "placeholder": "Please provide details"
+              "placeholder": "Please provide details",
+              "maxLength": 600
             },
             {
               "name": "child_fears",
               "label": "Does your child have any specific fears?",
               "type": "textarea",
               "required": false,
-              "placeholder": "Please provide detailed information or enter 'none that we are aware of'"
+              "placeholder": "Please provide detailed information or enter 'none that we are aware of'",
+              "maxLength": 600
             },
             {
               "name": "fear_reaction",
               "label": "Reaction to fear & how you handle it",
               "type": "textarea",
               "required": false,
-              "placeholder": "Please provide additional details"
+              "placeholder": "Please provide additional details",
+              "maxLength": 600
             },
             {
               "name": "child_frustrations",
               "label": "What frustrates your child & how do you deal with it?",
               "type": "textarea",
               "required": false,
-              "placeholder": "Please add additional details, point form is acceptable."
+              "placeholder": "Please add additional details, point form is acceptable.",
+              "maxLength": 600
             },
             {
               "name": "child_special_needs",
               "label": "Child’s special needs or cultural interests",
               "type": "textarea",
               "required": false,
-              "placeholder": "Please indicate any special needs or cultural interests that we need to be aware of, or enter 'none'."
+              "placeholder": "Please indicate any special needs or cultural interests that we need to be aware of, or enter 'none'.",
+              "maxLength": 600
             },
             {
               "name": "child_interests",
               "label": "Child’s interests (activities, sports, hobbies, etc.)",
               "type": "textarea",
               "required": false,
-              "placeholder": "Please provide a list of the child's interests - activities, sports, hobbies etc."
+              "placeholder": "Please provide a list of the child's interests - activities, sports, hobbies etc.",
+              "maxLength": 600
             }
           ]
         },
@@ -1073,7 +1126,8 @@
               "name": "arrival_departure_notes",
               "label": "Additional notes regarding arrival & departure (optional)",
               "type": "textarea",
-              "required": false
+              "required": false,
+              "maxLength": 600
             }
           ]
         }
@@ -1220,14 +1274,16 @@
               "name": "parent_full_name_signature",
               "label": "Parent/Guardian full name (serves as digital signature)",
               "type": "text",
-              "required": true
+              "required": true,
+              "maxLength": 80
             },
             {
               "name": "witness",
               "label": "Witness",
               "type": "text",
               "required": true,
-              "placeholder": "contact person to verify form other than parent / guardian"
+              "placeholder": "contact person to verify form other than parent / guardian",
+              "maxLength": 80
             },
             {
               "name": "signature_date",
@@ -1239,7 +1295,8 @@
               "name": "additional_comments",
               "label": "Additional comments for the Centre (optional)",
               "type": "textarea",
-              "required": false
+              "required": false,
+              "maxLength": 600
             }
           ]
         }
@@ -1248,6 +1305,7 @@
   ],
   "validationMessages": {
     "required": "This field is required.",
-    "radioRequired": "Please select an option."
+    "radioRequired": "Please select an option.",
+    "maxLength": "Please use {max} characters or fewer."
   }
 }
