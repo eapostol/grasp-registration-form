@@ -12,6 +12,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
       - name: Install WHC known_hosts
         run: |
           mkdir -p ~/.ssh
@@ -22,6 +25,17 @@ jobs:
         run: |
           timeout 5 bash -lc 'cat < /dev/null > /dev/tcp/${{ secrets.WHC_HOST }}/${{ secrets.WHC_PORT }}'
 
+      - name: Sync deploy script to WHC
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.WHC_HOST }}
+          username: ${{ secrets.WHC_USER }}
+          key: ${{ secrets.WHC_SSH_KEY }}
+          port: ${{ secrets.WHC_PORT }}
+          source: scripts/grasp_deploy.sh
+          target: /home/${{ secrets.WHC_USER }}/deploy/bin/
+          strip_components: 1
+
       - name: SSH and deploy prod on WHC
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -30,4 +44,5 @@ jobs:
           key: ${{ secrets.WHC_SSH_KEY }}
           port: ${{ secrets.WHC_PORT }}
           script: |
+            chmod +x ~/deploy/bin/grasp_deploy.sh
             bash ~/deploy/bin/grasp_deploy.sh prod main
