@@ -7,77 +7,26 @@ $root = dirname(__DIR__);
 
 require_once $root . '/api/lib/EmailPrintTemplate.php';
 require_once $root . '/api/lib/FormPdfGenerator.php';
+require_once __DIR__ . '/enrollment_renderer_test_lib.php';
 
-$configPath = realpath($root . '/config/enrollment-fields.json');
-if ($configPath === false) {
+$configPath = enrollmentRendererConfigPath();
+if (!is_file($configPath)) {
     fwrite(STDERR, "[FAIL] config/enrollment-fields.json not found\n");
     exit(1);
 }
 
-$sampleData = [
-    'child_first_name' => 'SHAYNE',
-    'child_middle_name_or_initial' => '',
-    'child_last_name' => 'DABIDEEN',
-    'child_birth_date' => '2018-09-02',
-
-    'parent1_name' => 'SHERRY DABIDEEN',
-    'parent1_email' => 'sherry@example.com',
-    'parent1_street' => '74 DUTCH MYRTLE WAY',
-    'parent1_city' => 'TORONTO',
-    'parent1_province' => 'ON',
-    'parent1_postal1' => 'M3B',
-    'parent1_postal2' => '3K8',
-    'parent1_phones' => '647 997 9410',
-    'parent1_work_street' => '1 DUNDAS STREET WEST',
-    'parent1_work_city' => 'TORONTO',
-    'parent1_work_province' => 'ON',
-    'parent1_work_postal1' => 'M5G',
-    'parent1_work_postal2' => '2L5',
-    'parent1_work_phone' => '647 997 9410',
-
-    'parent2_name' => 'SATEISH DABIDEEN',
-    'parent2_email' => 'sateish@example.com',
-    'parent2_street' => '74 DUTCH MYRTLE WAY',
-    'parent2_city' => 'TORONTO',
-    'parent2_province' => 'ON',
-    'parent2_postal1' => 'M3B',
-    'parent2_postal2' => '3K8',
-    'parent2_phones' => '647 285 9410',
-
-    'doctor_name' => 'Dr. Elizabeth Yoo-Hee Glowczewski-Park',
-    'doctor_street' => '520 ELLESMERE ROAD',
-    'doctor_city' => 'SCARBOROUGH',
-    'doctor_province' => 'ON',
-    'doctor_postal1' => 'M1R',
-    'doctor_postal2' => '0B1',
-    'doctor_phone' => '416-751-5600',
-    'child_allergies' => 'NO',
-    'epipen_required' => 'no',
-
-    'emergency_contact_name' => 'LAURA LUDWIN',
-    'emergency_contact_relationship' => 'AUNT',
-    'emergency_contact_day_phone' => '416 951 1904',
-    'emergency_contact_address' => "311 Waverley Rd\nToronto, ON\nM4L 3T5",
-    'authorized_pickups' => "LAURA LUDWIN (AUNT)\nKAMI HARRIPERSAD",
-
-    'parent_full_name_signature' => 'Sherry Ann Dabideen',
-    'signature_date' => '2026-04-15',
-    'witness' => 'Sateish Dabideen',
-
-    'medical_release_consent' => 'I agree',
-];
-
-$meta = [
-    'formTitle' => 'GRASP Enrollment Form',
-    'submittedAt' => '2026-04-16 12:00:00',
-    'sessionId' => 'test-page1-layout',
-    'templateProfile' => 'enrollment',
-];
+$sampleData = enrollmentRendererSampleData();
+$meta = enrollmentRendererMeta('test-page1-layout');
 
 $pdfHtml = EmailPrintTemplate::renderPdfFromConfig($configPath, $sampleData, $meta);
+$decodedPdfHtml = enrollmentRendererDecodedHtml($pdfHtml);
+$parentMatrixSection = enrollmentRendererSectionWindow(
+    $decodedPdfHtml,
+    'Parent / Guardian Information',
+    'Doctor & Allergy Information'
+);
 
 $checks = [];
-$failures = [];
 
 $startMarker = '<!--GRASP_PAGE1_FIT_START-->';
 $endMarker = '<!--GRASP_PAGE1_FIT_END-->';
@@ -91,6 +40,9 @@ $posEnd = strpos($pdfHtml, $endMarker);
 $posBreak = strpos($pdfHtml, $pageBreakMarker, ($posEnd !== false ? $posEnd : 0));
 $posMedical = strpos($pdfHtml, $medicalTitle);
 
+$checks[] = ['name' => 'contains combined parent section title', 'ok' => (strpos($decodedPdfHtml, 'Parent / Guardian Information') !== false)];
+$checks[] = ['name' => 'combined parent matrix appears before doctor section', 'ok' => ($parentMatrixSection !== '')];
+$checks[] = ['name' => 'does not emit standalone parent2 section title in pdf html', 'ok' => (strpos($decodedPdfHtml, 'Parent Guardian 2 Information (if applicable)') === false)];
 $checks[] = ['name' => 'contains page1 fit start marker', 'ok' => ($posStart !== false)];
 $checks[] = ['name' => 'contains page1 fit end marker', 'ok' => ($posEnd !== false)];
 $checks[] = ['name' => 'contains emergency section title', 'ok' => ($posEmergency !== false)];
@@ -109,16 +61,10 @@ $checks[] = [
     'ok' => (strpos($pdfHtml, '<tcpdf method="AddPage" />') === false),
 ];
 
-foreach ($checks as $check) {
-    if ($check['ok']) {
-        echo '[PASS] ' . $check['name'] . PHP_EOL;
-    } else {
-        echo '[FAIL] ' . $check['name'] . PHP_EOL;
-        $failures[] = $check['name'];
-    }
-}
+$failures = enrollmentRendererPrintChecks($checks);
 
-$canRunBinaryPdfCheck = defined('CURLOPT_CONNECTTIMEOUT') && class_exists('TCPDF') && trim((string)shell_exec('command -v pdftotext 2>/dev/null')) !== '';
+$autoloadPath = $root . '/api/vendor/autoload.php';
+$canRunBinaryPdfCheck = is_file($autoloadPath) && trim((string)shell_exec('command -v pdftotext 2>/dev/null')) !== '';
 
 if ($canRunBinaryPdfCheck) {
     $tmpPdfPath = null;
@@ -143,34 +89,36 @@ if ($canRunBinaryPdfCheck) {
         $page2 = $pages[1] ?? '';
 
         $pdfChecks = [
+            ['name' => 'page 1 contains Parent / Guardian Information title', 'ok' => (stripos($page1, 'Parent / Guardian Information') !== false)],
+            [
+                'name' => 'page 1 contains Doctor & Allergy Information title',
+                'ok' => (
+                    stripos($page1, 'Doctor & Allergy Information') !== false
+                    || stripos($page1, 'Doctor and Allergy Information') !== false
+                ),
+            ],
             ['name' => 'page 1 contains Emergency section title', 'ok' => (stripos($page1, 'Emergency & Authorized Pickups') !== false)],
             ['name' => 'page 1 does not contain Medical section title', 'ok' => (stripos($page1, 'Medical Release & Medication') === false)],
+            ['name' => 'page 2 does not contain Emergency section title', 'ok' => (stripos($page2, 'Emergency & Authorized Pickups') === false)],
             ['name' => 'page 2 contains Medical section title', 'ok' => (stripos($page2, 'Medical Release & Medication') !== false)],
         ];
 
-        foreach ($pdfChecks as $check) {
-            if ($check['ok']) {
-                echo '[PASS] ' . $check['name'] . PHP_EOL;
-            } else {
-                echo '[FAIL] ' . $check['name'] . PHP_EOL;
-                $failures[] = $check['name'];
-            }
-        }
+        $failures += enrollmentRendererPrintChecks($pdfChecks);
     } catch (Throwable $e) {
         echo '[FAIL] binary PDF check threw exception: ' . $e->getMessage() . PHP_EOL;
-        $failures[] = 'binary PDF check exception';
+        $failures++;
     } finally {
         if ($tmpPdfPath && is_file($tmpPdfPath)) {
             @unlink($tmpPdfPath);
         }
     }
 } else {
-    echo '[SKIP] binary PDF page text check (TCPDF/cURL constant or pdftotext unavailable in this environment)' . PHP_EOL;
+    echo '[SKIP] binary PDF page text check (composer autoload or pdftotext unavailable in this environment)' . PHP_EOL;
 }
 
-if (!empty($failures)) {
+if ($failures > 0) {
     echo '---' . PHP_EOL;
-    echo '[RESULT] FAIL (' . count($failures) . ' failed check(s))' . PHP_EOL;
+    echo '[RESULT] FAIL (' . $failures . ' failed check(s))' . PHP_EOL;
     exit(1);
 }
 
