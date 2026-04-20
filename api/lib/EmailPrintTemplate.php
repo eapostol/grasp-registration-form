@@ -780,6 +780,13 @@ if ($kind === 'pdf' && stripos($html, 'Immunization Form.') !== false && stripos
 
         $sectionTpl = self::loadTemplate($kind, $sectionTplName);
         $out = [];
+        $enrollmentPdfFirstPageFit = ($kind === 'pdf' && $profile === 'enrollment');
+        $pageOneFitEndEmitted = false;
+
+        if ($enrollmentPdfFirstPageFit) {
+            // Marker pair consumed by FormPdfGenerator's adaptive first-page fitting pass.
+            $out[] = '<!--GRASP_PAGE1_FIT_START-->';
+        }
 
         $n = count($sections);
         for ($i = 0; $i < $n; $i++) {
@@ -793,12 +800,12 @@ if ($kind === 'pdf' && stripos($html, 'Immunization Form.') !== false && stripos
             $titleTrim = is_string($title) ? trim($title) : '';
 
             // -----------------------------------------------------------------
-            // Enrollment PDF pagebreak control (Phase 7):
-            // Keep Emergency & Authorized Pickups on Page 1 by forcing clean section starts.
+            // Enrollment PDF deterministic pagebreak control.
+            // Keep Water Play & Hand Sanitizer on a clean page boundary.
             // -----------------------------------------------------------------
             if ($kind === 'pdf' && $profile === 'enrollment' && $titleTrim !== '') {
-                if ($titleTrim === 'Medical Release & Medication' || $titleTrim === 'Water Play & Hand Sanitizer') {
-                    $out[] = '<tcpdf method="AddPage" />';
+                if ($titleTrim === 'Water Play & Hand Sanitizer') {
+                    $out[] = '<!--GRASP_PAGEBREAK-->';
                 }
             }
 
@@ -1613,17 +1620,10 @@ HTML;
             // Combine the "Parent / Guardian 1" + "Parent / Guardian 2 (optional)"
             // sections into a single 3-column matrix.
             // -----------------------------------------------------------------
-            if ($profile === 'enrollment' && $titleTrim !== '') {
-                $normTitle = str_replace(["\u{2019}", "’"], "'", $titleTrim);
-
-                if ($normTitle === 'Parent / Guardian 1' && ($i + 1) < $n) {
+            if ($profile === 'enrollment' && ($i + 1) < $n && self::isEnrollmentParentSection($section, 'parent1')) {
                     $next = $sections[$i + 1];
                     if (is_array($next)) {
-                        $nextTitle = $next['title'] ?? ($next['sectionTitle'] ?? '');
-                        $nextTrim = is_string($nextTitle) ? trim($nextTitle) : '';
-                        $nextNorm = str_replace(["\u{2019}", "’"], "'", $nextTrim);
-
-                        if (strpos($nextNorm, 'Parent / Guardian 2') === 0) {
+                        if (self::isEnrollmentParentSection($next, 'parent2')) {
                             $p1Fields = $fields;
                             $p2Fields = is_array($next['fields'] ?? null) ? $next['fields'] : [];
 
@@ -1640,7 +1640,6 @@ HTML;
                             continue;
                         }
                     }
-                }
             }
 
 
@@ -1768,6 +1767,16 @@ HTML;
                   [self::h((string)$title), $rows],
                   $sectionTpl
                 );
+
+                if ($enrollmentPdfFirstPageFit && !$pageOneFitEndEmitted) {
+                    $out[] = '<!--GRASP_PAGE1_FIT_END-->';
+                    $pageOneFitEndEmitted = true;
+                }
+
+                // Medical Release must begin at the top of page 2.
+                if ($kind === 'pdf') {
+                    $out[] = '<!--GRASP_PAGEBREAK-->';
+                }
               }
               continue;
             }
@@ -1790,6 +1799,13 @@ HTML;
             // -----------------------------------------------------------------
             // Enrollment-only: Medical Release & Medication (render last rows as 60/40)
             if ($profile === 'enrollment' && $titleTrim === 'Medical Release & Medication') {
+                // Fallback safety: if Emergency block was absent, close fit scope and force page 2 start.
+                if ($kind === 'pdf' && $enrollmentPdfFirstPageFit && !$pageOneFitEndEmitted) {
+                    $out[] = '<!--GRASP_PAGE1_FIT_END-->';
+                    $pageOneFitEndEmitted = true;
+                    $out[] = '<!--GRASP_PAGEBREAK-->';
+                }
+
                 $contentRows = '';
                 if (!empty($section['contentBlocks']) && is_array($section['contentBlocks'])) {
                     $contentRows = self::renderContentBlocks($kind, $section['contentBlocks'], $data);
@@ -1984,6 +2000,10 @@ HTML;
             );
         }
 
+        if ($enrollmentPdfFirstPageFit && !$pageOneFitEndEmitted) {
+            $out[] = '<!--GRASP_PAGE1_FIT_END-->';
+        }
+
         return implode("
 ", $out);
     }
@@ -2036,22 +2056,24 @@ $sections = null;
 
 // Prefer steps/groups (current front-end config format)
 if (!empty($cfg['steps']) && is_array($cfg['steps'])) {
-    $sections = [];
-    foreach ($cfg['steps'] as $step) {
-        if (!is_array($step)) continue;
-        $groups = $step['groups'] ?? [];
-        if (!is_array($groups)) continue;
-        foreach ($groups as $group) {
-            if (!is_array($group)) continue;
-            $gTitle = $group['title'] ?? ($step['title'] ?? 'Section');
-            $gFields = $group['fields'] ?? [];
-            if (!is_array($gFields) || count($gFields) === 0) continue;
-            $sections[] = [
-                'title'  => $gTitle,
-                'fields' => $gFields,
-                'contentBlocks' => (isset($group['contentBlocks']) && is_array($group['contentBlocks'])) ? $group['contentBlocks'] : []
-            ];
-        }
+            $sections = [];
+            foreach ($cfg['steps'] as $step) {
+                if (!is_array($step)) continue;
+                $groups = $step['groups'] ?? [];
+                if (!is_array($groups)) continue;
+                foreach ($groups as $group) {
+                    if (!is_array($group)) continue;
+                    $gTitle = $group['title'] ?? ($step['title'] ?? 'Section');
+                    $gId = $group['id'] ?? '';
+                    $gFields = $group['fields'] ?? [];
+                    if (!is_array($gFields) || count($gFields) === 0) continue;
+                    $sections[] = [
+                        'id' => is_string($gId) ? $gId : '',
+                        'title'  => $gTitle,
+                        'fields' => $gFields,
+                        'contentBlocks' => (isset($group['contentBlocks']) && is_array($group['contentBlocks'])) ? $group['contentBlocks'] : []
+                    ];
+                }
     }
 }
 
@@ -2200,6 +2222,54 @@ private static function pdfFixWaterPlayCellpadding(string $html): string
       $map[$name] = $f;
     }
     return $map;
+  }
+
+  private static function sectionId(array $section): string {
+    return trim((string)($section['id'] ?? ''));
+  }
+
+  private static function sectionHasFieldPrefix(array $section, string $prefix): bool {
+    $fields = $section['fields'] ?? [];
+    if (!is_array($fields)) {
+      return false;
+    }
+
+    foreach ($fields as $field) {
+      if (!is_array($field)) continue;
+      $name = self::fieldKey($field);
+      if ($name !== '' && strpos($name, $prefix) === 0) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private static function isEnrollmentParentSection(array $section, string $parentId): bool {
+    if (self::sectionId($section) === $parentId) {
+      return true;
+    }
+
+    if (self::sectionHasFieldPrefix($section, $parentId . '_')) {
+      return true;
+    }
+
+    $title = trim((string)($section['title'] ?? ($section['sectionTitle'] ?? '')));
+    if ($title === '') {
+      return false;
+    }
+
+    $normTitle = str_replace(["\u{2019}", "’"], "'", $title);
+    if ($parentId === 'parent1') {
+      return $normTitle === 'Parent / Guardian 1';
+    }
+
+    if ($parentId === 'parent2') {
+      return strpos($normTitle, 'Parent / Guardian 2') === 0
+        || strpos($normTitle, 'Parent Guardian 2') === 0;
+    }
+
+    return false;
   }
 
   private static function getFieldValue(?array $field, array $data): string {

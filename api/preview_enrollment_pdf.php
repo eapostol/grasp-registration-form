@@ -34,12 +34,25 @@ if ($submittedAtNormalized === false || $submittedAtNormalized === null) {
 
 require_once __DIR__ . '/lib/EmailPrintTemplate.php';
 require_once __DIR__ . '/lib/FormPdfGenerator.php';
+require_once __DIR__ . '/lib/EnrollmentFieldValidator.php';
 
 $configPath = realpath(__DIR__ . '/../config/enrollment-fields.json');
 if (!$configPath) {
     http_response_code(500);
     header('Content-Type: application/json');
     echo json_encode(['success' => false, 'error' => 'Form config not found']);
+    exit;
+}
+
+$validationErrors = EnrollmentFieldValidator::validateAgainstConfig($configPath, $fields);
+if (!empty($validationErrors)) {
+    http_response_code(422);
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => false,
+        'error' => 'Validation failed',
+        'validationErrors' => $validationErrors,
+    ]);
     exit;
 }
 
@@ -77,7 +90,10 @@ try {
         'GRASP Enrollment Form',
         $pdfDoc,
         'GRASP-Enrollment-Preview-' . ($sessionId ?: date('Ymd-His')),
-        ['tmpDir' => $preferredTmpDir]
+        [
+            'tmpDir' => $preferredTmpDir,
+            'profile' => 'enrollment',
+        ]
     );
     $pdfTmpPath = $pdfInfo['path'] ?? null;
     $pdfFilename = $pdfInfo['filename'] ?? $pdfFilename;

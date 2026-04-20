@@ -49,6 +49,7 @@ $config = require __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/EmailPrintTemplate.php';
 require_once __DIR__ . '/lib/FormPdfGenerator.php';
 require_once __DIR__ . '/lib/NormalizedSubmissionStore.php';
+require_once __DIR__ . '/lib/EnrollmentFieldValidator.php';
 // 1) Save to DB (optional)
 $dbSaved = false;
 
@@ -109,6 +110,20 @@ function escape_html($s)
 
 // Build a Gmail-safe, "PDF-like" email body from the server-side form config
 $configPath = realpath(__DIR__ . '/../config/enrollment-fields.json');
+$validationErrors = [];
+if ($configPath) {
+    $validationErrors = EnrollmentFieldValidator::validateAgainstConfig($configPath, $fields);
+}
+if (!empty($validationErrors)) {
+    http_response_code(422);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Validation failed',
+        'validationErrors' => $validationErrors,
+    ]);
+    exit;
+}
+
 $emailHtml = '';
 if ($configPath) {
     $emailHtml = EmailPrintTemplate::renderFromConfig($configPath, $fields, [
@@ -243,7 +258,12 @@ $pdfDoc  = '<!doctype html><html><head><meta charset="utf-8"></head><body>' . $p
 $pdfTmpPath = null;
 $pdfFilename = 'GRASP-Enrollment.pdf';
 try {
-    $pdfInfo = FormPdfGenerator::generateFromHtml('GRASP Enrollment Form', $pdfDoc, 'GRASP-Enrollment-' . ($sessionId ?: date('Ymd-His')));
+    $pdfInfo = FormPdfGenerator::generateFromHtml(
+        'GRASP Enrollment Form',
+        $pdfDoc,
+        'GRASP-Enrollment-' . ($sessionId ?: date('Ymd-His')),
+        ['profile' => 'enrollment']
+    );
     $pdfTmpPath = $pdfInfo['path'] ?? null;
     $pdfFilename = $pdfInfo['filename'] ?? $pdfFilename;
 } catch (Throwable $e) {
