@@ -17,10 +17,21 @@ This runbook explains how to use these scripts safely:
 
 Production is standardized to the `prod + releases + deploy_current` symlink model.
 
+### Composer dependency restoration
+
+The deploy flow now syncs the versioned `scripts/grasp_deploy.sh` to the WHC host before each deploy and runs Composer inside the deployed `api/` directory:
+
+```bash
+cd api
+composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-progress
+```
+
+This is required because `api/vendor/` is not committed to Git, but PDF generation depends on Composer-installed TCPDF classes at runtime.
+
 ## Keep server deploy script in sync
 
 `grasp_deploy.sh` is now versioned in this repo at `scripts/grasp_deploy.sh`.
-Copy it to the server path used by Actions whenever you update it:
+GitHub Actions now copies it automatically before each deploy, but you can also sync it manually if needed:
 
 ```bash
 scp scripts/grasp_deploy.sh tscu0290@<whc-host>:/home/tscu0290/deploy/bin/grasp_deploy.sh

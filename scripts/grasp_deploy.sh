@@ -24,6 +24,9 @@ DEPLOY_CURRENT_LINK="${DEPLOY_CURRENT_LINK:-$HOME/public_html/deploy_current}"
 BACKUP_DIR="${BACKUP_DIR:-$HOME/deploy/backups}"
 LOCK_DIR="${LOCK_DIR:-$HOME/deploy/.deploy.lock}"
 
+COMPOSER_CMD=()
+PHP_CMD=()
+
 usage() {
   cat <<USAGE
 Usage:
@@ -134,6 +137,81 @@ rsync_flags_for() {
   fi
 }
 
+resolve_composer_cmd() {
+  if command -v php >/dev/null 2>&1; then
+    PHP_CMD=(php)
+  else
+    for cand in /usr/local/bin/php /opt/cpanel/ea-php82/root/usr/bin/php /opt/cpanel/ea-php81/root/usr/bin/php; do
+      if [[ -x "$cand" ]]; then
+        PHP_CMD=("$cand")
+        break
+      fi
+    done
+  fi
+
+  if command -v composer >/dev/null 2>&1; then
+    COMPOSER_CMD=(composer)
+    return 0
+  fi
+
+  if [[ -x /opt/cpanel/composer/bin/composer ]]; then
+    COMPOSER_CMD=(/opt/cpanel/composer/bin/composer)
+    return 0
+  fi
+
+  if [[ -f /opt/cpanel/composer/bin/composer ]]; then
+    if [[ "${#PHP_CMD[@]}" -eq 0 ]]; then
+      echo "ERROR: Composer fallback requires php on PATH." >&2
+      exit 1
+    fi
+    COMPOSER_CMD=("${PHP_CMD[@]}" /opt/cpanel/composer/bin/composer)
+    return 0
+  fi
+
+  if [[ -x "$HOME/bin/composer" ]]; then
+    COMPOSER_CMD=("$HOME/bin/composer")
+    return 0
+  fi
+
+  return 1
+}
+
+install_api_dependencies() {
+  local target_dir="$1"
+  local api_dir="$target_dir/api"
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    echo "Dry-run: skip Composer install in $api_dir"
+    return
+  fi
+
+  if [[ ! -f "$api_dir/composer.json" ]]; then
+    echo "Skipping Composer install: $api_dir/composer.json not found"
+    return
+  fi
+
+  if ! resolve_composer_cmd; then
+    echo "ERROR: Composer is not available on the deploy host." >&2
+    exit 1
+  fi
+
+  echo "Running Composer install in $api_dir"
+  (
+    cd "$api_dir"
+    "${COMPOSER_CMD[@]}" install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-progress
+  )
+
+  if [[ ! -f "$api_dir/vendor/autoload.php" ]]; then
+    echo "ERROR: Composer install did not produce $api_dir/vendor/autoload.php" >&2
+    exit 1
+  fi
+
+  if [[ ! -f "$api_dir/vendor/tecnickcom/tcpdf/tcpdf.php" ]]; then
+    echo "ERROR: TCPDF runtime missing after Composer install in $api_dir" >&2
+    exit 1
+  fi
+}
+
 deploy_staging_from_branch() {
   local branch="$1"
 
@@ -146,6 +224,7 @@ deploy_staging_from_branch() {
 
   echo "Rsync -> $STAGING_DIR (branch=$DEPLOY_BRANCH dry-run=$DRY_RUN)"
   rsync "${RSYNC_FLAGS[@]}" "$SRC_DIR"/ "$STAGING_DIR"/
+  install_api_dependencies "$STAGING_DIR"
 }
 
 sync_prod_symlink() {
@@ -200,6 +279,7 @@ deploy_prod_from_branch() {
 
   echo "Rsync -> $new_release (branch=$DEPLOY_BRANCH)"
   rsync "${RSYNC_FLAGS[@]}" "$SRC_DIR"/ "$new_release"/
+  install_api_dependencies "$new_release"
 
   sync_prod_symlink "$new_release"
 
