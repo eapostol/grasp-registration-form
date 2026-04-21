@@ -48,7 +48,8 @@ Review after Phase 2:
 php scripts/recover_missing_attachments.php \
   --input test-results/recovery-live-batch-2026-04-16_to_2026-04-20-no-attachment.json \
   --report test-results/recovery-live-send-report.json \
-  --send
+  --send \
+  --no-db
 ```
 
 Review after Phase 3:
@@ -56,6 +57,17 @@ Review after Phase 3:
 - Verify emails arrive at `info@greenlandrecreational.com`.
 - Verify BCC copies arrive at `edward.apostol@gmail.com`.
 - Check one enrollment, one waitlist, and one parent manual resend for body layout plus PDF attachment integrity.
+- Note: `--no-db` keeps the resend phase from creating duplicate normalized submission rows after the DB-write phase.
+
+## Alternative: Single Live Pass After Review
+- If you prefer one live pass instead of a DB-only phase followed by a send phase, you can run:
+```bash
+php scripts/recover_missing_attachments.php \
+  --input test-results/recovery-live-batch-2026-04-16_to_2026-04-20-no-attachment.json \
+  --report test-results/recovery-live-livepass-report.json \
+  --send
+```
+- Use this only after reviewing the dry-run results and spot-checking generated PDFs.
 
 ## Batch-Specific Notes
 - Current live batch contains 5 Gmail messages.
