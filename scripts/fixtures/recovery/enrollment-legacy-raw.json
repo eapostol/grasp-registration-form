@@ -1,0 +1,7 @@
+{
+  "id": "fixture-enrollment-legacy-raw",
+  "subject": "New GRASP Enrollment Submission",
+  "email_ts": "2026-02-02T17:04:41-05:00",
+  "has_attachment": false,
+  "body": "GRASP Enrollment Submission\n\nSubmitted at: 2026-02-02T22:04:05.315Z\n\nchild_first_name\nChild's First Name\nJeanne\n\nchild_middle_name_or_initial\nChild's Middle Name or Initial (optional)\n—\n\nchild_last_name\nChild's Last Name\nLiu\n\nchild_birth_date\nBirth Date\n2023-12-12\n\nparent1_name\nParent/Guardian 1 Full Name\nElliot Liu\n\nparent1_email\nE-mail Address\ntest@test.com\n\nparent1_work_phone\nParent Work/School phone #\n222-333-4444\n\nparent2_name\nParent/Guardian 2 full name\nRyan Liu\n\nparent2_email\nE-mail address\nother@test.com\n\nparent2_work_phone\nParent Work/School phone #\n333-444-5555\n\ndoctor_name\nDoctor's name\nDr. Test Physician\n\nmedical_release_consent\nI give permission for GRASP staff to secure emergency medical treatment for my child.\nagree\n\nparent_full_name_signature\nParent/Guardian full name (serves as digital signature)\nElliot Liu\n\nsignature_date\nDate Signed\n2026-09-01\n"
+}
