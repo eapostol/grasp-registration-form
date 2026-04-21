@@ -8,6 +8,8 @@ require_once __DIR__ . '/lib/RecoveryMessageParser.php';
 require_once __DIR__ . '/lib/RecoveryRepository.php';
 require_once __DIR__ . '/lib/RecoverySubmissionService.php';
 
+assertValidEnvFlagUsage($argv);
+
 $options = getopt('', [
     'input:',
     'report:',
@@ -18,11 +20,17 @@ $options = getopt('', [
 ]);
 
 if (!isset($options['input']) || trim((string)$options['input']) === '') {
-    fwrite(STDERR, "Usage: php scripts/recover_missing_attachments.php --input <file-or-dir> [--report <path>] [--env production|staging|local] [--send] [--no-db] [--allow-has-attachment]\n");
+    fwrite(STDERR, buildRecoveryUsage() . PHP_EOL);
     exit(2);
 }
 
 $env = strtolower(trim((string)($options['env'] ?? 'production')));
+if ($env === '' || !in_array($env, ['production', 'staging', 'local'], true)) {
+    fwrite(STDERR, 'Invalid --env value. Use --env=production, --env=staging, or --env=local.' . PHP_EOL);
+    fwrite(STDERR, buildRecoveryUsage() . PHP_EOL);
+    exit(2);
+}
+
 if ($env === 'staging') {
     $_SERVER['HTTP_HOST'] = 'greenlandrecreational.com';
     $_SERVER['REQUEST_URI'] = '/staging/';
@@ -252,4 +260,31 @@ function buildRecoveryDedupeKey(array $parsed): string
     }
 
     return strtolower($formType . '|' . $sessionId);
+}
+
+/**
+ * @param array<int,string> $argv
+ */
+function assertValidEnvFlagUsage(array $argv): void
+{
+    $argCount = count($argv);
+    for ($i = 1; $i < $argCount; $i++) {
+        $arg = $argv[$i];
+        if ($arg !== '--env') {
+            continue;
+        }
+
+        $next = $argv[$i + 1] ?? '';
+        $looksLikeValue = $next !== '' && !str_starts_with($next, '-');
+        if ($looksLikeValue) {
+            fwrite(STDERR, 'Invalid --env usage. Use --env=production, --env=staging, or --env=local.' . PHP_EOL);
+            fwrite(STDERR, buildRecoveryUsage() . PHP_EOL);
+            exit(2);
+        }
+    }
+}
+
+function buildRecoveryUsage(): string
+{
+    return 'Usage: php scripts/recover_missing_attachments.php --input <file-or-dir> [--report <path>] [--env=production|staging|local] [--send] [--no-db] [--allow-has-attachment]';
 }
