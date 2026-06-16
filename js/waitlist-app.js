@@ -100,59 +100,94 @@
   };
 
   let _previewLastHtml = "";
+  let _previewLastPayload = null;
 
   function openPrintWindow(previewHtml) {
-  const html = previewHtml || "";
+    const html = previewHtml || "";
 
-  // Avoid popup blockers (especially in Incognito/Private) by printing from a hidden iframe.
-  const iframe = document.createElement("iframe");
-  iframe.setAttribute("aria-hidden", "true");
-  iframe.style.position = "fixed";
-  iframe.style.right = "0";
-  iframe.style.bottom = "0";
-  iframe.style.width = "0";
-  iframe.style.height = "0";
-  iframe.style.border = "0";
-  iframe.style.visibility = "hidden";
-  document.body.appendChild(iframe);
+    // Avoid popup blockers (especially in Incognito/Private) by printing from a hidden iframe.
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.style.visibility = "hidden";
+    document.body.appendChild(iframe);
 
-  // Prefer shared print stylesheet; keep minimal fallback print CSS inline.
-  const printCss = `
-    @page { size: Letter; margin: 16mm 12mm; }
-    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: Arial, Helvetica, sans-serif; font-size: 11pt; color: #111; }
-    h4 { font-size: 14pt; margin: 0 0 8px; }
-    h5 { font-size: 12pt; margin: 16px 0 6px; }
-    table { width: 100%; border-collapse: collapse; margin: 0 0 10px; }
-    td { border: 1px solid #bbb; padding: 6px 8px; vertical-align: top; }
-    .grasp-preview-label { width: 34%; background: #f3f3f3; font-weight: 700; }
-    .grasp-page-break { break-before: page; page-break-before: always; }
-  `;
+    // Prefer shared print stylesheet; keep minimal fallback print CSS inline.
+    const printCss = `
+      @page { size: Letter; margin: 16mm 12mm; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: Arial, Helvetica, sans-serif; font-size: 11pt; color: #111; }
+      h4 { font-size: 14pt; margin: 0 0 8px; }
+      h5 { font-size: 12pt; margin: 16px 0 6px; }
+      table { width: 100%; border-collapse: collapse; margin: 0 0 10px; }
+      td { border: 1px solid #bbb; padding: 6px 8px; vertical-align: top; }
+      .grasp-preview-label { width: 34%; background: #f3f3f3; font-weight: 700; }
+      .grasp-page-break { break-before: page; page-break-before: always; }
+    `;
 
-  const printCssHref = new URL("../css/print.css", window.location.href).toString();
+    const printCssHref = new URL("../css/print.css", window.location.href).toString();
 
-  iframe.onload = () => {
-    try {
-      iframe.contentWindow && iframe.contentWindow.focus();
-      iframe.contentWindow && iframe.contentWindow.print();
-    } finally {
-      setTimeout(() => iframe.remove(), 1000);
+    iframe.onload = () => {
+      try {
+        iframe.contentWindow && iframe.contentWindow.focus();
+        iframe.contentWindow && iframe.contentWindow.print();
+      } finally {
+        setTimeout(() => iframe.remove(), 1000);
+      }
+    };
+
+    iframe.srcdoc = `<!doctype html>
+      <html lang="en">
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>Print Preview</title>
+          <link rel="stylesheet" href="${printCssHref}" media="print" />
+          <style>${printCss}</style>
+        </head>
+        <body>
+          <div class="grasp-print-container">${html}</div>
+        </body>
+      </html>`;
+  }
+
+  function printPdfBlobViaIframe(pdfBlob) {
+    if (!(pdfBlob instanceof Blob) || pdfBlob.size === 0) {
+      throw new Error("Invalid PDF blob");
     }
-  };
 
-  iframe.srcdoc = `<!doctype html>
-    <html lang="en">
-      <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Print Preview</title>
-        <link rel="stylesheet" href="${printCssHref}" media="print" />
-        <style>${printCss}</style>
-      </head>
-      <body>
-        <div class="grasp-print-container">${html}</div>
-      </body>
-    </html>`;
-}
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.style.visibility = "hidden";
+    document.body.appendChild(iframe);
+
+    const objectUrl = URL.createObjectURL(pdfBlob);
+    iframe.onload = () => {
+      try {
+        iframe.contentWindow && iframe.contentWindow.focus();
+        iframe.contentWindow && iframe.contentWindow.print();
+      } finally {
+        setTimeout(() => {
+          try {
+            URL.revokeObjectURL(objectUrl);
+          } catch (_) {}
+          iframe.remove();
+        }, 1000);
+      }
+    };
+
+    iframe.src = objectUrl;
+  }
 
 
   // -----------------------------
@@ -202,6 +237,50 @@
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     const dd = String(d.getDate()).padStart(2, "0");
     return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function buildWaitlistPreviewPayload() {
+    return {
+      formId: FORM_ID,
+      sessionId: window.sessionId || ensureSessionId(),
+      submittedAt: new Date().toISOString(),
+      data: window.formState,
+    };
+  }
+
+  async function buildServerPreviewPdfBlob(payload) {
+    const previewPdfUrl =
+      "../api/preview_waitlist_pdf.php" +
+      (window.isDebugMode ? "?isdebug=1" : "");
+
+    const res = await fetch(previewPdfUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/pdf",
+      },
+      body: JSON.stringify({
+        sessionId: payload?.sessionId || "",
+        submittedAt: payload?.submittedAt || "",
+        data: payload?.data || {},
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Non-200 response from preview_waitlist_pdf.php");
+    }
+
+    const contentType = String(res.headers.get("content-type") || "").toLowerCase();
+    if (!contentType.includes("application/pdf")) {
+      throw new Error("Preview PDF endpoint did not return a PDF");
+    }
+
+    const blob = await res.blob();
+    if (!blob || blob.size === 0) {
+      throw new Error("Preview PDF blob is empty");
+    }
+
+    return blob;
   }
 
   function normalizeCanadianPostalCode(value) {
@@ -1278,6 +1357,7 @@ Notes:
       return;
     }
 
+    _previewLastPayload = buildWaitlistPreviewPayload();
     _previewLastHtml = buildPreviewHtml();
     if (els.modalBody()) els.modalBody().innerHTML = _previewLastHtml;
     const modal = els.modal();
@@ -1298,13 +1378,8 @@ Notes:
   // -----------------------------
   async function submitWaitlist() {
     try {
-      const payload = {
-        formId: FORM_ID,
-        sessionId: window.sessionId || ensureSessionId(),
-        submittedAt: new Date().toISOString(),
-        data: window.formState,
-        emailHtml: buildPreviewHtml(),
-      };
+      const payload = buildWaitlistPreviewPayload();
+      payload.emailHtml = buildPreviewHtml();
 
       const res = await fetch("../api/submit_waitlist.php", {
         method: "POST",
@@ -1442,17 +1517,44 @@ Notes:
     if (els.modalCancel())
       els.modalCancel().addEventListener("click", closePreview);
     if (els.modalPrint())
-      els.modalPrint().addEventListener("click", () => {
-        // Print uses a dedicated print template (PDF-like), separate from the on-screen email preview.
+      els.modalPrint().addEventListener("click", async () => {
+        const btn = els.modalPrint();
+        const originalText = btn ? btn.textContent : "Print";
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = "Preparing PDF...";
+        }
+
         try {
-          const printHtml = buildWaitlistPrintHtml();
-          openPrintWindow(printHtml);
+          const payload = _previewLastPayload || buildWaitlistPreviewPayload();
+          const pdfBlob = await buildServerPreviewPdfBlob(payload);
+          printPdfBlobViaIframe(pdfBlob);
         } catch (e) {
           console.warn(
-            "[GRASP][waitlist] print template failed; falling back to preview HTML",
+            "[GRASP][waitlist] PDF print failed; falling back to HTML print",
             e,
           );
-          openPrintWindow(_previewLastHtml);
+          try {
+            const build =
+              window.GRASP_PRINT_TEMPLATES &&
+              window.GRASP_PRINT_TEMPLATES.buildWaitlistPrintHtml;
+            const printHtml =
+              typeof build === "function"
+                ? build(window.formState, window.config)
+                : buildWaitlistPrintHtml();
+            openPrintWindow(printHtml || _previewLastHtml);
+          } catch (fallbackErr) {
+            console.warn(
+              "[GRASP][waitlist] HTML print fallback failed; using preview HTML",
+              fallbackErr,
+            );
+            openPrintWindow(_previewLastHtml);
+          }
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = originalText;
+          }
         }
       });
     if (els.modalSubmit())
