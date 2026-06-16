@@ -254,6 +254,8 @@ final class RecoveryMessageParser
             'My child has a sibling at GRASP' => 'sibling_at_grasp',
             'Sibling name \(if yes\)' => 'sibling_name',
             'Please list any allergies and/or\s*special needs your child may have or need assistance with' => 'allergies_special_needs',
+            'Please list allergies,\s*anaphylaxis or diagnosis' => 'allergies_special_needs',
+            'Does your child have any specific needs, accommodations, or supports that we should know about to ensure they thrive in our program\?\s*Please list allergies,\s*anaphylaxis or diagnosis:?' => 'allergies_special_needs',
         ]));
 
         $fields = array_merge($fields, $this->extractOrderedValues($sectionD, [
@@ -307,6 +309,8 @@ final class RecoveryMessageParser
             'My child has a sibling at GRASP' => 'sibling_at_grasp',
             'Sibling name \(if yes\)' => 'sibling_name',
             'Please list any allergies and/or special needs your child may have or need assistance with' => 'allergies_special_needs',
+            'Please list allergies,\s*anaphylaxis or diagnosis' => 'allergies_special_needs',
+            'Does your child have any specific needs, accommodations, or supports that we should know about to ensure they thrive in our program\?\s*Please list allergies,\s*anaphylaxis or diagnosis:?' => 'allergies_special_needs',
             'I am only interested in summer camp' => 'interest_summer_only',
             'I am only interested in school year care only' => 'interest_school_year_only',
             'I am interested in both summer camp and school year care' => 'interest_both',

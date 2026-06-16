@@ -240,7 +240,7 @@ class EmailPrintTemplate
         if ($kind === 'initials' && !empty($field['sectionTitle'])) {
             $page = $field['page'] ?? '';
             $prefix = $page !== '' ? ('p' . self::h((string)$page) . ' — ') : '';
-            return $prefix . self::h((string)$field['sectionTitle']);
+            return self::labelHtml($prefix . (string)$field['sectionTitle']);
         }
         // Enrollment postal code: give a clearer label than "full, derived".
         $key = self::fieldKey($field);
@@ -253,15 +253,20 @@ class EmailPrintTemplate
                 'doctor_postal_code' => 'Doctor/Clinic Postal Code',
             ];
             if (isset($postalMap[$key])) {
-                return self::h($postalMap[$key]);
+                return self::labelHtml($postalMap[$key]);
             }
         }
 
         $label = $field['label'] ?? '';
         // Strip "(first part...)" / "(second part...)" if it leaks into a label.
         $label = preg_replace('/\s*\((first|second) part[^\)]*\)\s*/i', ' ', (string)$label);
-        $label = trim(preg_replace('/\s+/', ' ', $label));
-        return self::h($label);
+        return self::labelHtml((string)$label);
+    }
+
+    private static function labelHtml(string $value): string
+    {
+        $value = str_replace(["\r\n", "\r"], "\n", $value);
+        return nl2br(self::h(trim($value)));
     }
 
     private static function shouldSkipField(array $field, array $data): bool

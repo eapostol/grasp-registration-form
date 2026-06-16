@@ -849,6 +849,24 @@ Notes:
     }
   }
 
+  function renderScreenOnlyHelp(field) {
+    const helpText = String(field?.screenHelp || "").trim();
+    if (helpText === "") return null;
+
+    const help = document.createElement("div");
+    help.className = "grasp-field-help";
+    help.textContent = helpText;
+    return help;
+  }
+
+  function renderValueWithLineBreaks(value) {
+    return escapeHtml(String(value ?? "")).replace(/\n/g, "<br>");
+  }
+
+  function renderLabelWithLineBreaks(labelText) {
+    return renderValueWithLineBreaks(labelText);
+  }
+
   function isStructuralField(field) {
     const t = String(field?.type || "").toLowerCase();
     return t === "divider" || t === "hr" || t === "single_parent_toggle";
@@ -944,7 +962,7 @@ Notes:
     const label = document.createElement("label");
     label.className = "grasp-label";
     label.setAttribute("for", `fld_${field.name}`);
-    label.innerHTML = `${escapeHtml(field.label)}${fieldIsRequired(field) ? ' <span class="req">*</span>' : ""}`;
+    label.innerHTML = `${renderLabelWithLineBreaks(field.label)}${fieldIsRequired(field) ? ' <span class="req">*</span>' : ""}`;
 
     const input = createInput(field);
     const err = document.createElement("div");
@@ -954,6 +972,11 @@ Notes:
 
     wrap.appendChild(label);
     wrap.appendChild(input);
+
+    const screenOnlyHelp = renderScreenOnlyHelp(field);
+    if (screenOnlyHelp) {
+      wrap.appendChild(screenOnlyHelp);
+    }
 
     // Waitlist: add sentence-style inline notes under Current Attendance inputs
     const noteText = waitlistAttendanceInlineNote(field.name);
@@ -1152,7 +1175,7 @@ Notes:
             );
             value = opt ? opt.label : (value ?? "");
           }
-          parts.push(`<tr><td class='grasp-preview-label'>${escapeHtml(label)}${hintHtml}</td><td class='grasp-preview-value'>${escapeHtml(value ?? "")}</td></tr>`);
+          parts.push(`<tr><td class='grasp-preview-label'>${renderLabelWithLineBreaks(label)}${hintHtml}</td><td class='grasp-preview-value'>${renderValueWithLineBreaks(value)}</td></tr>`);
         }
         parts.push("</table>");
       }
@@ -1214,8 +1237,9 @@ Notes:
         for (const field of fields) {
           const label = `${field.label}${fieldIsRequired(field) ? " *" : ""}`;
           const value = fieldDisplayValue(field);
+          const valueClass = field.type === "textarea" ? "grasp-kv-value grasp-kv-multiline" : "grasp-kv-value";
           parts.push(
-            `<tr><td class="grasp-kv-label">${escapeHtml(label)}</td><td class="grasp-kv-value">${escapeHtml(value)}</td></tr>`,
+            `<tr><td class="grasp-kv-label">${renderLabelWithLineBreaks(label)}</td><td class="${valueClass}">${renderValueWithLineBreaks(value)}</td></tr>`,
           );
         }
         parts.push('</tbody></table>');

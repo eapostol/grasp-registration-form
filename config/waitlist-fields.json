@@ -271,8 +271,10 @@
           "fields": [
             {
               "name": "allergies_special_needs",
-              "label": "Please list any allergies and/or special needs your child may have or need assistance with",
+              "label": "Does your child have any specific needs, accommodations, or supports that we should know about to ensure they thrive in our program?\n\nPlease list allergies, anaphylaxis or diagnosis:",
               "type": "textarea",
+              "default": "no known allergies, anaphylaxis, or known diagnoses",
+              "screenHelp": "Please list one item per line.",
               "required": false
             }
           ]
