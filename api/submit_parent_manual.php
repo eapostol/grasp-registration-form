@@ -57,6 +57,19 @@ $data = $payload['data'] ?? [];
 // HTML body: server-rendered, Gmail-safe print layout (PDF-like)
 $emailHtml = '';
 $configPath = realpath(__DIR__ . '/../config/parent-manual-fields.json');
+// Reject old tabs before writing submissions or sending a revised PDF.
+$manualConfig = $configPath ? json_decode(file_get_contents($configPath), true) : null;
+$expectedRevision = $manualConfig['manual']['revision'] ?? '';
+if ($expectedRevision === '') {
+  http_response_code(500);
+  echo json_encode(['ok' => false, 'message' => 'Parent Manual configuration is unavailable.']);
+  exit;
+}
+if (($payload['manualRevision'] ?? '') !== $expectedRevision) {
+  http_response_code(409);
+  echo json_encode(['ok' => false, 'message' => 'The Parent Manual has changed. Reload this page, review the updated manual and enter fresh acknowledgements before submitting.']);
+  exit;
+}
 if ($configPath) {
   $emailHtml = EmailPrintTemplate::renderParentManualWithAttachmentNotice($configPath, (is_array($data) ? $data : []), ['formTitle' => 'GRASP Parent Manual Agreement', 'submittedAt' => ($submittedAt ?: '')]);
 }

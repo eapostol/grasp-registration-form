@@ -1,11 +1,12 @@
 {
   "formId": "grasp_parent_manual",
   "title": "GRASP Parent Manual / Handbook Agreement",
-  "version": 1,
+  "version": 2,
   "manual": {
-    "pageCount": 32,
+    "pageCount": 33,
     "pageImagePath": "./assets/pages/page-{page:02d}.jpg",
-    "pdfPath": "./assets/GRASP-parent-manual-2026.pdf"
+    "pdfPath": "./assets/GRASP-parent-manual-2026.pdf",
+    "revision": "2026-sept-safe-arrival-f7023a990a69"
   },
   "steps": [
     {
@@ -27,13 +28,13 @@
               "placement": {
                 "page": 9,
                 "rect": {
-                  "x": 0.852941,
-                  "y": 0.444848,
-                  "w": 0.147059,
-                  "h": 0.065657
+                  "x": 0.824837,
+                  "y": 0.554886,
+                  "w": 0.075572,
+                  "h": 0.018172
                 }
               },
-              "sectionTitle": "The Board of Directors (“BOD”)"
+              "sectionTitle": "Participation & Communication"
             },
             {
               "name": "pm_initials_p10_01",
@@ -45,10 +46,10 @@
               "placement": {
                 "page": 10,
                 "rect": {
-                  "x": 0.852941,
-                  "y": 0.310758,
-                  "w": 0.147059,
-                  "h": 0.065657
+                  "x": 0.848856,
+                  "y": 0.372576,
+                  "w": 0.075572,
+                  "h": 0.018336
                 }
               },
               "sectionTitle": "Hours of Operation"
@@ -61,15 +62,15 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 11,
+                "page": 12,
                 "rect": {
-                  "x": 0.848431,
-                  "y": 0.908636,
-                  "w": 0.147059,
-                  "h": 0.065657
+                  "x": 0.828023,
+                  "y": 0.244747,
+                  "w": 0.075572,
+                  "h": 0.018247
                 }
               },
-              "sectionTitle": "Refund of Fees"
+              "sectionTitle": "Registration, Fees & Deposits"
             },
             {
               "name": "pm_initials_p11_02",
@@ -81,13 +82,13 @@
               "placement": {
                 "page": 11,
                 "rect": {
-                  "x": 0.852941,
-                  "y": 0.218182,
-                  "w": 0.147059,
-                  "h": 0.065657
+                  "x": 0.83366,
+                  "y": 0.327121,
+                  "w": 0.075572,
+                  "h": 0.018336
                 }
               },
-              "sectionTitle": "Registration, Fees & Deposits"
+              "sectionTitle": "Refund of Fees"
             },
             {
               "name": "pm_initials_p13_01",
@@ -99,10 +100,10 @@
               "placement": {
                 "page": 13,
                 "rect": {
-                  "x": 0.852941,
-                  "y": 0.068333,
-                  "w": 0.147059,
-                  "h": 0.065657
+                  "x": 0.869526,
+                  "y": 0.777412,
+                  "w": 0.075572,
+                  "h": 0.01826
                 }
               },
               "sectionTitle": "Admissions & Withdrawal (enrollment package review)"
@@ -115,15 +116,15 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 13,
+                "page": 14,
                 "rect": {
-                  "x": 0.852941,
-                  "y": 0.934343,
-                  "w": 0.147059,
-                  "h": 0.065657
+                  "x": 0.84232,
+                  "y": 0.789053,
+                  "w": 0.075572,
+                  "h": 0.018285
                 }
               },
-              "sectionTitle": "Admissions & Withdrawal (withdrawal and discharge)"
+              "sectionTitle": "Meal Allergies and Anaphylaxis"
             },
             {
               "name": "pm_initials_p15_01",
@@ -133,12 +134,12 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 15,
+                "page": 16,
                 "rect": {
-                  "x": 0.852941,
-                  "y": 0.261061,
-                  "w": 0.147059,
-                  "h": 0.065657
+                  "x": 0.848039,
+                  "y": 0.063068,
+                  "w": 0.075572,
+                  "h": 0.018235
                 }
               },
               "sectionTitle": "Requirements regarding communications with parents"
@@ -151,12 +152,12 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 15,
+                "page": 16,
                 "rect": {
-                  "x": 0.841765,
-                  "y": 0.636061,
-                  "w": 0.147059,
-                  "h": 0.065657
+                  "x": 0.852533,
+                  "y": 0.572614,
+                  "w": 0.074346,
+                  "h": 0.018323
                 }
               },
               "sectionTitle": "Wait List Policy"
@@ -169,12 +170,12 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 20,
+                "page": 21,
                 "rect": {
-                  "x": 0.852941,
-                  "y": 0.691061,
-                  "w": 0.147059,
-                  "h": 0.065657
+                  "x": 0.836111,
+                  "y": 0.60601,
+                  "w": 0.075572,
+                  "h": 0.01826
                 }
               },
               "sectionTitle": "Departure & Late Fees"
@@ -187,12 +188,12 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 21,
+                "page": 22,
                 "rect": {
-                  "x": 0.852941,
-                  "y": 0.631212,
-                  "w": 0.147059,
-                  "h": 0.065657
+                  "x": 0.840768,
+                  "y": 0.624242,
+                  "w": 0.075572,
+                  "h": 0.01821
                 }
               },
               "sectionTitle": "Health Policy"
@@ -205,12 +206,12 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 22,
+                "page": 23,
                 "rect": {
-                  "x": 0.852941,
-                  "y": 0.578485,
-                  "w": 0.147059,
-                  "h": 0.065657
+                  "x": 0.828758,
+                  "y": 0.636389,
+                  "w": 0.075572,
+                  "h": 0.018184
                 }
               },
               "sectionTitle": "Accidents"
@@ -223,12 +224,12 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 23,
+                "page": 25,
                 "rect": {
-                  "x": 0.852941,
-                  "y": 0.774242,
-                  "w": 0.147059,
-                  "h": 0.065657
+                  "x": 0.843954,
+                  "y": 0.200619,
+                  "w": 0.075572,
+                  "h": 0.018285
                 }
               },
               "sectionTitle": "Behaviour Guidance"
@@ -241,12 +242,12 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 24,
+                "page": 25,
                 "rect": {
-                  "x": 0.852941,
-                  "y": 0.033939,
-                  "w": 0.147059,
-                  "h": 0.065657
+                  "x": 0.841503,
+                  "y": 0.485505,
+                  "w": 0.082925,
+                  "h": 0.018285
                 }
               },
               "sectionTitle": "Legal Requirements Regarding Suspected Child Abuse (CFSA s.72)"
@@ -259,12 +260,12 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 26,
+                "page": 28,
                 "rect": {
-                  "x": 0.840196,
-                  "y": 0.78,
-                  "w": 0.147059,
-                  "h": 0.065657
+                  "x": 0.85098,
+                  "y": 0.344545,
+                  "w": 0.075572,
+                  "h": 0.018336
                 }
               },
               "sectionTitle": "Complaint and Conflict Resolution"
@@ -277,15 +278,33 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 28,
+                "page": 29,
                 "rect": {
-                  "x": 0.852941,
-                  "y": 0.266515,
-                  "w": 0.147059,
-                  "h": 0.065657
+                  "x": 0.834804,
+                  "y": 0.746667,
+                  "w": 0.075572,
+                  "h": 0.018247
                 }
               },
               "sectionTitle": "Bussing"
+            },
+            {
+              "name": "pm_initials_safe_arrival",
+              "label": "Initials",
+              "type": "text",
+              "inputType": "text",
+              "required": true,
+              "kind": "initials",
+              "placement": {
+                "page": 17,
+                "rect": {
+                  "x": 0.849673,
+                  "y": 0.036616,
+                  "w": 0.074346,
+                  "h": 0.018283
+                }
+              },
+              "sectionTitle": "Safe Arrival & Dismissal Policy & Procedure"
             }
           ]
         },
@@ -301,12 +320,12 @@
               "required": true,
               "kind": "printed_name",
               "placement": {
-                "page": 32,
+                "page": 33,
                 "rect": {
-                  "x": 0.083784,
-                  "y": 0.18798,
-                  "w": 0.245039,
-                  "h": 0.027778
+                  "x": 0.08083,
+                  "y": 0.188449,
+                  "w": 0.25181,
+                  "h": 0.022727
                 }
               }
             },
@@ -319,12 +338,12 @@
               "requiredForSubmit": true,
               "kind": "signature",
               "placement": {
-                "page": 32,
+                "page": 33,
                 "rect": {
-                  "x": 0.062549,
-                  "y": 0.327121,
-                  "w": 0.359477,
-                  "h": 0.027778
+                  "x": 0.069281,
+                  "y": 0.292995,
+                  "w": 0.281127,
+                  "h": 0.022727
                 }
               }
             },
@@ -337,12 +356,12 @@
               "kind": "printed_name",
               "prefillFrom": "pm_ack_printed_name",
               "placement": {
-                "page": 32,
+                "page": 33,
                 "rect": {
-                  "x": 0.405294,
-                  "y": 0.327121,
-                  "w": 0.245098,
-                  "h": 0.027778
+                  "x": 0.385049,
+                  "y": 0.292995,
+                  "w": 0.24183,
+                  "h": 0.022727
                 }
               }
             },
@@ -355,12 +374,12 @@
               "defaultToday": true,
               "kind": "date",
               "placement": {
-                "page": 32,
+                "page": 33,
                 "rect": {
-                  "x": 0.665882,
-                  "y": 0.327121,
-                  "w": 0.179739,
-                  "h": 0.027778
+                  "x": 0.651356,
+                  "y": 0.292995,
+                  "w": 0.24183,
+                  "h": 0.022727
                 }
               }
             },
@@ -374,12 +393,12 @@
               "officeOnly": true,
               "kind": "office_signature",
               "placement": {
-                "page": 32,
+                "page": 33,
                 "rect": {
-                  "x": 0.062549,
-                  "y": 0.44909,
-                  "w": 0.408497,
-                  "h": 0.027778
+                  "x": 0.069281,
+                  "y": 0.380154,
+                  "w": 0.281078,
+                  "h": 0.022727
                 }
               }
             },
@@ -393,12 +412,12 @@
               "officeOnly": true,
               "kind": "office_date",
               "placement": {
-                "page": 32,
+                "page": 33,
                 "rect": {
-                  "x": 0.474314,
-                  "y": 0.44909,
-                  "w": 0.212418,
-                  "h": 0.027778
+                  "x": 0.385049,
+                  "y": 0.380154,
+                  "w": 0.241863,
+                  "h": 0.022727
                 }
               }
             }

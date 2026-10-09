@@ -1,0 +1,21 @@
+{
+  "status": "resolved",
+  "field": {
+    "name": "pm_initials_safe_arrival",
+    "label": "Initials",
+    "type": "text",
+    "inputType": "text",
+    "required": true,
+    "kind": "initials",
+    "placement": {
+      "page": 17,
+      "rect": {
+        "x": 0.849673,
+        "y": 0.036616,
+        "w": 0.074346,
+        "h": 0.018283
+      }
+    },
+    "sectionTitle": "Safe Arrival & Dismissal Policy & Procedure"
+  }
+}
