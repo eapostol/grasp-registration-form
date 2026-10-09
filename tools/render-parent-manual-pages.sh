@@ -23,21 +23,51 @@ DPI="${2:-110}"
 JPEG_QUALITY="${3:-82}"
 
 OUTDIR="parent-manual-form/assets/pages"
-TMPDIR="$(mktemp -d)"
+CONFIG="config/parent-manual-fields.json"
 
-if ! command -v pdftoppm >/dev/null 2>&1; then
-  echo "pdftoppm not found. Install poppler-utils:"
-  echo "  sudo apt-get update && sudo apt-get install -y poppler-utils"
+# Validate everything before touching the existing images or configuration.
+[[ -r "$PDF_PATH" ]] || { echo "PDF not readable: $PDF_PATH" >&2; exit 1; }
+[[ "$DPI" =~ ^[0-9]+([.][0-9]+)?$ ]] && awk "BEGIN {exit !($DPI > 0)}" || {
+  echo "Invalid DPI: $DPI (expected a positive number)" >&2
   exit 1
-fi
-
-mkdir -p "$OUTDIR"
-rm -f "$OUTDIR"/page-*.jpg
-
+}
 if [[ ! "$JPEG_QUALITY" =~ ^[0-9]+$ ]] || [ "$JPEG_QUALITY" -lt 1 ] || [ "$JPEG_QUALITY" -gt 100 ]; then
   echo "Invalid jpeg-quality: $JPEG_QUALITY (expected integer 1-100)"
   exit 1
 fi
+
+for tool in pdftoppm pdfinfo python3; do
+  command -v "$tool" >/dev/null 2>&1 || { echo "Required tool not found: $tool" >&2; exit 1; }
+done
+expected_count=$(LC_ALL=C pdfinfo "$PDF_PATH" | awk '/^Pages:/ {print $2}')
+[[ "$expected_count" =~ ^[1-9][0-9]*$ ]] || { echo "Cannot determine PDF page count" >&2; exit 1; }
+python3 -c 'import json,sys; json.load(open(sys.argv[1], encoding="utf-8"))' "$CONFIG"
+
+# Keep staging and the old images on the same filesystem for directory renames.
+mkdir -p "$(dirname "$OUTDIR")"
+TMPDIR="$(mktemp -d "$(dirname "$OUTDIR")/.pages-render.XXXXXX")"
+pages_installed=false
+config_installed=false
+cleanup() {
+  local status=$?
+  trap - EXIT HUP INT TERM
+  if [[ "$status" -ne 0 ]]; then
+    if [[ "$pages_installed" == true ]]; then rm -rf -- "$OUTDIR"; fi
+    if [[ -d "$TMPDIR/previous-pages" ]]; then mv -- "$TMPDIR/previous-pages" "$OUTDIR"; fi
+    if [[ "$config_installed" == true ]]; then mv -- "$TMPDIR/previous-config.json" "$CONFIG"; fi
+  fi
+  rm -rf -- "$TMPDIR"
+  exit "$status"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' HUP TERM
+mkdir "$TMPDIR/pages"
+if [[ -d "$OUTDIR" ]]; then
+  cp -a -- "$OUTDIR/." "$TMPDIR/pages/"
+  rm -f -- "$TMPDIR/pages"/page-*.jpg
+fi
+cp -- "$CONFIG" "$TMPDIR/previous-config.json"
 
 echo "Rendering pages from: $PDF_PATH (DPI=$DPI, JPEG_QUALITY=$JPEG_QUALITY)"
 pdftoppm -jpeg -jpegopt "quality=$JPEG_QUALITY" -r "$DPI" "$PDF_PATH" "$TMPDIR/page" >/dev/null
@@ -50,29 +80,37 @@ for f in "$TMPDIR"/page-*.jpg; do
   # page-1.jpg -> 1
   num="${base#page-}"
   num="${num%.jpg}"
+  [[ "$num" =~ ^[0-9]+$ ]] || { echo "Unexpected rendered filename: $base" >&2; exit 1; }
+  # Poppler pads page numbers; 08 and 09 must be interpreted as decimal.
+  num=$((10#$num))
+  [[ "$num" -ge 1 && "$num" -le "$expected_count" ]] || { echo "Unexpected page number: $num" >&2; exit 1; }
   padded="$(printf "%02d" "$num")"
-  mv "$f" "$OUTDIR/page-$padded.jpg"
+  [[ -s "$f" && ! -e "$TMPDIR/pages/page-$padded.jpg" ]] || { echo "Empty or duplicate rendered page: $num" >&2; exit 1; }
+  mv -- "$f" "$TMPDIR/pages/page-$padded.jpg"
   count=$((count+1))
 done
 
-rm -rf "$TMPDIR"
+[[ "$count" -eq "$expected_count" ]] || { echo "Rendered $count pages; expected $expected_count" >&2; exit 1; }
+for ((page=1; page<=expected_count; page++)); do
+  printf -v padded '%02d' "$page"
+  [[ -s "$TMPDIR/pages/page-$padded.jpg" ]] || { echo "Missing rendered page: $page" >&2; exit 1; }
+done
 
-echo "Rendered $count pages into $OUTDIR"
-
-# Update pageCount in config JSON (requires python3)
-if command -v python3 >/dev/null 2>&1; then
-  python3 - <<'PY'
-import glob, json
-cfg_path="config/parent-manual-fields.json"
-with open(cfg_path,"r",encoding="utf-8") as f:
+python3 - "$CONFIG" "$TMPDIR/config.json" "$count" <<'PY'
+import json, sys
+with open(sys.argv[1],"r",encoding="utf-8") as f:
     data=json.load(f)
-pages=sorted(glob.glob("parent-manual-form/assets/pages/page-*.jpg"))
-data.setdefault("manual",{})["pageCount"]=len(pages)
-with open(cfg_path,"w",encoding="utf-8") as f:
+data.setdefault("manual",{})["pageCount"]=int(sys.argv[3])
+with open(sys.argv[2],"w",encoding="utf-8") as f:
     json.dump(data,f,indent=2)
     f.write("\n")
-print(f"Updated {cfg_path}: manual.pageCount={len(pages)}")
 PY
-else
-  echo "python3 not found. Please update config/parent-manual-fields.json manual.pageCount manually."
-fi
+
+# Publish only after rendering and configuration preparation succeed.
+if [[ -d "$OUTDIR" ]]; then mv -- "$OUTDIR" "$TMPDIR/previous-pages"; fi
+mv -- "$TMPDIR/pages" "$OUTDIR"
+pages_installed=true
+mv -- "$TMPDIR/config.json" "$CONFIG"
+config_installed=true
+echo "Rendered $count pages into $OUTDIR"
+echo "Updated $CONFIG: manual.pageCount=$count"
