@@ -60,7 +60,7 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     line-height: 1;
-    transform: translate(-15,10);
+    transform: none;
   }
 
   /* Bottom-right page number */

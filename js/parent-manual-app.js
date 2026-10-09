@@ -127,6 +127,7 @@
     const plain = JSON.stringify({
       sessionId,
       updatedAt: new Date().toISOString(),
+      manualRevision: config.manual.revision,
       data: stateObj,
     });
 
@@ -163,7 +164,7 @@
       const plain = await decryptData(best.payload);
       const decoded = JSON.parse(plain);
       if (!decoded || typeof decoded !== "object") return null;
-      return decoded.data || {};
+      return { ...decoded, data: decoded.data || {}, encryptedPayload: best.payload };
     } catch (e) {
       console.warn("[GRASP][parent-manual] draft decrypt/parse failed", e);
       return null;
@@ -201,6 +202,7 @@
   const ZOOM_MIN = 0.75;
   const ZOOM_MAX = 1.75;
   const ZOOM_STEP = 0.1;
+  let stopDocumentPan = () => {};
 
   function readZoom() {
     const raw = localStorage.getItem(ZOOM_STORAGE_KEY);
@@ -223,10 +225,32 @@
     if (!pages) return;
     const valueEl = els.zoomValue();
     const final = clampZoom(z);
+    stopDocumentPan();
 
-    // Prefer CSS zoom (Chrome/Edge). This keeps layout + overlays aligned.
+    const scroller = els.scroll();
+    scroller.classList.toggle("pm-pan-enabled", final > 1);
+    const previous = window.__pmZoom || 1;
+    const padding = getComputedStyle(scroller);
+    const viewport = scroller.getBoundingClientRect();
+    const anchorX = viewport.left + scroller.clientLeft + parseFloat(padding.paddingLeft);
+    const anchorY = viewport.top + scroller.clientTop + parseFloat(padding.paddingTop);
+    const before = pages.getBoundingClientRect();
+    const documentX = (anchorX - before.left) / previous;
+    const documentY = (anchorY - before.top) / previous;
+
+    // Auto-width would shrink by the zoom factor and cancel enlargement.
+    // Size in unzoomed pixels, then scale images AND their overlay fields together.
+    const available = scroller.clientWidth - parseFloat(padding.paddingLeft) - parseFloat(padding.paddingRight);
+    pages.style.width = `${Math.min(900, available)}px`;
     pages.style.zoom = String(final);
 
+    // Keep the same reading position at the top-left of the viewport.
+    const after = pages.getBoundingClientRect();
+    scroller.scrollLeft += after.left + documentX * final - anchorX;
+    scroller.scrollTop += after.top + documentY * final - anchorY;
+
+    if (els.zoomOut()) els.zoomOut().disabled = final <= ZOOM_MIN;
+    if (els.zoomIn()) els.zoomIn().disabled = final >= ZOOM_MAX;
     if (valueEl) valueEl.textContent = `${Math.round(final * 100)}%`;
     window.__pmZoom = final;
     saveZoom(final);
@@ -244,6 +268,7 @@
     if (out) out.addEventListener("click", dec);
     if (inn) inn.addEventListener("click", inc);
     if (reset) reset.addEventListener("click", res);
+    window.addEventListener("resize", () => applyZoom(window.__pmZoom || 1));
 
     // Keyboard shortcuts: Ctrl/Cmd + +/- and Ctrl/Cmd + 0
     window.addEventListener("keydown", (e) => {
@@ -252,6 +277,63 @@
       if (e.key === "+" || e.key === "=") { e.preventDefault(); inc(); }
       if (e.key === "-" || e.key === "_") { e.preventDefault(); dec(); }
       if (e.key === "0") { e.preventDefault(); res(); }
+    });
+  }
+
+  function bindDocumentPan() {
+    const scroller = els.scroll();
+    let pan = null;
+    let suppressClick = false;
+    const interactive = ".pm-initials-display, input, textarea, select, button, a, [role='button'], [contenteditable]";
+
+    const stop = () => {
+      if (!pan) return;
+      const previous = pan;
+      pan = null;
+      suppressClick = previous.dragging;
+      scroller.classList.remove("pm-panning");
+      if (scroller.hasPointerCapture(previous.id)) scroller.releasePointerCapture(previous.id);
+    };
+    stopDocumentPan = stop;
+
+    scroller.addEventListener("pointerdown", (event) => {
+      suppressClick = false;
+      if (event.pointerType !== "mouse" || event.button !== 0 || (window.__pmZoom || 1) <= 1) return;
+      if (event.target.closest(interactive)) return;
+      // Leave the native scrollbars to the browser.
+      const rect = scroller.getBoundingClientRect();
+      if (event.clientX >= rect.left + scroller.clientLeft + scroller.clientWidth ||
+          event.clientY >= rect.top + scroller.clientTop + scroller.clientHeight) return;
+      pan = { id: event.pointerId, x: event.clientX, y: event.clientY,
+        left: scroller.scrollLeft, top: scroller.scrollTop, dragging: false };
+      scroller.setPointerCapture(event.pointerId);
+    });
+    scroller.addEventListener("pointermove", (event) => {
+      if (!pan || pan.id !== event.pointerId) return;
+      if (!(event.buttons & 1)) { stop(); return; }
+      const dx = event.clientX - pan.x;
+      const dy = event.clientY - pan.y;
+      if (!pan.dragging && Math.hypot(dx, dy) < 4) return;
+      pan.dragging = true;
+      scroller.classList.add("pm-panning");
+      event.preventDefault();
+      scroller.scrollLeft = pan.left - dx;
+      scroller.scrollTop = pan.top - dy;
+    });
+    for (const name of ["pointerup", "pointercancel", "lostpointercapture"]) {
+      scroller.addEventListener(name, (event) => {
+        if (pan && pan.id === event.pointerId) stop();
+      });
+    }
+    window.addEventListener("blur", stop);
+    scroller.addEventListener("click", (event) => {
+      if (!suppressClick) return;
+      suppressClick = false;
+      event.preventDefault();
+      event.stopPropagation();
+    }, true);
+    scroller.addEventListener("dragstart", (event) => {
+      if ((window.__pmZoom || 1) > 1 && event.target.matches(".pm-page img")) event.preventDefault();
     });
   }
 
@@ -475,7 +557,7 @@ async function prefillFromPackageDraftIfDebug() {
 
     if (field.kind === "initials") {
       input.maxLength = 4;
-      input.placeholder = "IN";
+      input.placeholder = "--";
       input.autocomplete = "off";
     }
 
@@ -532,7 +614,7 @@ async function prefillFromPackageDraftIfDebug() {
       displayEl.textContent = v;
       displayEl.classList.remove("pm-initials-empty");
     } else {
-      displayEl.textContent = "IN";
+      displayEl.textContent = "--";
       displayEl.classList.add("pm-initials-empty");
     }
   }
@@ -1075,6 +1157,7 @@ async function prefillFromPackageDraftIfDebug() {
       const payload = {
         sessionId: sessionId || ensureSessionId(),
         submittedAt: new Date().toISOString(),
+        manualRevision: config.manual.revision,
         data: window.formState,
         emailHtml: buildEmailHtmlSummary(),
       };
@@ -1151,6 +1234,30 @@ async function prefillFromPackageDraftIfDebug() {
     }
   }
 
+  function showRevisionNotice() {
+    const dialog = document.createElement("dialog");
+    dialog.id = "pm-revision-notice";
+    dialog.className = "pm-revision-dialog";
+    dialog.setAttribute("aria-labelledby", "pm-revision-title");
+    dialog.setAttribute("aria-describedby", "pm-revision-description");
+    dialog.innerHTML = `
+      <h2 id="pm-revision-title">The Parent Manual has changed</h2>
+      <p id="pm-revision-description">Your saved names have been kept. Please review
+        the updated manual and enter fresh initials, signature and date.
+        Your previous draft has been preserved on this device.</p>
+      <div class="pm-revision-actions"><button type="button" autofocus>OK</button></div>
+    `;
+    dialog.querySelector("button").addEventListener("click", () => dialog.close());
+    dialog.addEventListener("close", async () => {
+      window.formState.__pm_revisionNoticeDismissedFor = config.manual.revision;
+      await doSave();
+      dialog.remove();
+      els.btnSave()?.focus();
+    }, { once: true });
+    document.body.appendChild(dialog);
+    dialog.showModal();
+  }
+
   // -----------------------------
   // Init
   // -----------------------------
@@ -1178,12 +1285,38 @@ async function prefillFromPackageDraftIfDebug() {
 
       // load draft
       const draft = await loadDraftFromStorage(sessionId);
-      if (draft && typeof draft === "object") {
-        window.formState = draft;
+      if (!config.manual?.revision) throw new Error("Manual revision is missing");
+      if (draft && typeof draft.data === "object" && !Array.isArray(draft.data)) {
+        window.formState = { ...draft.data };
+        if (draft.manualRevision !== config.manual.revision) {
+          // Archive the encrypted original BEFORE the revised draft can overwrite it.
+          // A storage failure aborts initialization and leaves the original untouched.
+          const archiveKey = "graspParentManualArchivedDraft:" + sessionId + ":" +
+            encodeURIComponent(draft.manualRevision || "unversioned");
+          if (!window.localStorage.getItem(archiveKey)) {
+            window.localStorage.setItem(archiveKey, JSON.stringify({
+              archivedAt: new Date().toISOString(),
+              manualRevision: draft.manualRevision || null,
+              encryptedPayload: draft.encryptedPayload,
+            }));
+          }
+          flattenFields(config).forEach((field) => {
+            if (field.officeOnly || ["initials", "signature", "date"].includes(field.kind)) {
+              delete window.formState[field.name];
+            }
+          });
+          delete window.formState.__pm_scrolledToBottom;
+          delete window.formState.__pm_scrollTop;
+          window.formState.__pm_requiresFreshAcknowledgements = true;
+          delete window.formState.__pm_revisionNoticeDismissedFor;
+        }
       }
 
+
       debugEnabled = detectDebugMode();
-      await prefillFromPackageDraftIfDebug();
+      if (!window.formState.__pm_requiresFreshAcknowledgements) {
+        await prefillFromPackageDraftIfDebug();
+      }
 
       // reach bottom state
       hasReachedBottom = !!window.formState.__pm_scrolledToBottom;
@@ -1191,7 +1324,7 @@ async function prefillFromPackageDraftIfDebug() {
       // defaults (date)
       const allFields = flattenFields(config);
       allFields.forEach((f) => {
-        if (f.defaultToday && isEmpty(window.formState[f.name])) {
+        if (f.defaultToday && !window.formState.__pm_requiresFreshAcknowledgements && isEmpty(window.formState[f.name])) {
           window.formState[f.name] = todayISO();
         }
         if (f.prefillFrom && isEmpty(window.formState[f.name])) {
@@ -1203,6 +1336,7 @@ async function prefillFromPackageDraftIfDebug() {
       renderPages();
     applyZoom(readZoom());
     bindZoomControls();
+      bindDocumentPan();
       bindScrollTracking();
       restoreScrollPosition();
 
@@ -1251,6 +1385,10 @@ async function prefillFromPackageDraftIfDebug() {
 
       // initial save to ensure defaults persist
       await doSave();
+      if (draft && window.formState.__pm_requiresFreshAcknowledgements &&
+          window.formState.__pm_revisionNoticeDismissedFor !== config.manual.revision) {
+        showRevisionNotice();
+      }
     } catch (err) {
       console.error("[GRASP][parent-manual] init error:", err);
       alert("Unable to initialize the Parent Manual form. Please refresh and try again.");
