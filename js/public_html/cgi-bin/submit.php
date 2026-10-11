@@ -1,5 +1,8 @@
 <?php
 header("Content-Type: application/json");
+header("Cache-Control: no-store");
+header("X-Content-Type-Options: nosniff");
+require_once dirname(__DIR__, 3) . '/api/lib/ContactAdminSecurity.php';
 
 function respond($status, $payload)
 {
@@ -12,9 +15,11 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     respond(405, ["message" => "Method not allowed."]);
 }
 
-$fullName = isset($_POST["fullName"]) ? trim($_POST["fullName"]) : "";
-$email = isset($_POST["email"]) ? trim($_POST["email"]) : "";
-$message = isset($_POST["message"]) ? trim($_POST["message"]) : "";
+$fullName = is_string($_POST["fullName"] ?? null) ? trim($_POST["fullName"]) : "";
+$email = is_string($_POST["email"] ?? null) ? trim($_POST["email"]) : "";
+$message = is_string($_POST["message"] ?? null) ? trim($_POST["message"]) : "";
+$token = is_string($_POST['g-recaptcha-response'] ?? null)
+    ? trim($_POST['g-recaptcha-response']) : '';
 
 $errors = [];
 
@@ -34,6 +39,10 @@ if ($message === "") {
     $errors["message"] = "Message cannot be blank.";
 }
 
+if (strlen($fullName) > 200 || strlen($email) > 254 || strlen($message) > 10000) {
+    respond(422, ['message' => 'Please shorten your name, email, or message.']);
+}
+
 if (!empty($errors)) {
     respond(422, [
         "message" => "Please correct the highlighted fields.",
@@ -41,11 +50,20 @@ if (!empty($errors)) {
     ]);
 }
 
-// Obfuscate recipient to avoid exposing email address plainly.
-$recipient = "";
-foreach ([101, 100, 64, 101, 100, 97, 112, 111, 115, 116, 111, 108, 46, 99, 111, 109] as $code) {
-    $recipient .= chr($code);
+if ($token === '' || strlen($token) > 16384) {
+    respond(422, ['message' => 'Please complete the verification checkbox.']);
 }
+
+try {
+    $contactConfig = contactAdminConfig();
+    if (!contactAdminVerify($contactConfig, $token)) {
+        respond(422, ['message' => 'Verification failed or expired. Please complete the checkbox again.']);
+    }
+} catch (Throwable $error) {
+    // Never include Google responses, tokens, config paths, or credentials.
+    respond(503, ['message' => 'Contact verification is temporarily unavailable. Please try again later.']);
+}
+$recipient = $contactConfig['recipient'];
 
 $cleanName = htmlspecialchars($fullName, ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8");
 $cleanEmail = filter_var($email, FILTER_SANITIZE_EMAIL);
