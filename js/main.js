@@ -2,8 +2,49 @@
 (function () {
   const EMAIL_REGEX =
     /^[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*@(?:[A-Za-z0-9-]+\.){1,2}[A-Za-z]{2,}$/;
-  const STYLESHEET_HREF = normalizeHref("css/contact_admin_modal.css");
+  const SCRIPT_URL = new URL(document.currentScript.src, window.location.href);
+  const STYLESHEET_HREF = new URL("../css/contact_admin_modal.css", SCRIPT_URL).href;
+  const CONFIG_URL = new URL("../api/contact_admin_config.php", SCRIPT_URL).href;
+  const SUBMIT_URL = new URL("public_html/cgi-bin/submit.php", SCRIPT_URL).href;
   const TRIGGER_TEXT = "site administrator";
+  let recaptchaLoader;
+
+  function loadRecaptcha() {
+    if (!recaptchaLoader) {
+      recaptchaLoader = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        const timer = setTimeout(() => fail(), 15000);
+        const fail = () => {
+          clearTimeout(timer);
+          script.remove();
+          reject(new Error("Verification could not load."));
+        };
+        const ready = () => {
+          window.grecaptcha.enterprise.ready(() => {
+            clearTimeout(timer);
+            resolve(window.grecaptcha.enterprise);
+          });
+        };
+        if (window.grecaptcha?.enterprise?.render) {
+          ready();
+          return;
+        }
+        script.src = "https://www.google.com/recaptcha/enterprise.js?render=explicit";
+        script.async = true;
+        script.defer = true;
+        script.onload = () => {
+          if (window.grecaptcha?.enterprise?.ready) ready();
+          else fail();
+        };
+        script.onerror = fail;
+        document.head.appendChild(script);
+      }).catch((error) => {
+        recaptchaLoader = null;
+        throw error;
+      });
+    }
+    return recaptchaLoader;
+  }
 
   function normalizeHref(href) {
     if (!href) return href;
@@ -142,6 +183,20 @@ function propagateDebugToLinks() {
     const nameField = buildField("Full Name", "text", "fullName");
     const emailField = buildField("Email", "email", "email");
     const messageField = buildField("Message", "textarea", "message");
+    nameField.input.maxLength = 200;
+    emailField.input.maxLength = 254;
+    messageField.input.maxLength = 10000;
+
+    const captchaContainer = document.createElement("div");
+    captchaContainer.className = "contact-admin-captcha";
+    const captchaHelp = document.createElement("p");
+    captchaHelp.className = "contact-admin-captcha-help";
+    captchaHelp.textContent = "Complete the verification checkbox before submitting.";
+    let captchaApi;
+    let widgetId;
+    let preparing;
+    let submitting = false;
+    let successTimer;
 
     const status = document.createElement("div");
     status.className = "contact-admin-status";
@@ -160,12 +215,15 @@ function propagateDebugToLinks() {
     submitButton.type = "submit";
     submitButton.className = "contact-admin-btn";
     submitButton.textContent = "Submit";
+    submitButton.disabled = true;
 
     actions.append(cancelButton, submitButton);
     form.append(
       nameField.wrapper,
       emailField.wrapper,
       messageField.wrapper,
+      captchaHelp,
+      captchaContainer,
       status,
       actions
     );
@@ -195,12 +253,64 @@ function propagateDebugToLinks() {
       status.dataset.tone = tone;
     };
 
+    const resetCaptcha = () => {
+      if (widgetId !== undefined) captchaApi.reset(widgetId);
+      submitButton.disabled = true;
+    };
+
+    const prepareCaptcha = () => {
+      if (preparing) return preparing;
+      setStatus("Loading verification…", "info");
+      preparing = (async () => {
+        const response = await fetch(CONFIG_URL, {
+          cache: "no-store",
+          signal: AbortSignal.timeout(15000),
+        });
+        if (!response.ok) throw new Error("Verification unavailable.");
+        const config = await response.json();
+        if (typeof config.siteKey !== "string" || !config.siteKey) {
+          throw new Error("Verification unavailable.");
+        }
+        captchaApi = await loadRecaptcha();
+        widgetId = captchaApi.render(captchaContainer, {
+          sitekey: config.siteKey,
+          size: modal.clientWidth < 370 ? "compact" : "normal",
+          callback: () => {
+            if (!submitting && overlay.classList.contains("is-visible")) {
+              submitButton.disabled = false;
+              clearStatus();
+            }
+          },
+          "expired-callback": () => {
+            submitButton.disabled = true;
+            if (!submitting) setStatus("Verification expired. Please complete the checkbox again.", "error");
+          },
+          "error-callback": () => {
+            submitButton.disabled = true;
+            if (!submitting) setStatus("Verification could not load. Check your connection and reopen this form to retry.", "error");
+          },
+        });
+        if (overlay.classList.contains("is-visible")) clearStatus();
+        else resetCaptcha();
+      })().catch(() => {
+        preparing = null;
+        submitButton.disabled = true;
+        if (overlay.classList.contains("is-visible")) {
+          setStatus("Verification is unavailable. Please close this form and try again later.", "error");
+        }
+      });
+      return preparing;
+    };
+
     const closeModal = () => {
+      if (submitting) return;
+      clearTimeout(successTimer);
       overlay.classList.remove("is-visible");
       overlay.setAttribute("aria-hidden", "true");
       clearStatus();
       clearErrors();
       form.reset();
+      resetCaptcha();
       document.removeEventListener("keydown", onEscape);
     };
 
@@ -213,6 +323,8 @@ function propagateDebugToLinks() {
       form.reset();
       nameField.input.focus();
       document.addEventListener("keydown", onEscape);
+      if (widgetId !== undefined) resetCaptcha();
+      else prepareCaptcha();
     };
 
     const onEscape = (event) => {
@@ -258,24 +370,36 @@ function propagateDebugToLinks() {
     };
 
     const submitForm = async () => {
+      if (submitting) return;
       const { isValid, values } = validate();
       if (!isValid) {
         setStatus("Please correct the highlighted fields.", "error");
         return;
       }
 
+      const token = widgetId !== undefined ? captchaApi.getResponse(widgetId) : "";
+      if (!token) {
+        setStatus("Please complete the verification checkbox.", "error");
+        return;
+      }
+
       setStatus("Sending\u2026", "info");
+      submitting = true;
       submitButton.disabled = true;
+      closeButton.disabled = true;
+      cancelButton.disabled = true;
 
       const payload = new FormData();
       payload.append("fullName", values.fullName);
       payload.append("email", values.email);
       payload.append("message", values.message);
+      payload.append("g-recaptcha-response", token);
 
       try {
-        const response = await fetch("/js/public_html/cgi-bin/submit.php", {
+        const response = await fetch(SUBMIT_URL, {
           method: "POST",
           body: payload,
+          signal: AbortSignal.timeout(20000),
         });
 
         let data;
@@ -290,7 +414,6 @@ function propagateDebugToLinks() {
             (data && data.message) ||
             "Something went wrong. Please try again later.";
           setStatus(message, "error");
-          submitButton.disabled = false;
           return;
         }
 
@@ -299,13 +422,16 @@ function propagateDebugToLinks() {
             "Your message has been sent. Thank you!",
           "success"
         );
-        setTimeout(() => {
+        successTimer = setTimeout(() => {
           closeModal();
-          submitButton.disabled = false;
         }, 800);
       } catch (_error) {
-        setStatus("Unable to send right now. Please try again shortly.", "error");
-        submitButton.disabled = false;
+        setStatus("Unable to confirm delivery. Please wait before trying again, as your message may have been sent.", "error");
+      } finally {
+        submitting = false;
+        closeButton.disabled = false;
+        cancelButton.disabled = false;
+        resetCaptcha();
       }
     };
 

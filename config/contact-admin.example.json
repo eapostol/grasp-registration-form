@@ -1,0 +1,7 @@
+{
+  "project_id": "YOUR_GOOGLE_PROJECT_ID",
+  "site_key": "YOUR_PUBLIC_CHECKBOX_SITE_KEY",
+  "api_key": "",
+  "allowed_hostnames": ["YOUR_EXACT_WEBSITE_HOSTNAME"],
+  "recipient": "administrator@example.com"
+}
