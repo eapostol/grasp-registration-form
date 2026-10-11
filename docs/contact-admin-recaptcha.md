@@ -114,6 +114,9 @@ substitutes synthetic verification in the deployed handler.
 - Browser automation was blocked by a local permission error. Visual checks of
   all pages, real mobile layout, expiration/retry interaction, and a real
   subdirectory deployment still need manual validation before rollout.
+- The site maintainer subsequently reported that a manual visual check worked.
+  Hosted staging validation remains pending; this confirmation does not establish
+  coverage of every page, device, or expiration/retry case.
 
 ## Staging, production, and handover
 
