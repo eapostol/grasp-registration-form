@@ -3,10 +3,10 @@
   "title": "GRASP Parent Manual / Handbook Agreement",
   "version": 2,
   "manual": {
-    "pageCount": 33,
-    "pageImagePath": "./assets/pages/page-{page:02d}.jpg",
-    "pdfPath": "./assets/GRASP-parent-manual-2026.pdf",
-    "revision": "2026-sept-safe-arrival-f7023a990a69"
+    "pageCount": 35,
+    "pageImagePath": "./assets/pages/page-{page:02d}.jpg?rev=2026-sept-v22-3be31968196a",
+    "pdfPath": "./assets/GRASP-parent-manual-2026.pdf?rev=2026-sept-v22-3be31968196a",
+    "revision": "2026-sept-v22-3be31968196a"
   },
   "steps": [
     {
@@ -29,9 +29,9 @@
                 "page": 9,
                 "rect": {
                   "x": 0.824837,
-                  "y": 0.554886,
+                  "y": 0.677929,
                   "w": 0.075572,
-                  "h": 0.018172
+                  "h": 0.020836
                 }
               },
               "sectionTitle": "Participation & Communication"
@@ -47,9 +47,9 @@
                 "page": 10,
                 "rect": {
                   "x": 0.848856,
-                  "y": 0.372576,
+                  "y": 0.581641,
                   "w": 0.075572,
-                  "h": 0.018336
+                  "h": 0.02076
                 }
               },
               "sectionTitle": "Hours of Operation"
@@ -65,9 +65,9 @@
                 "page": 12,
                 "rect": {
                   "x": 0.828023,
-                  "y": 0.244747,
+                  "y": 0.593194,
                   "w": 0.075572,
-                  "h": 0.018247
+                  "h": 0.020722
                 }
               },
               "sectionTitle": "Registration, Fees & Deposits"
@@ -83,9 +83,9 @@
                 "page": 11,
                 "rect": {
                   "x": 0.83366,
-                  "y": 0.327121,
+                  "y": 0.623308,
                   "w": 0.075572,
-                  "h": 0.018336
+                  "h": 0.02076
                 }
               },
               "sectionTitle": "Refund of Fees"
@@ -98,12 +98,12 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 13,
+                "page": 14,
                 "rect": {
                   "x": 0.869526,
-                  "y": 0.777412,
+                  "y": 0.329722,
                   "w": 0.075572,
-                  "h": 0.01826
+                  "h": 0.020836
                 }
               },
               "sectionTitle": "Admissions & Withdrawal (enrollment package review)"
@@ -116,12 +116,12 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 14,
+                "page": 15,
                 "rect": {
                   "x": 0.84232,
-                  "y": 0.789053,
+                  "y": 0.398144,
                   "w": 0.075572,
-                  "h": 0.018285
+                  "h": 0.020747
                 }
               },
               "sectionTitle": "Meal Allergies and Anaphylaxis"
@@ -137,9 +137,9 @@
                 "page": 16,
                 "rect": {
                   "x": 0.848039,
-                  "y": 0.063068,
+                  "y": 0.623864,
                   "w": 0.075572,
-                  "h": 0.018235
+                  "h": 0.020811
                 }
               },
               "sectionTitle": "Requirements regarding communications with parents"
@@ -152,12 +152,12 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 16,
+                "page": 17,
                 "rect": {
                   "x": 0.852533,
-                  "y": 0.572614,
+                  "y": 0.276427,
                   "w": 0.074346,
-                  "h": 0.018323
+                  "h": 0.02076
                 }
               },
               "sectionTitle": "Wait List Policy"
@@ -170,12 +170,12 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 21,
+                "page": 22,
                 "rect": {
                   "x": 0.836111,
-                  "y": 0.60601,
+                  "y": 0.693662,
                   "w": 0.075572,
-                  "h": 0.01826
+                  "h": 0.020861
                 }
               },
               "sectionTitle": "Departure & Late Fees"
@@ -188,12 +188,12 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 22,
+                "page": 23,
                 "rect": {
                   "x": 0.840768,
-                  "y": 0.624242,
+                  "y": 0.781035,
                   "w": 0.075572,
-                  "h": 0.01821
+                  "h": 0.020798
                 }
               },
               "sectionTitle": "Health Policy"
@@ -206,15 +206,15 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 23,
+                "page": 24,
                 "rect": {
                   "x": 0.828758,
-                  "y": 0.636389,
+                  "y": 0.828043,
                   "w": 0.075572,
-                  "h": 0.018184
+                  "h": 0.02076
                 }
               },
-              "sectionTitle": "Accidents"
+              "sectionTitle": "Change of Telephone No./Address or Place of Employment"
             },
             {
               "name": "pm_initials_p23_01",
@@ -224,12 +224,12 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 25,
+                "page": 26,
                 "rect": {
                   "x": 0.843954,
-                  "y": 0.200619,
+                  "y": 0.549078,
                   "w": 0.075572,
-                  "h": 0.018285
+                  "h": 0.020747
                 }
               },
               "sectionTitle": "Behaviour Guidance"
@@ -242,12 +242,12 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 25,
+                "page": 27,
                 "rect": {
                   "x": 0.841503,
-                  "y": 0.485505,
+                  "y": 0.086237,
                   "w": 0.082925,
-                  "h": 0.018285
+                  "h": 0.020798
                 }
               },
               "sectionTitle": "Legal Requirements Regarding Suspected Child Abuse (CFSA s.72)"
@@ -260,12 +260,12 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 28,
+                "page": 30,
                 "rect": {
                   "x": 0.85098,
-                  "y": 0.344545,
+                  "y": 0.065783,
                   "w": 0.075572,
-                  "h": 0.018336
+                  "h": 0.020773
                 }
               },
               "sectionTitle": "Complaint and Conflict Resolution"
@@ -278,12 +278,12 @@
               "required": true,
               "kind": "initials",
               "placement": {
-                "page": 29,
+                "page": 31,
                 "rect": {
                   "x": 0.834804,
-                  "y": 0.746667,
+                  "y": 0.448447,
                   "w": 0.075572,
-                  "h": 0.018247
+                  "h": 0.020747
                 }
               },
               "sectionTitle": "Bussing"
@@ -299,12 +299,30 @@
                 "page": 17,
                 "rect": {
                   "x": 0.849673,
-                  "y": 0.036616,
-                  "w": 0.074346,
-                  "h": 0.018283
+                  "y": 0.685331,
+                  "w": 0.075163,
+                  "h": 0.021465
                 }
               },
               "sectionTitle": "Safe Arrival & Dismissal Policy & Procedure"
+            },
+            {
+              "name": "pm_initials_waitlist_deposit",
+              "label": "Initials",
+              "type": "text",
+              "inputType": "text",
+              "required": true,
+              "kind": "initials",
+              "placement": {
+                "page": 17,
+                "rect": {
+                  "x": 0.849673,
+                  "y": 0.452866,
+                  "w": 0.074346,
+                  "h": 0.020722
+                }
+              },
+              "sectionTitle": "Wait List Policy (registration fee, deposit and withdrawal notice)"
             }
           ]
         },
@@ -320,10 +338,10 @@
               "required": true,
               "kind": "printed_name",
               "placement": {
-                "page": 33,
+                "page": 35,
                 "rect": {
                   "x": 0.08083,
-                  "y": 0.188449,
+                  "y": 0.189712,
                   "w": 0.25181,
                   "h": 0.022727
                 }
@@ -338,11 +356,11 @@
               "requiredForSubmit": true,
               "kind": "signature",
               "placement": {
-                "page": 33,
+                "page": 35,
                 "rect": {
                   "x": 0.069281,
-                  "y": 0.292995,
-                  "w": 0.281127,
+                  "y": 0.294258,
+                  "w": 0.281046,
                   "h": 0.022727
                 }
               }
@@ -356,10 +374,10 @@
               "kind": "printed_name",
               "prefillFrom": "pm_ack_printed_name",
               "placement": {
-                "page": 33,
+                "page": 35,
                 "rect": {
                   "x": 0.385049,
-                  "y": 0.292995,
+                  "y": 0.294258,
                   "w": 0.24183,
                   "h": 0.022727
                 }
@@ -374,10 +392,10 @@
               "defaultToday": true,
               "kind": "date",
               "placement": {
-                "page": 33,
+                "page": 35,
                 "rect": {
                   "x": 0.651356,
-                  "y": 0.292995,
+                  "y": 0.294258,
                   "w": 0.24183,
                   "h": 0.022727
                 }
@@ -393,11 +411,11 @@
               "officeOnly": true,
               "kind": "office_signature",
               "placement": {
-                "page": 33,
+                "page": 35,
                 "rect": {
                   "x": 0.069281,
-                  "y": 0.380154,
-                  "w": 0.281078,
+                  "y": 0.381417,
+                  "w": 0.281046,
                   "h": 0.022727
                 }
               }
@@ -412,11 +430,11 @@
               "officeOnly": true,
               "kind": "office_date",
               "placement": {
-                "page": 33,
+                "page": 35,
                 "rect": {
                   "x": 0.385049,
-                  "y": 0.380154,
-                  "w": 0.241863,
+                  "y": 0.381417,
+                  "w": 0.24183,
                   "h": 0.022727
                 }
               }
