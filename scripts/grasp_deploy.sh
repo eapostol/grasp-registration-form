@@ -126,7 +126,9 @@ backup_target() {
 }
 
 rsync_flags_for() {
-  RSYNC_FLAGS=(-rlptDz --delete --force --no-owner --no-group)
+  # Public files must remain readable even if the source checkout was created
+  # under a restrictive SSH umask. X preserves existing executable-file intent.
+  RSYNC_FLAGS=(-rlptDz --delete --force --no-owner --no-group --chmod=Du=rwx,Dgo=rx,Fu=rwX,Fgo=rX)
 
   if [[ -f "$EXCLUDES_FILE" ]]; then
     RSYNC_FLAGS+=(--exclude-from="$EXCLUDES_FILE")
