@@ -46,7 +46,7 @@ def run(output):
         cfg = cfg_response.json()
         fields = [f for s in cfg["steps"] for g in s.get("groups",[]) for f in g["fields"]]
         initials = [f for f in fields if f.get("kind") == "initials"]
-        assert len(initials) == 16 and cfg["manual"]["pageCount"] == 33
+        assert len(initials) == 17 and cfg["manual"]["pageCount"] == 35
         assert api.get(MAILPIT + "/api/v1/messages").ok, "Local Mailpit unavailable"
         # Assert PHP routes mail through Mailpit before any submission.
         check = subprocess.run(["ddev","exec","php","-r",'echo ini_get("sendmail_path");'], cwd=ROOT, capture_output=True, text=True, check=True)
@@ -66,7 +66,7 @@ def run(output):
         page.on("dialog", lambda dialog: dialog.accept())
         url = BASE + "/parent-manual-form/"
         page.goto(url)
-        expect(page.locator(".pm-initials-display")).to_have_count(16)
+        expect(page.locator(".pm-initials-display")).to_have_count(17)
         expect(page.locator(".pm-initials-display").first).to_have_text("--")
         expect(page.locator("#pm-revision-notice")).to_have_count(0)
         passed("fresh browser has no revision notice")
@@ -158,19 +158,19 @@ def run(output):
         page.reload()
         page.locator("#pm-btn-preview").click()
         expect(page.locator("#grasp-preview-submit")).to_be_enabled()
-        expect(page.locator('img[alt^="Preview page"]')).to_have_count(33)
-        expect(page.locator(".pm-preview-overlay .pm-print-initials")).to_have_count(16)
-        assert page.locator(".pm-preview-overlay .pm-print-initials").all_text_contents()==["QA"]*16
+        expect(page.locator('img[alt^="Preview page"]')).to_have_count(35)
+        expect(page.locator(".pm-preview-overlay .pm-print-initials")).to_have_count(17)
+        assert page.locator(".pm-preview-overlay .pm-print-initials").all_text_contents()==["QA"]*17
         page.screenshot(path=str(output/"preview.png"))
         passed("completed preview and scroll restoration")
         page.locator("#grasp-preview-print").click()
         page.wait_for_function("[...document.querySelectorAll('iframe')].some(f => f.contentWindow.__testPrintInvoked)")
         frame = next(f for f in page.frames if f != page.main_frame and f.evaluate("!!window.__testPrintInvoked"))
-        assert frame.locator("img").count()==33
-        assert frame.locator(".pm-print-initials").all_text_contents()==["QA"]*16
+        assert frame.locator("img").count()==35
+        assert frame.locator(".pm-print-initials").all_text_contents()==["QA"]*17
         assert "parent-manual-print.css" in frame.content()
         (output/"browser-print.html").write_text(frame.content())
-        passed("print frame has 33 pages and initials; physical printing suppressed")
+        passed("print frame has 35 pages and initials; physical printing suppressed")
         with page.expect_response(lambda response: response.url.endswith('/api/submit_parent_manual.php'),timeout=120000) as response:
             page.locator("#grasp-preview-submit").click()
         result=response.value.json()
@@ -190,10 +190,10 @@ def run(output):
         assert len(attachments)==1
         pdf=output/"completed-manual.pdf";pdf.write_bytes(attachments[0].get_payload(decode=True))
         info=subprocess.run(["pdfinfo",str(pdf)],capture_output=True,text=True,check=True).stdout
-        assert re.search(r"Pages:\s+33\b",info)
+        assert re.search(r"Pages:\s+35\b",info)
         text=subprocess.run(["pdftotext",str(pdf),"-"],capture_output=True,text=True,check=True).stdout
-        assert len(re.findall(r"\bQA\b",text))==16 and test_name in text
-        passed("Mailpit captured email with real completed 33-page PDF and 16 initials")
+        assert len(re.findall(r"\bQA\b",text))==17 and test_name in text
+        passed("Mailpit captured email with real completed 35-page PDF and 17 initials")
         (output/"results.json").write_text(json.dumps({"passed":results,"testName":test_name,"mailpitMessageId":message["ID"],"manualRevision":cfg["manual"]["revision"],"browserErrors":browser_errors},indent=2))
         assert not browser_errors, browser_errors
         browser.close()

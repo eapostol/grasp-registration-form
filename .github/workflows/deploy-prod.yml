@@ -25,24 +25,10 @@ jobs:
         run: |
           timeout 5 bash -lc 'cat < /dev/null > /dev/tcp/${{ secrets.WHC_HOST }}/${{ secrets.WHC_PORT }}'
 
-      - name: Sync deploy script to WHC
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.WHC_HOST }}
-          username: ${{ secrets.WHC_USER }}
-          key: ${{ secrets.WHC_SSH_KEY }}
-          port: ${{ secrets.WHC_PORT }}
-          source: scripts/grasp_deploy.sh
-          target: /home/${{ secrets.WHC_USER }}/deploy/bin/
-          strip_components: 1
-
-      - name: SSH and deploy prod on WHC
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.WHC_HOST }}
-          username: ${{ secrets.WHC_USER }}
-          key: ${{ secrets.WHC_SSH_KEY }}
-          port: ${{ secrets.WHC_PORT }}
-          script: |
-            chmod +x ~/deploy/bin/grasp_deploy.sh
-            bash ~/deploy/bin/grasp_deploy.sh prod main
+      - name: Deploy to WHC over one verified SSH connection
+        env:
+          WHC_HOST: ${{ secrets.WHC_HOST }}
+          WHC_PORT: ${{ secrets.WHC_PORT }}
+          WHC_USER: ${{ secrets.WHC_USER }}
+          WHC_SSH_KEY: ${{ secrets.WHC_SSH_KEY }}
+        run: bash scripts/deploy_whc_ci.sh prod main
