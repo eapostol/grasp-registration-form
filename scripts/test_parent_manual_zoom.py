@@ -17,7 +17,7 @@ with sync_playwright() as p:
     context.route("**/*",lambda route: route.continue_() if urlsplit(route.request.url).hostname=="reg-form-project.ddev.site" else route.abort())
     page=context.new_page();errors=[];page.on("pageerror",lambda e:errors.append(str(e)))
     page.goto(BASE+"/parent-manual-form/")
-    expect(page.locator(".pm-page")).to_have_count(33)
+    expect(page.locator(".pm-page")).to_have_count(35)
     page.wait_for_function("window.__pmZoom===1")
     image=page.locator(".pm-page img").first
     def width():return image.bounding_box()["width"]
