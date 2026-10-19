@@ -22,6 +22,9 @@
   border: 1px solid #000;
   border-radius: 8px;
   padding: 24px;
+  box-sizing: border-box;
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
 }
 
@@ -125,6 +128,15 @@
   min-height: 1em;
   font-size: 0.95rem;
   margin-top: 4px;
+}
+
+.contact-admin-captcha {
+  margin: 12px 0;
+}
+
+.contact-admin-captcha-help {
+  font-size: 0.9rem;
+  margin: 8px 0;
 }
 
 .contact-admin-status[data-tone="error"] {
